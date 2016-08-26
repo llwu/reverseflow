@@ -1,7 +1,17 @@
 ## Parametric Inverses
 import tensorflow as tf
 
-## How is this going to work?
+## How to deal with approximation
+## A 'clamp' is a transformation which is applied to the input of the inverse function.
+#  Which clamps its value to the domain of the inverse input
+#  and outputs an error
+
+# What about parameters
+## The parameter space can be parametric with respect to the shape
+##
+
+# There are multiple different possible clamps
+
 class Inverse:
     def __init__(self, type, invf):
         self.type = type
