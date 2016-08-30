@@ -1,6 +1,17 @@
 ## Parametric Inverses
 import tensorflow as tf
 
+def is_constant(tensor):
+    """Determine whether a tensor is constant"""
+    sess = tf.Session(graph=tensor.graph)
+    try:
+        tensor.eval(session=sess)
+    except tf.errors.InvalidArgumentError as e:
+        print(type(e), e)
+        return False
+    return True
+
+
 ## How to deal with approximation
 ## A 'clamp' is a transformation which is applied to the input of the inverse function.
 #  Which clamps its value to the domain of the inverse input
@@ -51,9 +62,14 @@ def inv_split(z, params): print("SHITFACE", z); return (z[0],)
 invsplit = Inverse('Split', inv_split_param, inv_split)
 
 ## Trig
-def inv_sinf_param(z): return (tf.placeholder(z[0].int32, shape=z[0].get_shape(), name="theta"),)
+def inv_sinf_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_sinf(z, params): return (tf.asin(z[0])*params[0],)
 invsin = Inverse('Sin', inv_sinf_param, inv_sinf)
+
+## Trig
+def inv_cosf_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
+def inv_cosf(z, params): return (tf.acos(z[0])*params[0],)
+invcos = Inverse('Cos', inv_cosf_param, inv_cosf)
 
 def typecheck_inverses(inverses):
     """Do types of keys in inverse list match the types of the Inverses"""
@@ -65,5 +81,6 @@ def typecheck_inverses(inverses):
 default_inverses = {'Mul': invmul,
                     'Add': invadd,
                     'Sin': invsin,
+                    'Cos': invcos,
                     'Split': invsplit}
 assert typecheck_inverses(default_inverses)

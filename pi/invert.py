@@ -19,6 +19,10 @@ def doshit(g, optype, inputs, inverses=default_inverses):
 def invert(g, out_tensors, inverses=default_inverses):
     """g :: tf.Graph the graph to invert"""
     inv_g = tf.Graph()
+
+    # Op colouring - to invert g we invert each op in g individually
+    # an op is ready to be inverted only when in outputs (inputs to inv_op)
+    # have been created. op_nouts: OP in G -> Number output tensors created in invg
     op_nouts = {}
     # Map between tensors from g to inv_g
     tensor_map = {}
