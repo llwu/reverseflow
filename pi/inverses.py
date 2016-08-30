@@ -13,34 +13,57 @@ import tensorflow as tf
 # There are multiple different possible clamps
 
 class Inverse:
-    def __init__(self, type, invf):
+    def __init__(self, type, param, invf):
         self.type = type
+        self.param = param
         self.invf = invf
 
     def go(self, graph, inputs):
         # What about parameter inputs
         # What about error ouputs
         with graph.as_default():
-            self.invf(inputs)
+            with graph.name_scope("inv_%s" % self.type):
+                params = self.param(inputs)
+                ops = self.invf(inputs, params=params)
+                return ops, params
 
 ## Primitive Inverses
 ## ==================
 
+## How to deal with 64 bit vs 32 bit.
+## How to deal with clamping
+
+def id(x): return tf.identity(x)
+
 ## Multiplication
-def inv_mulf(z, theta): return (theta, z/theta)
-invmul = Inverse('Mul', inv_mulf)
+def inv_mulf_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
+def inv_mulf(z, params): return (id(params[0]), z[0]/params[0])
+invmul = Inverse('Mul', inv_mulf_param, inv_mulf)
+
+## Addition
+def inv_add_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
+def inv_add(z, params): return (id(params[0]), z[0] - params[0])
+invadd = Inverse('Add', inv_add_param, inv_add)
+
+## Split
+def inv_split_param(z): return ()
+def inv_split(z, params): print("SHITFACE", z); return (z[0],)
+invsplit = Inverse('Split', inv_split_param, inv_split)
 
 ## Trig
-def inv_sinf(z, theta): return (tf.asin(z)*theta)
-invsin = Inverse('Sin', inv_sinf)
+def inv_sinf_param(z): return (tf.placeholder(z[0].int32, shape=z[0].get_shape(), name="theta"),)
+def inv_sinf(z, params): return (tf.asin(z[0])*params[0],)
+invsin = Inverse('Sin', inv_sinf_param, inv_sinf)
 
 def typecheck_inverses(inverses):
     """Do types of keys in inverse list match the types of the Inverses"""
-    for k,v in inverses:
+    for k,v in inverses.items():
         if k != v.type:
             return False
 
     return True
-default_inverses = {'Mul', invmul,
-                    'Sin', invsin}
+default_inverses = {'Mul': invmul,
+                    'Add': invadd,
+                    'Sin': invsin,
+                    'Split': invsplit}
 assert typecheck_inverses(default_inverses)

@@ -4,100 +4,102 @@ from pqdict import pqdict
 import numpy as np
 
 from pi import inverses
+default_inverses = inverses.default_inverses
 
-def doshit(g, op, inputs, inverses):
-    """g :: tf.Graph - graph to add to
+def doshit(g, optype, inputs, inverses=default_inverses):
+    """
+       g :: tf.Graph - graph to add to
        op :: tf.Op - op to invert
        inputs :: [tf.Tensor] - inputs to inv_op
        inverses :: {tf.}
      """
-     inv_op = inverses[op.type]
-     inv_op.go(g, inputs)
+    inv_op = inverses[optype]
+    return inv_op.go(g, inputs)
 
-
-def invert(g, out_tensors):
+def invert(g, out_tensors, inverses=default_inverses):
     """g :: tf.Graph the graph to invert"""
     inv_g = tf.Graph()
     op_nouts = {}
     # Map between tensors from g to inv_g
     tensor_map = {}
 
+    # Map between tensors from g and [inv_g]
+    tensor_map2 = {}
+
+    # Inputs to inverse function
+    final_inv_inputs = []
+
+    # Parameters
+    param_inputs = ()
+
+    # Map between inputp placeholder names and outputs
+    inv_output_map = {}
+
+    # Create a mapping between ops and number of uncolored edges
     for op in g.get_operations():
         outs = op.outputs
         nouts = len(outs)
         op_nouts[op] = nouts
     ops = pqdict(op_nouts)
 
+    # Make a placeholder (i.e. input) in inv_g for each output of g
     for out_tensor in out_tensors:
+        assert len(out_tensor.consumers()) == 0, "Provided output has consumers"
         op = out_tensor.op
         ops[op] = ops[op] - 1
 
         with inv_g.as_default():
-            inv_inp_tensor = tf.placeholder(dtype=out_tensor.dtype)
+            inv_inp_tensor = tf.placeholder(dtype=out_tensor.dtype, name="inv_input")
+            final_inv_inputs.append(inv_inp_tensor)
             tensor_map[out_tensor] = inv_inp_tensor
+            tensor_map2[out_tensor] = [inv_inp_tensor]
 
-    while True:
+    while len(ops) > 0:
         op, priority = ops.popitem()
-        print(priority, op)
+        print("\nInverting op:", op.type, "::", op.name, " Priority: ", priority)
         assert priority == 0, "Tried to invert op before inverting its dependents"
 
         # Inputs to the inverse function are outputs from forward function
-        inputs = [tensor_map[out] for out in op.outputs]
-        print("inputs", inputs)
+        inv_inputs = [tensor_map[out] for out in op.outputs]
+        print("inv_inputs", inv_inputs)
 
-        inputs(inv_g, inputs)
+        # When the op is a placeholder just label it as an output
+        if op.type == 'Placeholder':
+            assert len(inv_inputs) == 1
+            inv_output_map[op.name] = inv_inputs[0]
+            continue
 
-    # Now what's next?
+        inv_outputs, params = doshit(inv_g, op.type, inv_inputs, inverses)
+        param_inputs = param_inputs + params
 
+        ## Update the tensormap
+        for i, inp in enumerate(op.inputs):
+            if inp in tensor_map2:
+                equiv_tensors = tensor_map2[inp]
+            else:
+                equiv_tensors = tensor_map2[inp] = []
+            equiv_tensors.append(inv_outputs[i])
+            assert len(equiv_tensors) <= len(inp.consumers()), "Too many tensors in set"
+            if len(equiv_tensors) == len(inp.consumers()):
+                op = inp.op
+                ops[op] = ops[op] - 1
+                print("Decrementing op:", op.type, "::", op.name, "Current Value:", ops[op])
+                if len(inp.consumers()) == 1:
+                    tensor_map[inp] = inv_outputs[i]
+                else:
+                    inputs = tuple(equiv_tensors)
+                    (unsplit_output,), params = doshit(inv_g, 'Split', inputs, inverses)
+                    param_inputs = param_inputs + params
 
-    ## foreach output output tensor, set the edge›
-    # for out in out_tensors:
+                    tensor_map[inp] = unsplit_output
+                print("Checkmap", len(inp.consumers()), tensor_map[inp])
 
-    # For each output of g (out_tensors), create an input (placehodler) in inv_g
-    # with g.as_default():
-    #     for out in out_tensors:
-    #         tf.placeholder(dtype=out.dtype)
-    #
-    return inv_g
+        # ## Colour edges
+        # for i, inp in enumerate(op.inputs):
+        #     tensor_map[inp] = inv_outputs[i]
+        #     op = inp.op
+        #     print("Decrementing op:", op.type, "::", op.name)
+        #     print("Current Value:", ops[op])
+        #     ops[op] = ops[op] - 1
 
-    # inv_g = tf.Graph()
-    # # For every operation in original graph, add it's inverse in new graph
-    # for op in g.get_operations():
-    #     inv_g.create_op(op_type, inputs, dtypes, input_types=None, name=None, attrs=None, op_def=None, compute_shapes=True, compute_device=True
-
-tf.reset_default_graph()
-sess = tf.Session()
-x = tf.placeholder(float32, name='x')
-y = tf.placeholder(float32, name='y')
-z = x*y + x
-g = z.graph
-inv_g = invert(g, (z,))
-
-# sess = tf.Session()
-# # Create a summary writer, add the 'graph' to the event file.
-# writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', sess.graph)
-#
-#
-# z = tf.cos(y)
-# f = z + x
-#
-# # Create 100 phony x, y data points in NumPy, y = x * 0.1 + 0.3
-# x_data = np.random.rand(100).astype(np.float32)
-# y_data = x_data * 0.1 + 0.3
-#
-# # Try to find values for W and b that compute y_data = W * x_data + b
-# # (We know that W should be 0.1 and b 0.3, but TensorFlow will
-# # figure that out for us.)
-# W = tf.Variable(tf.random_uniform([1], -1.0, 1.0))
-# b = tf.Variable(tf.zeros([1]))
-# y = W * x_data + b
-#
-# x = tf.placeholder(float32)
-# y = tf.abs(x)
-#
-# 'Abs' :
-#
-# def invert(graph):
-#     ddd
-#
-# y =
+    return inv_g, final_inv_inputs, inv_output_map, param_inputs
