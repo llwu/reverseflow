@@ -12,7 +12,7 @@ y = tf.placeholder(float32, name="y")
 
 z = x + 2 * y
 g = tf.get_default_graph()
-inv_g, inputs, out_map, params = pi.invert.invert(g, (z,))
+inv_g, inputs, out_map, params = pi.invert.invert((z,))
 print(out_map)
 
 writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', inv_g)

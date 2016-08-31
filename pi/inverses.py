@@ -1,15 +1,8 @@
 ## Parametric Inverses
 import tensorflow as tf
 
-def is_constant(tensor):
-    """Determine whether a tensor is constant"""
-    sess = tf.Session(graph=tensor.graph)
-    try:
-        tensor.eval(session=sess)
-    except tf.errors.InvalidArgumentError as e:
-        print(type(e), e)
-        return False
-    return True
+## Two things to deal with constants
+##
 
 
 ## How to deal with approximation
@@ -24,13 +17,13 @@ def is_constant(tensor):
 # There are multiple different possible clamps
 
 class Inverse:
+    """Parametric Inverse"""
     def __init__(self, type, param, invf):
         self.type = type
         self.param = param
         self.invf = invf
 
     def go(self, graph, inputs):
-        # What about parameter inputs
         # What about error ouputs
         with graph.as_default():
             with graph.name_scope("inv_%s" % self.type):
@@ -38,22 +31,66 @@ class Inverse:
                 ops = self.invf(inputs, params=params)
                 return ops, params
 
+class Injection:
+    """Invertible (Injective) Fucntion"""
+    def __init__(self, type, invf):
+        self.type = type
+        self.invf = invf
+
+    def go(self, graph, inputs, fwd_inputs, constants):
+        # What about error ouputs
+        with graph.as_default():
+            with graph.name_scope("inj_%s" % self.type):
+                ops = self.invf(inputs, fwd_inputs, constants)
+                return ops
+
+def copy_tensor(tensor):
+    
+## Is op with these inputs invertible
+## It is if one of the arguments is constant
+def inj_if_one_const(constant):
+    assert not all(constant.values()), "All inputs are constants"
+    assert len(constant) == 2, "Multiplcation takes exactly two inputs"
+    return any(constant.values())
+
+inj_test = {'Mul': inj_if_one_const,
+            'Add': inj_if_one_const}
+## Invertible Functions
+## ====================
+
+## Arithmetic by constant
+## Multiplication
+def inj_mul(inputs, fwd_inputs, constant):
+    assert len(inputs) == 1, "inv_mul has one input"
+    assert len(fwd_inputs) == 2, "mul has two inputs"
+    z = inputs[0]
+    x = fwd_inputs[0]
+    y = fwd_inputs[1]
+    if constant[x]:
+        return (z/x)
+    else:
+        return (z/y)
+
+injmul = Injection('Mul', inj_mul)
+default_injections = {'Mul': injmul}
+
+
+
 ## Primitive Inverses
 ## ==================
 
 ## How to deal with 64 bit vs 32 bit.
-## How to deal with clamping
+## How to deal  with clamping
 
-def id(x): return tf.identity(x)
+iden = tf.identity
 
-## Multiplication
 def inv_mulf_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
-def inv_mulf(z, params): return (id(params[0]), z[0]/params[0])
+def inv_mulf(z, params): return (iden(params[0]), z[0]/params[0])
 invmul = Inverse('Mul', inv_mulf_param, inv_mulf)
 
 ## Addition
 def inv_add_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
-def inv_add(z, params): return (id(params[0]), z[0] - params[0])
+def inv_add(z, params): return (iden(params[0]), z[0] - params[0])
 invadd = Inverse('Add', inv_add_param, inv_add)
 
 ## Split
@@ -83,4 +120,8 @@ default_inverses = {'Mul': invmul,
                     'Sin': invsin,
                     'Cos': invcos,
                     'Split': invsplit}
+
+## Type Checking
+## =============
 assert typecheck_inverses(default_inverses)
+assert typecheck_inverses(default_injections)
