@@ -1,5 +1,5 @@
-from pi import invert
 import pi
+from pi import invert
 import tensorflow as tf
 from tensorflow import float32
 
@@ -19,3 +19,4 @@ writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', inv_g)
 sess = tf.Session(graph=inv_g)
 feed_dict = {inputs[0] : 10.0, params[0]: 1.0, params[1]: 1.0}
 output = sess.run(feed_dict=feed_dict, fetches=out_map)
+print(output)

@@ -6,7 +6,7 @@ import numpy as np
 from pi import inverses
 default_inverses = inverses.default_inverses
 
-def doshit(g, optype, inputs, inverses=default_inverses):
+def apply_inv_op(g, optype, inputs, inverses=default_inverses):
     """
        g :: tf.Graph - graph to add to
        op :: tf.Op - op to invert
@@ -27,6 +27,7 @@ def invert(g, out_tensors, inverses=default_inverses):
     # Map between tensors from g to inv_g
     tensor_map = {}
 
+    # Tensors may have multiple consumers, meaning impossible to invert
     # Map between tensors from g and [inv_g]
     tensor_map2 = {}
 
@@ -40,17 +41,14 @@ def invert(g, out_tensors, inverses=default_inverses):
     inv_output_map = {}
 
     # Create a mapping between ops and number of uncolored edges
-    for op in g.get_operations():
-        outs = op.outputs
-        nouts = len(outs)
-        op_nouts[op] = nouts
-    ops = pqdict(op_nouts)
+    ops = pqdict()
 
     # Make a placeholder (i.e. input) in inv_g for each output of g
     for out_tensor in out_tensors:
         assert len(out_tensor.consumers()) == 0, "Provided output has consumers"
         op = out_tensor.op
-        ops[op] = ops[op] - 1
+        nouts = len(op.outputs)
+        ops[op] = nouts - 1
 
         with inv_g.as_default():
             inv_inp_tensor = tf.placeholder(dtype=out_tensor.dtype, name="inv_input")
@@ -73,11 +71,17 @@ def invert(g, out_tensors, inverses=default_inverses):
             inv_output_map[op.name] = inv_inputs[0]
             continue
 
-        inv_outputs, params = doshit(inv_g, op.type, inv_inputs, inverses)
+        # Apply inv op to inv graph, collecting outputs (inputs to fwd_op)
+        inv_outputs, params = apply_inv_op(inv_g, op.type, inv_inputs, inverses)
         param_inputs = param_inputs + params
 
         ## Update the tensormap
         for i, inp in enumerate(op.inputs):
+            op = inp.op
+            # Add the op to the priority queue
+            if op not in ops:
+                ops[op] = len(op.outputs)
+
             if inp in tensor_map2:
                 equiv_tensors = tensor_map2[inp]
             else:
@@ -85,14 +89,13 @@ def invert(g, out_tensors, inverses=default_inverses):
             equiv_tensors.append(inv_outputs[i])
             assert len(equiv_tensors) <= len(inp.consumers()), "Too many tensors in set"
             if len(equiv_tensors) == len(inp.consumers()):
-                op = inp.op
                 ops[op] = ops[op] - 1
                 print("Decrementing op:", op.type, "::", op.name, "Current Value:", ops[op])
                 if len(inp.consumers()) == 1:
                     tensor_map[inp] = inv_outputs[i]
                 else:
                     inputs = tuple(equiv_tensors)
-                    (unsplit_output,), params = doshit(inv_g, 'Split', inputs, inverses)
+                    (unsplit_output,), params = apply_inv_op(inv_g, 'Split', inputs, inverses)
                     param_inputs = param_inputs + params
 
                     tensor_map[inp] = unsplit_output
