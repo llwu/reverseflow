@@ -24,6 +24,7 @@ class Inverse:
         self.invf = invf
 
     def go(self, graph, inputs):
+        print("PINV INP", inputs)
         # What about error ouputs
         with graph.as_default():
             with graph.name_scope("inv_%s" % self.type):
@@ -38,14 +39,15 @@ class Injection:
         self.invf = invf
 
     def go(self, graph, inputs, fwd_inputs, constants):
+        print("INJ INP", inputs)
         # What about error ouputs
         with graph.as_default():
             with graph.name_scope("inj_%s" % self.type):
-                ops = self.invf(inputs, fwd_inputs, constants)
-                return ops
+                ops, corres = self.invf(inputs, fwd_inputs, constants)
+                return ops, corres
 
-def copy_tensor(tensor):
-    
+# def copy_tensor(tensor):
+
 ## Is op with these inputs invertible
 ## It is if one of the arguments is constant
 def inj_if_one_const(constant):
@@ -66,10 +68,18 @@ def inj_mul(inputs, fwd_inputs, constant):
     z = inputs[0]
     x = fwd_inputs[0]
     y = fwd_inputs[1]
+
+    ## Need to build correspodnance between output of inv function
+    ## and input of fwd function
+    print("Z",z, "x",x, "y",y)
     if constant[x]:
-        return (z/x)
+        op = z/x
+        corres = {op:y}
+        return (op,), corres
     else:
-        return (z/y)
+        op = z/y
+        corres = {op:x}
+        return (op,), corres
 
 injmul = Injection('Mul', inj_mul)
 default_injections = {'Mul': injmul}
