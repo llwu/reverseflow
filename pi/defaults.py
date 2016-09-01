@@ -1,5 +1,3 @@
-## Type Checking
-## =============
 from pi.inv_ops.inv_math_ops import *
 
 def typecheck_inverses(inverses):
@@ -11,13 +9,19 @@ def typecheck_inverses(inverses):
     return True
 
 
-approx_inverses = {'Abs', invabsapprox}
-default_inverses = {'Mul': invmul,
+approx_inverses = {'Abs': invabsapprox,
+                   'Split': invsplitapprox,
+                   'Mul': invmul,
+                   'Add': invadd,
+                   'Sub': invsub}
+
+exact_inverses = {'Mul': invmul,
                     'Add': invadd,
                     'Sub': invsub,
                     'Sin': invsin,
                     'Cos': invcos,
                     'Split': invsplit}
 
-assert typecheck_inverses(default_inverses)
-assert typecheck_inverses(default_injections)
+assert typecheck_inverses(exact_inverses)
+assert typecheck_inverses(approx_inverses)
+default_inverses = approx_inverses

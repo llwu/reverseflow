@@ -1,46 +1,59 @@
 import tensorflow as tf
 
-class Inverse():
+class Abstract(Object):
     """Inverse Function"""
+    def __init__(self, atype, impl):
+        self.type = atype
+        assert impl.type = self.type
+
+
+class Inverse(Object):
+    """Inverse Function"""
+    def __init__(self, atype, invf, is_approx):
+        self.type = atype
+        self.invf = invf
+        self.is_approx = is_approx
+
     def name(self):
-        attribs = ["pinv"] if self.has_params else ["inj"]
+        """Generate a name for this op"""
+        attribs = ["inv"]
         if self.is_approx: attribs.append("aprx")
         attribs.append(self.type)
         return "_".join(attribs)
 
 class ParametricInverse(Inverse):
     """A parametric inverse"""
-    def __init__(self, type, invf, param, is_approx):
+    def __init__(self, atype, invf, param_gen, is_approx):
         """
         type :: tf.Operation.type - type of forward operation
         param :: - generates params
         invf :: computes the inverse function
         is_approx ::
         """
-        self.type = type
-        self.param = param
-        self.invf = invf
+        super.__init__(atype, invf, is_approx)
+        # self.type = type
+        self.param_gen = param_gen
+        # self.invf = invf
 
-    def go(self, graph, inputs):
-        print("PINV INP", inputs)
-        # What about error ouputs
+    def go(self, graph, inputs, fwd_inputs):
         with graph.as_default():
             with graph.name_scope(self.name()):
-                params = self.param(inputs)
+                params = self.param_gen(inputs)
                 ops = self.invf(inputs, params=params)
                 return ops, params
 
 class Injection(Inverse):
     """Invertible (Injective) Fucntion"""
-    def __init__(self, type, invf):
-        self.type = type
+    def __init__(self, atype, invf, is_approx):
+        self.type = atype
         self.invf = invf
+        super.__init__(type, invf, is_approx)
 
-    def go(self, graph, inputs, fwd_inputs, constants):
-        print("INJ INP", inputs)
-        # What about error ouputs
+    def go(self, graph, inputs, fwd_inputs):
+        constant = {fwd_inp:is_constant(fwd_inp) for fwd_inp in fwd_inputs}
+
         with graph.as_default():
-            with graph.name_scope("inj_%s" % self.type):
+            with graph.name_scope(self.name()):
                 ops, corres = self.invf(inputs, fwd_inputs, constants)
                 return ops, corres
 

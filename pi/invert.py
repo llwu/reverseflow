@@ -16,8 +16,7 @@ def apply_inv_op(g, optype, inv_inputs, fwd_inputs, inverses=default_inverses):
     constant = {fwd_inp:is_constant(fwd_inp) for fwd_inp in fwd_inputs}
     if inj_test[optype](constant):
         inj_op = inverses[optype]
-        inv_outputs, corres = inj_op.go(g, inv_inputs, fwd_inputs, constant)
-        print("INJOUTS ARE", inv_outputs)
+        inv_outputs, corres = inj_op.go(g, inv_inputs)
         params = ()
         return inv_outputs, corres, () # no parameters
     else:
