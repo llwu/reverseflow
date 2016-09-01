@@ -1,22 +1,11 @@
 import tensorflow as tf
 from tensorflow import float32
 from pqdict import pqdict
-from pi.inverses import default_inverses, default_injections, inj_test
+from pi.defaults import default_inverses
+from pi.inv_ops.inv_math_ops import inj_test
+from util import *
 
-def is_constant(tensor):
-    """Determine whether a tensor is constant"""
-    print("WTD", tensor)
-    sess = tf.Session(graph=tensor.graph)
-    try:
-        tensor.eval(session=sess)
-    except tf.errors.InvalidArgumentError as e:
-        # print(type(e), e)
-        return False
-    return True
-
-
-def apply_inv_op(g, optype, inv_inputs, fwd_inputs, inverses=default_inverses,
-                 injections=default_injections):
+def apply_inv_op(g, optype, inv_inputs, fwd_inputs, inverses=default_inverses):
     """
     g :: tf.Graph - graph to add to
     op :: tf.Op - op to invert
@@ -26,7 +15,7 @@ def apply_inv_op(g, optype, inv_inputs, fwd_inputs, inverses=default_inverses,
 
     constant = {fwd_inp:is_constant(fwd_inp) for fwd_inp in fwd_inputs}
     if inj_test[optype](constant):
-        inj_op = injections[optype]
+        inj_op = inverses[optype]
         inv_outputs, corres = inj_op.go(g, inv_inputs, fwd_inputs, constant)
         print("INJOUTS ARE", inv_outputs)
         params = ()
@@ -38,22 +27,13 @@ def apply_inv_op(g, optype, inv_inputs, fwd_inputs, inverses=default_inverses,
         # print("INVOUTS ARE", outputs)
         return inv_outputs, corres, params
 
-def same(xs):
-    """All elements in xs are the same"""
-    if len(xs) == 0:
-        return True
-    else:
-        x1 = xs[0]
-        for xn in xs:
-            if xn != x1:
-                return False
-
-    return True
-
 def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
     """
-    g :: tf.Graph the graph to invert
-    inv_in_same_graph :: bool - build the inverse in same graph"""
+    Invert a function
+    out_tensors :: (tf.tensor) - all outputs of function
+    inverses :: {tf.op.type : pi.Inverse} - which inverses are used for which op
+    inv_in_same_graph :: bool - build the inverse in same graph?
+    """
     if inv_in_same_graph == False:
         # inv_g = tf.Graph()
         raise NotImplementedError()
@@ -62,9 +42,8 @@ def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
     assert same([t.graph for t in out_tensors]), "All graphs of out tensors should be same"
     inv_g = out_tensors[0].graph
     with inv_g.name_scope("inv_g"):
-
+        # Map between tensors in fwd and inverse graph
         tensor_map = {}
-        # Map between tensors from g to inv_g
 
         # Tensors may have multiple consumers, meaning impossible to invert
         # Map between tensors from g and [inv_g]
@@ -98,6 +77,7 @@ def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
                 tensor_map[out_tensor] = inv_inp_tensor
                 tensor_map2[out_tensor] = [inv_inp_tensor]
 
+        # Iterate through each op in g and invert
         while len(ops) > 0:
             op, priority = ops.popitem()
             print("\nInverting op:", op.type, "::", op.name, " Priority: ", priority)
@@ -154,47 +134,5 @@ def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
 
                         tensor_map[inp] = unsplit_output
                     print("Checkmap", len(inp.consumers()), tensor_map[inp])
-            #
-            # ## Update the tensormap
-            # for i, inp in enumerate(op.inputs):
-            #     if constant[inp]:
-            #         continue
-            #     op = inp.op
-            #     # Add the op to the priority queue
-            #     if op not in ops:
-            #         ops[op] = len(op.outputs)
-            #
-            #     if inp in tensor_map2:
-            #         equiv_tensors = tensor_map2[inp]
-            #     else:
-            #         equiv_tensors = tensor_map2[inp] = []
-            #
-            #     print("eye",i)
-            #     print("equiv", equiv_tensors)
-            #     print("inv", inv_outputs)
-            #     equiv_tensors.append(inv_outputs[i])
-            #     assert len(equiv_tensors) <= len(inp.consumers()), "Too many tensors in set"
-            #     if len(equiv_tensors) == len(inp.consumers()):
-            #         ops[op] = ops[op] - 1
-            #         print("Decrementing op:", op.type, "::", op.name, "Current Value:", ops[op])
-            #         if len(inp.consumers()) == 1:
-            #             tensor_map[inp] = inv_outputs[i]
-            #         else:
-            #             # Multiple equivalent tensors
-            #             inputs = tuple(equiv_tensors)
-            #             (unsplit_output,), params = (inverses["Split"]).go(inv_g, inputs)
-            #             # (unsplit_output,), params, constant = apply_inv_op(inv_g, 'Split', inputs, [], inverses)
-            #             param_inputs = param_inputs + params
-            #
-            #             tensor_map[inp] = unsplit_output
-            #         print("Checkmap", len(inp.consumers()), tensor_map[inp])
-
-            # ## Colour edges
-            # for i, inp in enumerate(op.inputs):
-            #     tensor_map[inp] = inv_outputs[i]
-            #     op = inp.op
-            #     print("Decrementing op:", op.type, "::", op.name)
-            #     print("Current Value:", ops[op])
-            #     ops[op] = ops[op] - 1
 
     return inv_g, final_inv_inputs, inv_output_map, param_inputs
