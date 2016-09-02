@@ -17,26 +17,29 @@ inj_test = {'Mul': inj_if_one_const,
             'Sub': inj_if_one_const}
 
 ## Mul
-def inj_mul(inputs, fwd_inputs, constant):
-    assert len(inputs) == 1, "inv_mul has one input"
+def dispatch_mul(graph, inv_inputs, fwd_inputs, inverses):
+    assert len(inv_inputs) == 1, "inv_mul has one input"
     assert len(fwd_inputs) == 2, "mul has two inputs"
-    z = inputs[0]
+    constant = {fwd_inp:is_constant(fwd_inp) for fwd_inp in fwd_inputs}
     x = fwd_inputs[0]
     y = fwd_inputs[1]
+    assert not (constant[x] and constant[y]), "Both inputs constant"
     if constant[x]:
-        op = z/x
-        corres = {op:y}
-        return (op,), corres
+        op = inverses['Mul_Const'].go(graph, inv_inputs, consts=(x,))
+        corres = {op[0]:y}
+        return op, corres
+    elif constant[y]:
+        op = inverses['Mul_Const'].go(graph, inv_inputs, consts=(y,))
+        corres = {op[0]:x}
+        return op, corres
     else:
-        op = z/y
-        corres = {op:x}
-        return (op,), corres
+        print("HERE RUDE OYU")
+        op = inverses['Mul'].go(graph, inv_inputs)
+        assert len(op) == len(fwd_inputs)
+        corres = {op[i]:fwd_inputs[i] for i in range(len(op))}
+        return op, corres
 
-abs_inv_mul = AbstractInverse(inj_mul)
-injmul = Injection('Mul', inj_mul)
 
-## Primitive Inverses
-## ==================
 
 ## Abs
 def inv_abs_param(z, intX=tf.int32): return (placeholder_like(z, dtype=intX, name="theta"),)
@@ -54,7 +57,10 @@ invabsapprox = ParametricInverse('Abs', inv_abs_param, inv_abs_approx, is_approx
 ## Mul
 def inv_mulf_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_mulf(z, params): return (iden(params[0]), z[0]/params[0])
-invmul = ParametricInverse('Mul', inv_mulf_param, inv_mulf, is_approx=False)
+invmul = ParametricInverse('Mul', inv_mulf, inv_mulf_param, is_approx=False)
+
+def inv_mulc(z, consts): return (z[0]/ consts[0],)
+invmulc = Injection('Mul_Const', inv_mulc, is_approx=False)
 
 ## Add
 def inv_add_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
@@ -80,9 +86,9 @@ invsplitapprox = Injection('Split', inv_split, is_approx=True)
 ## Sin
 def inv_sinf_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_sinf(z, params): return (tf.asin(z[0])*params[0],)
-invsin = ParametricInverse('Sin', inv_sinf_param, inv_sinf)
+invsin = ParametricInverse('Sin', inv_sinf_param, inv_sinf, is_approx=False)
 
 ## Cos
 def inv_cosf_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_cosf(z, params): return (tf.acos(z[0])*params[0],)
-invcos = ParametricInverse('Cos', inv_cosf_param, inv_cosf)
+invcos = ParametricInverse('Cos', inv_cosf_param, inv_cosf, is_approx=False)

@@ -1,9 +1,9 @@
 import tensorflow as tf
 from tensorflow import float32
 from pqdict import pqdict
-from pi.defaults import default_inverses
+from pi.defaults import default_inverses, dispatches
 from pi.inv_ops.inv_math_ops import inj_test
-from util import *
+from pi.util import *
 
 def apply_inv_op(g, optype, inv_inputs, fwd_inputs, inverses=default_inverses):
     """
@@ -12,19 +12,20 @@ def apply_inv_op(g, optype, inv_inputs, fwd_inputs, inverses=default_inverses):
     inputs :: [tf.Tensor] - inputs to inv_op
     inverses :: {tf.}
     """
+    return dispatches[optype](g, inv_inputs, fwd_inputs, inverses=inverses)
 
-    constant = {fwd_inp:is_constant(fwd_inp) for fwd_inp in fwd_inputs}
-    if inj_test[optype](constant):
-        inj_op = inverses[optype]
-        inv_outputs, corres = inj_op.go(g, inv_inputs)
-        params = ()
-        return inv_outputs, corres, () # no parameters
-    else:
-        inv_op = inverses[optype]
-        inv_outputs, params = inv_op.go(g, inv_inputs)
-        corres = {inv_outputs[i]:fwd_inputs[i] for i in range(len(inv_outputs))}
-        # print("INVOUTS ARE", outputs)
-        return inv_outputs, corres, params
+    # constant = {fwd_inp:is_constant(fwd_inp) for fwd_inp in fwd_inputs}
+    # if inj_test[optype](constant):
+    #     inj_op = inverses[optype]
+    #     inv_outputs, corres = inj_op.go(g, inv_inputs)
+    #     params = ()
+    #     return inv_outputs, corres, () # no parameters
+    # else:
+    #     inv_op = inverses[optype]
+    #     inv_outputs, params = inv_op.go(g, inv_inputs)
+    #     corres = {inv_outputs[i]:fwd_inputs[i] for i in range(len(inv_outputs))}
+    #     # print("INVOUTS ARE", outputs)
+    #     return inv_outputs, corres, params
 
 def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
     """
@@ -51,11 +52,11 @@ def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
         # Inputs to inverse function
         final_inv_inputs = []
 
-        # Parameters
-        param_inputs = ()
-
         # Map between inputp placeholder names and outputs
         inv_output_map = {}
+
+        # Errors
+        errors = []
 
         # Op colouring - to invert g we invert each op in g individually
         # an op is ready to be inverted only when in outputs (inputs to inv_op)
@@ -94,8 +95,7 @@ def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
                 continue
 
             # Apply inv op to inv graph, collecting outputs (inputs to fwd_op)
-            inv_outputs, corres, params = apply_inv_op(inv_g, op.type, inv_inputs, fwd_inputs, inverses)
-            param_inputs = param_inputs + params
+            inv_outputs, corres = apply_inv_op(inv_g, op.type, inv_inputs, fwd_inputs, inverses)
             print("INVOUTPUTS ARE", inv_outputs)
 
             # For every output of inverse op
@@ -127,11 +127,9 @@ def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
                     else:
                         # Multiple equivalent tensors
                         inputs = tuple(equiv_tensors)
-                        (unsplit_output,), params = (inverses["Split"]).go(inv_g, inputs)
-                        # (unsplit_output,), params, constant = apply_inv_fwd_op(inv_g, 'Split', inputs, [], inverses)
-                        param_inputs = param_inputs + params
+                        (unsplit_output,) = inverses["Split"].go(inv_g, inputs)
 
                         tensor_map[inp] = unsplit_output
                     print("Checkmap", len(inp.consumers()), tensor_map[inp])
 
-    return inv_g, final_inv_inputs, inv_output_map, param_inputs
+    return inv_g, final_inv_inputs, inv_output_map

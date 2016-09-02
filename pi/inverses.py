@@ -1,13 +1,6 @@
 import tensorflow as tf
 
-class Abstract(Object):
-    """Inverse Function"""
-    def __init__(self, atype, impl):
-        self.type = atype
-        assert impl.type = self.type
-
-
-class Inverse(Object):
+class Inverse():
     """Inverse Function"""
     def __init__(self, atype, invf, is_approx):
         self.type = atype
@@ -30,32 +23,29 @@ class ParametricInverse(Inverse):
         invf :: computes the inverse function
         is_approx ::
         """
-        super.__init__(atype, invf, is_approx)
-        # self.type = type
+        Inverse.__init__(self, atype, invf, is_approx)
         self.param_gen = param_gen
-        # self.invf = invf
 
-    def go(self, graph, inputs, fwd_inputs):
+    def go(self, graph, inputs, **invf_kwargs):
         with graph.as_default():
             with graph.name_scope(self.name()):
                 params = self.param_gen(inputs)
-                ops = self.invf(inputs, params=params)
-                return ops, params
+                graph.add_to_collection("params", params)
+                ops = self.invf(inputs, params=params, **invf_kwargs)
+                return ops
 
 class Injection(Inverse):
     """Invertible (Injective) Fucntion"""
     def __init__(self, atype, invf, is_approx):
         self.type = atype
         self.invf = invf
-        super.__init__(type, invf, is_approx)
+        Inverse.__init__(self, atype, invf, is_approx)
 
-    def go(self, graph, inputs, fwd_inputs):
-        constant = {fwd_inp:is_constant(fwd_inp) for fwd_inp in fwd_inputs}
-
+    def go(self, graph, inputs, **invf_kwargs):
         with graph.as_default():
             with graph.name_scope(self.name()):
-                ops, corres = self.invf(inputs, fwd_inputs, constants)
-                return ops, corres
+                ops = self.invf(inputs, **invf_kwargs)
+                return ops
 
 ## Parameter Spaces
 ## ================

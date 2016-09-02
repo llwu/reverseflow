@@ -4,6 +4,7 @@ def typecheck_inverses(inverses):
     """Do types of keys in inverse list match the types of the Inverses"""
     for k,v in inverses.items():
         if k != v.type:
+            print("Type error ", k, v.type)
             return False
 
     return True
@@ -12,6 +13,7 @@ def typecheck_inverses(inverses):
 approx_inverses = {'Abs': invabsapprox,
                    'Split': invsplitapprox,
                    'Mul': invmul,
+                   'Mul_Const': invmulc,
                    'Add': invadd,
                    'Sub': invsub}
 
@@ -25,3 +27,4 @@ exact_inverses = {'Mul': invmul,
 assert typecheck_inverses(exact_inverses)
 assert typecheck_inverses(approx_inverses)
 default_inverses = approx_inverses
+dispatches = {'Mul':dispatch_mul}

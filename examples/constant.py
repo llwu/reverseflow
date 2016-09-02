@@ -10,12 +10,12 @@ g = tf.get_default_graph()
 x = tf.placeholder(float32, name="x")
 y = tf.placeholder(float32, name="y")
 
-z = x + 2 * y
+z = x * 2 * y
 g = tf.get_default_graph()
-inv_g, inputs, out_map, params = pi.invert.invert((z,))
+inv_g, inputs, out_map = pi.invert.invert((z,))
 print(out_map)
-
 writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', inv_g)
 sess = tf.Session(graph=inv_g)
-feed_dict = {inputs[0] : 10.0, params[0]: 1.0}
-output = sess.run(feed_dict=feed_dict, fetches=out_map)
+
+# feed_dict = {inputs[0] : 10.0, params[0]: 1.0}
+# output = sess.run(feed_dict=feed_dict, fetches=out_map)
