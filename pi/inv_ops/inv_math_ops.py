@@ -127,10 +127,10 @@ def inv_split_approx(z):
     mean = tf.add_n(z)/len(z)
     dists = [tf.abs(t - mean) for t in z]
     error = tf.add_n(dists)
-    return (mean,), error
+    return (mean,), (error,)
 
 invsplit = Injection('Split', inv_split, is_approx=False)
-invsplitapprox = Injection('Split', inv_split, is_approx=True)
+invsplitapprox = Injection('Split', inv_split_approx, is_approx=True)
 
 ## Sin
 def inv_sinf_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)

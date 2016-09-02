@@ -14,6 +14,10 @@ class Inverse():
         attribs.append(self.type)
         return "_".join(attribs)
 
+def add_many_to_collection(graph, name, tensors):
+    for t in tensors:
+        graph.add_to_collection(name, t)
+
 class ParametricInverse(Inverse):
     """A parametric inverse"""
     def __init__(self, atype, invf, param_gen, is_approx):
@@ -30,9 +34,15 @@ class ParametricInverse(Inverse):
         with graph.as_default():
             with graph.name_scope(self.name()):
                 params = self.param_gen(inputs)
-                graph.add_to_collection("params", params)
+                add_many_to_collection(graph, "params", params)
                 ops = self.invf(inputs, params=params, **invf_kwargs)
-                return ops
+                if self.is_approx:
+                    assert len(ops) == 2
+                    op, error = ops
+                    add_many_to_collection(graph, "errors", error)
+                    return op
+                else:
+                    return ops
 
 class Injection(Inverse):
     """Invertible (Injective) Fucntion"""
@@ -45,7 +55,13 @@ class Injection(Inverse):
         with graph.as_default():
             with graph.name_scope(self.name()):
                 ops = self.invf(inputs, **invf_kwargs)
-                return ops
+                if self.is_approx:
+                    assert len(ops) == 2
+                    op, error = ops
+                    add_many_to_collection(graph, "errors", error)
+                    return op
+                else:
+                    return ops
 
 ## Parameter Spaces
 ## ================

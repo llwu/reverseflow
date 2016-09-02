@@ -59,7 +59,7 @@ def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
             ops[op] = nouts - 1
 
             with inv_g.as_default():
-                inv_inp_tensor = tf.placeholder(dtype=out_tensor.dtype, name="inv_input")
+                inv_inp_tensor = tf.placeholder(dtype=out_tensor.dtype, shape=out_tensor.get_shape(), name="inv_input")
                 final_inv_inputs.append(inv_inp_tensor)
                 tensor_map[out_tensor] = inv_inp_tensor
                 tensor_map2[out_tensor] = [inv_inp_tensor]
@@ -83,7 +83,6 @@ def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
 
             # Apply inv op to inv graph, collecting outputs (inputs to fwd_op)
             inv_outputs, corres = apply_inv_op(inv_g, op.type, inv_inputs, fwd_inputs, inverses)
-            print("INVOUTPUTS ARE", inv_outputs)
 
             # For every output of inverse op
             for i, inv_out in enumerate(inv_outputs):
@@ -115,7 +114,6 @@ def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
                         # Multiple equivalent tensors
                         inputs = tuple(equiv_tensors)
                         (unsplit_output,) = inverses["Split"].go(inv_g, inputs)
-
                         tensor_map[inp] = unsplit_output
                     print("Checkmap", len(inp.consumers()), tensor_map[inp])
 
