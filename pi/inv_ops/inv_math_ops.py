@@ -94,8 +94,14 @@ def inv_abs_approx(z, params, clamp=lambda t: a_b_clamp(t, a=-1, b=1),
 
 invabsapprox = ParametricInverse('Abs', inv_abs_param, inv_abs_approx, is_approx=True)
 
+def create_theta(dtype, shape, name, is_placeholder=False):
+    if is_placeholder:
+        return tf.placeholder(dtype, shape=shape, name=name)
+    else:
+        return tf.Variable(tf.random_uniform(shape,dtype=dtype), name=name)
+
 ## Mul
-def inv_mulf_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
+def inv_mulf_param(z): return (create_theta(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_mulf(z, params): return (iden(params[0]), z[0]/params[0])
 invmul = ParametricInverse('Mul', inv_mulf, inv_mulf_param, is_approx=False)
 
@@ -103,7 +109,7 @@ def inv_mulc(z, consts): return (z[0]/ consts[0],)
 invmulc = Injection('Mul_Const', inv_mulc, is_approx=False)
 
 ## Add
-def inv_add_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
+def inv_add_param(z): return (create_theta(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_add(z, params): return (iden(params[0]), z[0] - params[0])
 invadd = ParametricInverse('Add', inv_add, inv_add_param, is_approx=False)
 
@@ -111,7 +117,7 @@ def inv_addc(z, consts): return (z[0] - consts[0],)
 invaddc = Injection('Add_Const', inv_addc, is_approx=False)
 
 ## Sub
-def inv_sub_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
+def inv_sub_param(z): return (create_theta(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_sub(z, params): return (params[0] + z[0], iden(params[0]))
 invsub = ParametricInverse('Sub', inv_sub, inv_sub_param, is_approx=False)
 
@@ -125,19 +131,19 @@ invsubc2 = Injection('Sub_Const2', inv_subc2, is_approx=False)
 def inv_split(z): return (z[0],)
 def inv_split_approx(z):
     mean = tf.add_n(z)/len(z)
-    dists = [tf.abs(t - mean) for t in z]
-    error = tf.add_n(dists)
+    dists = [tf.reduce_mean(tf.abs(t - mean)) for t in z]
+    error = tf.add_n(dists)/len(z)
     return (mean,), (error,)
 
 invsplit = Injection('Split', inv_split, is_approx=False)
 invsplitapprox = Injection('Split', inv_split_approx, is_approx=True)
 
 ## Sin
-def inv_sinf_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
+def inv_sinf_param(z): return (create_theta(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_sinf(z, params): return (tf.asin(z[0])*params[0],)
 invsin = ParametricInverse('Sin', inv_sinf_param, inv_sinf, is_approx=False)
 
 ## Cos
-def inv_cosf_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
+def inv_cosf_param(z): return (create_theta(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_cosf(z, params): return (tf.acos(z[0])*params[0],)
 invcos = ParametricInverse('Cos', inv_cosf_param, inv_cosf, is_approx=False)
