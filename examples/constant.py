@@ -10,7 +10,7 @@ g = tf.get_default_graph()
 x = tf.placeholder(float32, name="x")
 y = tf.placeholder(float32, name="y")
 
-z = x * 2 * y
+z = ((x * 2) - (4 * y)) + 5
 g = tf.get_default_graph()
 inv_g, inputs, out_map = pi.invert.invert((z,))
 print(out_map)

@@ -33,12 +33,52 @@ def dispatch_mul(graph, inv_inputs, fwd_inputs, inverses):
         corres = {op[0]:x}
         return op, corres
     else:
-        print("HERE RUDE OYU")
         op = inverses['Mul'].go(graph, inv_inputs)
         assert len(op) == len(fwd_inputs)
         corres = {op[i]:fwd_inputs[i] for i in range(len(op))}
         return op, corres
 
+def dispatch_add(graph, inv_inputs, fwd_inputs, inverses):
+    assert len(inv_inputs) == 1, "inv_add has one input"
+    assert len(fwd_inputs) == 2, "add has two inputs"
+    constant = {fwd_inp:is_constant(fwd_inp) for fwd_inp in fwd_inputs}
+    x = fwd_inputs[0]
+    y = fwd_inputs[1]
+    assert not (constant[x] and constant[y]), "Both inputs constant"
+    if constant[x]:
+        op = inverses['Add_Const'].go(graph, inv_inputs, consts=(x,))
+        corres = {op[0]:y}
+        return op, corres
+    elif constant[y]:
+        op = inverses['Add_Const'].go(graph, inv_inputs, consts=(y,))
+        corres = {op[0]:x}
+        return op, corres
+    else:
+        op = inverses['Add'].go(graph, inv_inputs)
+        assert len(op) == len(fwd_inputs)
+        corres = {op[i]:fwd_inputs[i] for i in range(len(op))}
+        return op, corres
+
+def dispatch_sub(graph, inv_inputs, fwd_inputs, inverses):
+    assert len(inv_inputs) == 1, "inv_sub has one input"
+    assert len(fwd_inputs) == 2, "sub has two inputs"
+    constant = {fwd_inp:is_constant(fwd_inp) for fwd_inp in fwd_inputs}
+    x = fwd_inputs[0]
+    y = fwd_inputs[1]
+    assert not (constant[x] and constant[y]), "Both inputs constant"
+    if constant[x]:
+        op = inverses['Sub_Const1'].go(graph, inv_inputs, consts=(x,))
+        corres = {op[0]:y}
+        return op, corres
+    elif constant[y]:
+        op = inverses['Sub_Const2'].go(graph, inv_inputs, consts=(y,))
+        corres = {op[0]:x}
+        return op, corres
+    else:
+        op = inverses['Sub'].go(graph, inv_inputs)
+        assert len(op) == len(fwd_inputs)
+        corres = {op[i]:fwd_inputs[i] for i in range(len(op))}
+        return op, corres
 
 
 ## Abs
@@ -65,12 +105,21 @@ invmulc = Injection('Mul_Const', inv_mulc, is_approx=False)
 ## Add
 def inv_add_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_add(z, params): return (iden(params[0]), z[0] - params[0])
-invadd = ParametricInverse('Add', inv_add_param, inv_add, is_approx=False)
+invadd = ParametricInverse('Add', inv_add, inv_add_param, is_approx=False)
+
+def inv_addc(z, consts): return (z[0] - consts[0],)
+invaddc = Injection('Add_Const', inv_addc, is_approx=False)
 
 ## Sub
 def inv_sub_param(z): return (tf.placeholder(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_sub(z, params): return (params[0] + z[0], iden(params[0]))
-invsub = ParametricInverse('Sub', inv_sub_param, inv_sub, is_approx=False)
+invsub = ParametricInverse('Sub', inv_sub, inv_sub_param, is_approx=False)
+
+def inv_subc1(z, consts): return (consts[0] - z[0],)
+invsubc1 = Injection('Sub_Const1', inv_subc1, is_approx=False)
+
+def inv_subc2(z, consts): return (consts[0] + z[0],)
+invsubc2 = Injection('Sub_Const2', inv_subc2, is_approx=False)
 
 ## Split
 def inv_split(z): return (z[0],)

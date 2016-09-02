@@ -14,19 +14,6 @@ def apply_inv_op(g, optype, inv_inputs, fwd_inputs, inverses=default_inverses):
     """
     return dispatches[optype](g, inv_inputs, fwd_inputs, inverses=inverses)
 
-    # constant = {fwd_inp:is_constant(fwd_inp) for fwd_inp in fwd_inputs}
-    # if inj_test[optype](constant):
-    #     inj_op = inverses[optype]
-    #     inv_outputs, corres = inj_op.go(g, inv_inputs)
-    #     params = ()
-    #     return inv_outputs, corres, () # no parameters
-    # else:
-    #     inv_op = inverses[optype]
-    #     inv_outputs, params = inv_op.go(g, inv_inputs)
-    #     corres = {inv_outputs[i]:fwd_inputs[i] for i in range(len(inv_outputs))}
-    #     # print("INVOUTS ARE", outputs)
-    #     return inv_outputs, corres, params
-
 def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
     """
     Invert a function
