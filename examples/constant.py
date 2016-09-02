@@ -24,3 +24,7 @@ sess = tf.Session(graph=inv_g)
 input_feed = tensor_rand(inputs)
 minimize_error(inv_g, input_feed, sess)
 output = sess.run(feed_dict=input_feed, fetches=out_map)
+
+yy = output['fwd_g/y']
+xx = output['fwd_g/x']
+((xx * 2) - (4 * yy)) + 5 + xx
