@@ -80,6 +80,26 @@ def dispatch_sub(graph, inv_inputs, fwd_inputs, inverses):
         corres = {op[i]:fwd_inputs[i] for i in range(len(op))}
         return op, corres
 
+def dispatch_neg(graph, inv_inputs, fwd_inputs, inverses):
+    assert len(inv_inputs) == 1, "inv_sub has one input"
+    assert len(fwd_inputs) == 1, "sub has one inputs"
+    op = inverses['Neg'].go(graph, inv_inputs)
+    corres = {op[0]:fwd_inputs[0]}
+    return op, corres
+
+def dispatch_cos(graph, inv_inputs, fwd_inputs, inverses):
+    assert len(inv_inputs) == 1, "inv_sub has one input"
+    assert len(fwd_inputs) == 1, "sub has one inputs"
+    op = inverses['Cos'].go(graph, inv_inputs)
+    corres = {op[0]:fwd_inputs[0]}
+    return op, corres
+
+def dispatch_sin(graph, inv_inputs, fwd_inputs, inverses):
+    assert len(inv_inputs) == 1, "inv_sub has one input"
+    assert len(fwd_inputs) == 1, "sub has one inputs"
+    op = inverses['Sin'].go(graph, inv_inputs)
+    corres = {op[0]:fwd_inputs[0]}
+    return op, corres
 
 ## Abs
 def inv_abs_param(z, intX=tf.int32): return (placeholder_like(z, dtype=intX, name="theta"),)
@@ -127,6 +147,10 @@ invsubc1 = Injection('Sub_Const1', inv_subc1, is_approx=False)
 def inv_subc2(z, consts): return (consts[0] + z[0],)
 invsubc2 = Injection('Sub_Const2', inv_subc2, is_approx=False)
 
+## Neg
+def inv_neg(z): return (-z[0],)
+invneg = Injection("Neg", inv_neg, is_approx=False)
+
 ## Split
 def inv_split(z): return (z[0],)
 def inv_split_approx(z):
@@ -143,7 +167,13 @@ def inv_sinf_param(z): return (create_theta(z[0].dtype, shape=z[0].get_shape(), 
 def inv_sinf(z, params): return (tf.asin(z[0])*params[0],)
 invsin = ParametricInverse('Sin', inv_sinf_param, inv_sinf, is_approx=False)
 
+def inj_sinf(z): return (tf.asin(z[0]),)
+injsin = Injection('Sin', inj_sinf, is_approx=False)
+
 ## Cos
 def inv_cosf_param(z): return (create_theta(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_cosf(z, params): return (tf.acos(z[0])*params[0],)
 invcos = ParametricInverse('Cos', inv_cosf_param, inv_cosf, is_approx=False)
+
+def inj_cosf(z): return (tf.acos(z[0]),)
+injcos = Injection('Cos', inj_cosf, is_approx=False)

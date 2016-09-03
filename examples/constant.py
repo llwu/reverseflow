@@ -14,11 +14,14 @@ with g.name_scope("fwd_g"):
     y = tf.placeholder(float32, name="y", shape = ())
     z = ((x * 2) - (4 * y)) + 5 + x
 
-inv_g, inputs, out_map = pi.invert.invert((z,))
+
+inv_g, inputs, out_map = pi.invert.invert((z,), inverses=inverses)
 params = inv_g.get_collection("params")
 errors = inv_g.get_collection("errors")
 
 writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', inv_g)
+
+
 sess = tf.Session(graph=inv_g)
 
 input_feed = tensor_rand(inputs)

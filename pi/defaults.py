@@ -16,6 +16,7 @@ approx_inverses = {'Abs': invabsapprox,
                    'Mul_Const': invmulc,
                    'Add': invadd,
                    'Add_Const': invaddc,
+                   'Neg':invneg,
                    'Sub': invsub,
                    'Sub_Const1': invsubc1,
                    'Sub_Const2': invsubc2}
@@ -32,4 +33,7 @@ assert typecheck_inverses(approx_inverses)
 default_inverses = approx_inverses
 dispatches = {'Mul':dispatch_mul,
               'Add':dispatch_add,
-              'Sub':dispatch_sub}
+              'Sub':dispatch_sub,
+              'Neg':dispatch_neg,
+              'Sin':dispatch_sin,
+              'Cos':dispatch_cos}

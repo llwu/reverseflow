@@ -5,6 +5,7 @@ from tensorflow import float32
 
 ## 2d linkage bot
 tf.reset_default_graph()
+sess = tf.Session()
 g = tf.get_default_graph()
 
 l1 = tf.constant(1.0)
@@ -16,4 +17,4 @@ x = l1 * tf.cos(phi1) + l2 * tf.cos(phi1+phi2)
 y = l1 * tf.sin(phi1) + l2 * tf.sin(phi1+phi2)
 
 g = tf.get_default_graph()
-inv_g = pi.invert.invert(g, (x, y))
+writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', sess.graph)
