@@ -1,5 +1,11 @@
 import tensorflow as tf
 
+def ph_or_var(dtype, shape, name, is_placeholder=False):
+    if is_placeholder:
+        return tf.placeholder(dtype, shape=shape, name=name)
+    else:
+        return tf.Variable(tf.random_uniform(shape,dtype=dtype), name=name)
+
 def same(xs):
     """All elements in xs are the same"""
     if len(xs) == 0:
