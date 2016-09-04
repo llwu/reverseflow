@@ -3,7 +3,7 @@ from pi import invert
 import tensorflow as tf
 from tensorflow import float32
 import numpy as np
-from pi.optim import minimize_error, evaluate, gen_y
+from pi.optim import minimize_error, evaluate, gen_y, gen_loss_model
 from pi.util import *
 
 def tensor_rand(tensors):
@@ -19,23 +19,29 @@ def gen_graph(g, is_placeholder):
 
 
 g = tf.get_default_graph()
+sess = tf.Session(graph=g)
+
 in_out = gen_graph(g, False)
 y_batch = gen_y(g, in_out["outputs"])
-sess = tf.Session(graph=g)
-evaluate(y_batch, in_out["outputs"], sess)
-# inv_g, inputs, out_map = pi.invert.invert((z,))
-# params = inv_g.get_collection("params")
-# errors = inv_g.get_collection("errors")
-#
-# writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', inv_g)
-#
-#
-# sess = tf.Session(graph=inv_g)
-#
-# input_feed = tensor_rand(inputs)
-# minimize_error(inv_g, input_feed, sess)
+
+loss = gen_loss_model(in_out, y_batch, sess)
+loss_data = evaluate(loss, in_out, sess)
+
+in_out2 = gen_graph(g, True)
+x, y = in_out2['inputs']
+z, = in_out2['outputs']
+inv_g, inputs, out_map = pi.invert.invert((z,))
+params = inv_g.get_collection("params")
+errors = inv_g.get_collection("errors")
+
+node_loss_data = minimize_error(loss, inv_g, y_batch, sess)
 # output = sess.run(feed_dict=input_feed, fetches=out_map)
 #
 # yy = output['fwd_g/y']
 # xx = output['fwd_g/x']
 # ((xx * 2) - (4 * yy)) + 5 + xx
+
+
+
+
+# writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', inv_g)
