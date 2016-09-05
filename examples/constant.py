@@ -3,7 +3,7 @@ from pi import invert
 import tensorflow as tf
 from tensorflow import float32
 import numpy as np
-from pi.optim import minimize_error, evaluate, gen_y, gen_loss_model
+from pi.optim import min_param_error, min_fx_y, gen_y, gen_loss_model
 from pi.util import *
 
 def tensor_rand(tensors):
@@ -22,7 +22,7 @@ def gen_graph(g, batch_size, is_placeholder):
     return {"inputs":inputs, "outputs":outputs}
 
 n_iters = 1000
-batch_size = 128
+batch_size = 10
 
 # Default graph and session
 g = tf.get_default_graph()
@@ -31,8 +31,8 @@ sess = tf.Session(graph=g)
 in_out_var = gen_graph(g, batch_size, False)
 y_batch = gen_y(g, in_out_var["outputs"])
 
-loss, variables = gen_loss_model(in_out_var, y_batch, sess)
-loss_data = evaluate(loss, in_out_var, sess, max_iterations=n_iters)
+loss, absdiffs, output_to_loss_per_batch, mean_loss_per_batch, target_outputs = gen_loss_model(in_out_var, sess)
+loss_data = min_fx_y(loss, in_out_var, target_outputs, y_batch, sess, max_iterations=n_iters)
 
 in_out_ph = gen_graph(g, batch_size, True)
 x, y = in_out_ph['inputs']['x'], in_out_ph['inputs']['y']
@@ -41,8 +41,12 @@ inv_g, inv_inputs, inv_outputs_map = pi.invert.invert((z,))
 
 inv_outputs_map_canonical = {k:inv_outputs_map[v.name] for k,v in in_out_ph['inputs'].items()}
 inv_inp_map = dict(zip(['z'], inv_inputs))
-node_loss_data, std_loss_data = minimize_error(loss, inv_g, inv_inp_map, inv_outputs_map_canonical,
-                                y_batch, in_out_var['inputs'], sess, max_iterations=n_iters)
+node_loss_data, std_loss_data = min_param_error(loss, inv_g, inv_inp_map,
+                                                inv_outputs_map_canonical,
+                                                y_batch, in_out_var['inputs'],
+                                                target_outputs,
+                                                sess,
+                                                max_iterations=n_iters)
 
 # writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', inv_g)
 import numpy as np
