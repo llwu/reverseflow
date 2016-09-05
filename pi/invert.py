@@ -78,7 +78,7 @@ def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
             # When the op is a placeholder just label it as an output
             if op.type == 'Placeholder':
                 assert len(inv_inputs) == 1
-                inv_output_map[op.name] = inv_inputs[0]
+                inv_output_map[op.outputs[0].name] = inv_inputs[0]
                 continue
 
             # Apply inv op to inv graph, collecting outputs (inputs to fwd_op)
