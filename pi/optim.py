@@ -81,23 +81,28 @@ def gen_loss_model(in_out, sess):
     loss = tf.reduce_mean(mean_loss_per_batch)
     return loss, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch, target_outputs
 
+
 def min_fx_y(loss_op, mean_loss_per_batch_op, in_out, target_outputs, y_batch,
-             sess, max_iterations=None, max_time=10.0, time_grain=0.1):
+             sess, max_iterations=None, max_time=10.0, time_grain=1):
     """
     Solve inverse problem by search over inputs
     Given a function f, and y_batch, find x_batch s.t. f(x_batch) = y
     """
-    assert (max_iterations == None) != (max_time == None), "set stop time xor max-iterations"
+    assert (max_iterations is None) != (max_time is None), "set stop time xor max-iterations"
 
     train_step = tf.train.GradientDescentOptimizer(0.0001).minimize(loss_op)
     init = tf.initialize_all_variables()
     sess.run(init)
-    fetch = {"train_step": train_step, "loss": loss_op, "batch_loss": mean_loss_per_batch_op}
+    fetch = {"train_step": train_step, "loss": loss_op,
+             "batch_loss": mean_loss_per_batch_op}
     target_feed = {target_outputs[k]: y_batch[k] for k in y_batch.keys()}
     loss_data = []
     loss_data_window = []
     total_time = previous_time = 0.0
     loss_hist = collections.OrderedDict()
+    curr_time_slice = 0
+    loss_hist[curr_time_slice] = np.array([])
+
     i = 0
     while True:
         if max_iterations is not None and i > max_iterations:
@@ -116,14 +121,19 @@ def min_fx_y(loss_op, mean_loss_per_batch_op, in_out, target_outputs, y_batch,
         loss_data.append(output['loss'])
         loss_data_window.append(output['loss'])
         print("i",i, output)
-        if total_time - previous_time > time_grain:
-            previous_time = total_time
-            loss_hist[total_time] = loss_data_window
-            loss_data_window = []
-
         # Start a new batch
         if output['loss'] < 0.3:
             # Generate new elements of y and reinitialize x
             y_batch = gen_y(in_out["outputs"])
             target_feed = {target_outputs[k]: y_batch[k] for k in y_batch.keys()}
+            loss_hist[curr_time_slice] = np.concatenate([loss_hist[curr_time_slice], output['batch_loss']])
+
+        if total_time - previous_time > time_grain:
+            previous_time = total_time
+            print("A:", loss_hist[curr_time_slice], "B", output['batch_loss'])
+            loss_hist[curr_time_slice] = np.concatenate([loss_hist[curr_time_slice], output['batch_loss']])
+            curr_time_slice += 1
+            loss_hist[curr_time_slice] = []
+
+
     return loss_data, loss_hist

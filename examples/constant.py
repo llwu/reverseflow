@@ -22,7 +22,7 @@ def gen_graph(g, batch_size, is_placeholder):
     return {"inputs":inputs, "outputs":outputs}
 
 n_iters = 1000
-batch_size = 4
+batch_size = 128
 
 # Default graph and session
 g = tf.get_default_graph()
@@ -33,7 +33,7 @@ y_batch = gen_y(in_out_var["outputs"])
 
 loss_op, absdiffs, mean_loss_per_batch_op, mean_loss_per_batch_op, target_outputs = gen_loss_model(in_out_var, sess)
 loss_data, loss_hist = min_fx_y(loss_op, mean_loss_per_batch_op, in_out_var, target_outputs, y_batch, sess,
-                                max_time=30.0)
+                                max_time=50.0)
 
 in_out_ph = gen_graph(g, batch_size, True)
 x, y = in_out_ph['inputs']['x'], in_out_ph['inputs']['y']
