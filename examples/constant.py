@@ -22,17 +22,18 @@ def gen_graph(g, batch_size, is_placeholder):
     return {"inputs":inputs, "outputs":outputs}
 
 n_iters = 1000
-batch_size = 10
+batch_size = 4
 
 # Default graph and session
 g = tf.get_default_graph()
 sess = tf.Session(graph=g)
 
 in_out_var = gen_graph(g, batch_size, False)
-y_batch = gen_y(g, in_out_var["outputs"])
+y_batch = gen_y(in_out_var["outputs"])
 
-loss, absdiffs, output_to_loss_per_batch, mean_loss_per_batch, target_outputs = gen_loss_model(in_out_var, sess)
-loss_data = min_fx_y(loss, in_out_var, target_outputs, y_batch, sess, max_iterations=n_iters)
+loss_op, absdiffs, mean_loss_per_batch_op, mean_loss_per_batch_op, target_outputs = gen_loss_model(in_out_var, sess)
+loss_data, loss_hist = min_fx_y(loss_op, mean_loss_per_batch_op, in_out_var, target_outputs, y_batch, sess,
+                                max_time=30.0)
 
 in_out_ph = gen_graph(g, batch_size, True)
 x, y = in_out_ph['inputs']['x'], in_out_ph['inputs']['y']
@@ -52,5 +53,10 @@ node_loss_data, std_loss_data = min_param_error(loss, inv_g, inv_inp_map,
 import numpy as np
 import matplotlib.pyplot
 import matplotlib.pyplot as plt
-plt.plot(np.arange(n_iters), std_loss_data, 'bs', np.arange(n_iters), node_loss_data, 'g^')
+
+plt.plot(np.arange(len(loss_data)), loss_data)
+# plt.plot(np.arange(n_iters), std_loss_data, 'bs', np.arange(n_iters), node_loss_data, 'g^')
+
+# for k, v in loss_hist.items():
+
 plt.show()

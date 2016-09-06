@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
-
+import time
+import collections
 ## Comparisons
 ## 1. Search other x in X to find x* = argmin(|f(x), y|)
 ## 2. Search other theta to find theta* and corresponding x* such that error node = zero
@@ -28,8 +29,9 @@ def evaluate_loss(loss, output, variables, y_batch, target_outputs, sess):
     feed.update(target_feed)
     return sess.run(loss, feed_dict=feed)
 
-def gen_y(graph, out_tensors):
+def gen_y(out_tensors):
     """For a function f:X->Y, generate a dataset of valid elemets y"""
+    graph = list(out_tensors.values())[0].graph
     sess = tf.Session(graph=graph)
     initializer = tf.initialize_all_variables()
     sess.run(initializer)
@@ -79,19 +81,49 @@ def gen_loss_model(in_out, sess):
     loss = tf.reduce_mean(mean_loss_per_batch)
     return loss, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch, target_outputs
 
-def min_fx_y(loss, in_out, target_outputs, y_batch, sess, max_iterations=10000):
+def min_fx_y(loss_op, mean_loss_per_batch_op, in_out, target_outputs, y_batch,
+             sess, max_iterations=None, max_time=10.0, time_grain=0.1):
     """
     Solve inverse problem by search over inputs
     Given a function f, and y_batch, find x_batch s.t. f(x_batch) = y
     """
-    train_step = tf.train.GradientDescentOptimizer(0.01).minimize(loss)
+    assert (max_iterations == None) != (max_time == None), "set stop time xor max-iterations"
+
+    train_step = tf.train.GradientDescentOptimizer(0.0001).minimize(loss_op)
     init = tf.initialize_all_variables()
     sess.run(init)
-    fetch = {"train_step": train_step, "loss": loss}
+    fetch = {"train_step": train_step, "loss": loss_op, "batch_loss": mean_loss_per_batch_op}
     target_feed = {target_outputs[k]: y_batch[k] for k in y_batch.keys()}
     loss_data = []
-    for i in range(max_iterations):
+    loss_data_window = []
+    total_time = previous_time = 0.0
+    loss_hist = collections.OrderedDict()
+    i = 0
+    while True:
+        if max_iterations is not None and i > max_iterations:
+            break
+        elif max_time is not None and total_time > max_time:
+            break
+
+        i = i + 1
+        # Timing
+        start_time = time.clock()
         output = sess.run(fetch, feed_dict=target_feed)
+        end_time = time.clock()
+        elapsed = end_time - start_time
+        total_time = elapsed + total_time
+
         loss_data.append(output['loss'])
+        loss_data_window.append(output['loss'])
         print("i",i, output)
-    return loss_data
+        if total_time - previous_time > time_grain:
+            previous_time = total_time
+            loss_hist[total_time] = loss_data_window
+            loss_data_window = []
+
+        # Start a new batch
+        if output['loss'] < 0.3:
+            # Generate new elements of y and reinitialize x
+            y_batch = gen_y(in_out["outputs"])
+            target_feed = {target_outputs[k]: y_batch[k] for k in y_batch.keys()}
+    return loss_data, loss_hist
