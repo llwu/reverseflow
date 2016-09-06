@@ -39,30 +39,6 @@ def gen_y(out_tensors):
     sess.close()
     return outputs
 
-
-def min_param_error(loss, inv_g, inputs, out_map, y_batch, variables,
-                    target_outputs, sess, max_iterations=10000):
-    errors = inv_g.get_collection("errors")
-    node_loss = accumulate_mean_error(errors)
-    train_step = tf.train.GradientDescentOptimizer(0.01).minimize(node_loss)
-    init = tf.initialize_all_variables()
-
-    sess.run(init)
-    node_loss_data = []
-    std_losses = []
-    fetch = {"train_step":train_step, "node_loss":node_loss}
-    fetch.update(out_map)
-    print("Fetchy", fetch)
-    input_feed = {inputs[k]:y_batch[k] for k in y_batch.keys()}
-    print("FEEDY", input_feed)
-    for i in range(max_iterations):
-        output = sess.run(fetch, feed_dict=input_feed)
-        std_loss = evaluate_loss(loss, output, variables, y_batch, target_outputs, sess)
-        std_losses.append(std_loss)
-        node_loss_data.append(output['node_loss'])
-        print("i",i, output['node_loss'], std_loss)
-    return node_loss_data, std_losses
-
 def gen_loss_model(in_out, sess):
     """
     elementwise_loss_per_batch_per_output : {x:[1,2,3],y:[[1,2,3],[4,5,6]]}
@@ -82,6 +58,70 @@ def gen_loss_model(in_out, sess):
     return loss, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch, target_outputs
 
 
+def min_param_error(loss, inv_g, inputs, out_map, y_batch, variables,
+                    target_outputs, sess, max_iterations=None,
+                    max_time=10.0):
+    """
+    Solve inverse problem by searching over parameter values which minimize
+    error range error.
+    """
+    assert (max_iterations is None) != (max_time is None), "set stop time xor max-iterations"
+
+    # Generate loss_op
+    errors = inv_g.get_collection("errors")
+    domain_loss = accumulate_mean_error(errors)
+    train_step = tf.train.GradientDescentOptimizer(0.01).minimize(domain_loss)
+    init = tf.initialize_all_variables()
+
+    sess.run(init)
+    fetch = {"train_step":train_step, "domain_loss":domain_loss}
+    fetch.update(out_map)
+    input_feed = {inputs[k]:y_batch[k] for k in y_batch.keys()}
+
+    domain_loss_data = []
+    std_loss_data = []
+
+    total_time = previous_time = 0.0
+    domain_loss_hist = collections.OrderedDict()
+    std_loss_hist = collections.OrderedDict()
+
+    curr_time_slice = 0
+    domain_loss_hist[curr_time_slice] = np.array([])
+    std_loss_hist[curr_time_slice] = np.array([])
+
+    i = 0
+    while True:
+        if max_iterations is not None and i > max_iterations:
+            break
+        elif max_time is not None and total_time > max_time:
+            break
+        i = i + 1
+        start_time = time.clock()
+        output = sess.run(fetch, feed_dict=input_feed)
+        end_time = time.clock()
+        elapsed = end_time - start_time
+        total_time = elapsed + total_time
+
+        std_loss = evaluate_loss(loss, output, variables, y_batch, target_outputs, sess)
+        std_loss_data.append(std_loss)
+        domain_loss_data.append(output['domain_loss'])
+
+        if output['loss'] < 0.3:
+            # Generate new elements of y and reinitialize x
+            y_batch = gen_y(in_out["outputs"])
+            target_feed = {target_outputs[k]: y_batch[k] for k in y_batch.keys()}
+            loss_hist[curr_time_slice] = np.concatenate([loss_hist[curr_time_slice], output['batch_loss']])
+
+        if total_time - previous_time > time_grain:
+            previous_time = total_time
+            loss_hist[curr_time_slice] = np.concatenate([loss_hist[curr_time_slice], output['batch_loss']])
+            curr_time_slice += 1
+            loss_hist[curr_time_slice] = []
+
+        print("i", i, output['domain_loss'], std_loss)
+    return domain_loss_data, std_loss_data
+
+
 def min_fx_y(loss_op, mean_loss_per_batch_op, in_out, target_outputs, y_batch,
              sess, max_iterations=None, max_time=10.0, time_grain=1):
     """
@@ -97,7 +137,6 @@ def min_fx_y(loss_op, mean_loss_per_batch_op, in_out, target_outputs, y_batch,
              "batch_loss": mean_loss_per_batch_op}
     target_feed = {target_outputs[k]: y_batch[k] for k in y_batch.keys()}
     loss_data = []
-    loss_data_window = []
     total_time = previous_time = 0.0
     loss_hist = collections.OrderedDict()
     curr_time_slice = 0
@@ -119,8 +158,7 @@ def min_fx_y(loss_op, mean_loss_per_batch_op, in_out, target_outputs, y_batch,
         total_time = elapsed + total_time
 
         loss_data.append(output['loss'])
-        loss_data_window.append(output['loss'])
-        print("i",i, output)
+        print("i", i, output)
         # Start a new batch
         if output['loss'] < 0.3:
             # Generate new elements of y and reinitialize x
@@ -130,7 +168,6 @@ def min_fx_y(loss_op, mean_loss_per_batch_op, in_out, target_outputs, y_batch,
 
         if total_time - previous_time > time_grain:
             previous_time = total_time
-            print("A:", loss_hist[curr_time_slice], "B", output['batch_loss'])
             loss_hist[curr_time_slice] = np.concatenate([loss_hist[curr_time_slice], output['batch_loss']])
             curr_time_slice += 1
             loss_hist[curr_time_slice] = []

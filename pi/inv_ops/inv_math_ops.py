@@ -148,6 +148,7 @@ invneg = Injection("Neg", inv_neg, is_approx=False)
 ## Split
 def inv_split(z): return (z[0],)
 def inv_split_approx(z):
+    """Outputs the mean of its inputs and the error as the variance"""
     mean = tf.add_n(z)/len(z)
     dists = [tf.reduce_mean(tf.abs(t - mean)) for t in z]
     error = tf.add_n(dists)/len(z)
