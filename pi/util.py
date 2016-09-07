@@ -1,4 +1,9 @@
 import tensorflow as tf
+import numpy as np
+
+def dims_bar_batch(t):
+    """Get the dimensions of a tensor exluding its batch dimension (first one)"""
+    return np.arange(1, t.get_shape().ndims)
 
 def ph_or_var(dtype, shape, name, is_placeholder=False):
     if is_placeholder:

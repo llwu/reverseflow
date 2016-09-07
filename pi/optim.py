@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import time
 import collections
+from pi.util import *
 ## Comparisons
 ## 1. Search other x in X to find x* = argmin(|f(x), y|)
 ## 2. Search other theta to find theta* and corresponding x* such that error node = zero
@@ -22,12 +23,13 @@ import collections
 def accumulate_mean_error(errors):
     return tf.add_n(errors)/len(errors)
 
-def evaluate_loss(loss, output, variables, y_batch, target_outputs, sess):
+def evaluate_loss(loss_op, mean_loss_per_batch_op, output, variables, y_batch, target_outputs, sess):
     """Compute |f(x) - y|"""
+    fetch = {"loss": loss_op, "batch_loss": mean_loss_per_batch_op}
     target_feed = {target_outputs[k]:y_batch[k] for k in y_batch.keys()}
     feed = {variable: output[var_name] for var_name, variable in variables.items()}
     feed.update(target_feed)
-    return sess.run(loss, feed_dict=feed)
+    return sess.run(fetch, feed_dict=feed)
 
 def gen_y(out_tensors):
     """For a function f:X->Y, generate a dataset of valid elemets y"""
@@ -51,16 +53,23 @@ def gen_loss_model(in_out, sess):
                       name="%s_target" % k) for k, v in out_tensors.items()}
     absdiffs = {k: tf.abs(out_tensors[k] - target_outputs[k])
                 for k in out_tensors.keys()}
-    mean_loss_per_batch_per_op = {k: tf.reduce_mean(v,
-                                  reduction_indices=np.arange(1,v.get_shape().ndims)) for k,v in absdiffs.items()}
+    mean_loss_per_batch_per_op = {k: tf.reduce_mean(v, reduction_indices=dims_bar_batch(v)) for k,v in absdiffs.items()}
     mean_loss_per_batch = tf.add_n(list(mean_loss_per_batch_per_op.values())) / len(absdiffs)
     loss = tf.reduce_mean(mean_loss_per_batch)
     return loss, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch, target_outputs
 
 
-def min_param_error(loss, inv_g, inputs, out_map, y_batch, variables,
+def nnet():
+    """
+    Train a neural network f to map y to x such that f(x) = y.
+    loss = |f((f-1(y))) - y|
+    """
+    # wwhats next
+    pass
+
+def min_param_error(loss_op, mean_loss_per_batch_op, inv_g, inputs, out_map, y_batch, variables,
                     target_outputs, sess, max_iterations=None,
-                    max_time=10.0):
+                    max_time=10.0, time_grain=1.0):
     """
     Solve inverse problem by searching over parameter values which minimize
     error range error.
@@ -69,12 +78,15 @@ def min_param_error(loss, inv_g, inputs, out_map, y_batch, variables,
 
     # Generate loss_op
     errors = inv_g.get_collection("errors")
-    domain_loss = accumulate_mean_error(errors)
-    train_step = tf.train.GradientDescentOptimizer(0.01).minimize(domain_loss)
+    batch_domain_loss = accumulate_mean_error(errors)
+    domain_loss = tf.reduce_mean(batch_domain_loss)
+    print("domain_loss", domain_loss)
+    train_step = tf.train.GradientDescentOptimizer(0.1).minimize(domain_loss)
     init = tf.initialize_all_variables()
 
     sess.run(init)
-    fetch = {"train_step":train_step, "domain_loss":domain_loss}
+    fetch = {"train_step":train_step, "domain_loss":domain_loss,
+             "batch_domain_loss": batch_domain_loss}
     fetch.update(out_map)
     input_feed = {inputs[k]:y_batch[k] for k in y_batch.keys()}
 
@@ -101,25 +113,29 @@ def min_param_error(loss, inv_g, inputs, out_map, y_batch, variables,
         end_time = time.clock()
         elapsed = end_time - start_time
         total_time = elapsed + total_time
+        print("OUTPUT", output)
 
-        std_loss = evaluate_loss(loss, output, variables, y_batch, target_outputs, sess)
+        std_loss = evaluate_loss(loss_op, mean_loss_per_batch_op, output, variables, y_batch, target_outputs, sess)
         std_loss_data.append(std_loss)
         domain_loss_data.append(output['domain_loss'])
 
-        if output['loss'] < 0.3:
+        if std_loss["loss"] < 0.3:
             # Generate new elements of y and reinitialize x
             y_batch = gen_y(in_out["outputs"])
             target_feed = {target_outputs[k]: y_batch[k] for k in y_batch.keys()}
-            loss_hist[curr_time_slice] = np.concatenate([loss_hist[curr_time_slice], output['batch_loss']])
+            domain_loss_hist[curr_time_slice] = np.concatenate([domain_loss_hist[curr_time_slice], output['batch_domain_loss']])
+            std_loss_hist[curr_time_slice] = np.concatenate([std_loss_hist[curr_time_slice], std_loss['batch_loss']])
 
         if total_time - previous_time > time_grain:
             previous_time = total_time
-            loss_hist[curr_time_slice] = np.concatenate([loss_hist[curr_time_slice], output['batch_loss']])
+            domain_loss_hist[curr_time_slice] = np.concatenate([domain_loss_hist[curr_time_slice], output['batch_domain_loss']])
+            std_loss_hist[curr_time_slice] = np.concatenate([std_loss_hist[curr_time_slice], std_loss['batch_loss']])
             curr_time_slice += 1
-            loss_hist[curr_time_slice] = []
+            domain_loss_hist[curr_time_slice] = []
+            std_loss_hist[curr_time_slice] = []
 
         print("i", i, output['domain_loss'], std_loss)
-    return domain_loss_data, std_loss_data
+    return std_loss_hist, domain_loss_hist, total_time
 
 
 def min_fx_y(loss_op, mean_loss_per_batch_op, in_out, target_outputs, y_batch,
@@ -173,4 +189,4 @@ def min_fx_y(loss_op, mean_loss_per_batch_op, in_out, target_outputs, y_batch,
             loss_hist[curr_time_slice] = []
 
 
-    return loss_data, loss_hist
+    return loss_data, loss_hist, total_time

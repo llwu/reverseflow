@@ -16,7 +16,8 @@ def apply_inv_op(g, optype, inv_inputs, fwd_inputs, inverses=default_inverses):
 
 def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
     """
-    Invert a function
+    Parametrically Invert a function
+
     out_tensors :: (tf.tensor) - all outputs of function
     inverses :: {tf.op.type : pi.Inverse} - which inverses are used for which op
     inv_in_same_graph :: bool - build the inverse in same graph?

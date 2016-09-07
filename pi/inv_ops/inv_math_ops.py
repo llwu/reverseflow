@@ -114,6 +114,16 @@ def inv_abs_approx(z, params, clamp=lambda t: a_b_clamp(t, a=-1, b=1),
 
 invabsapprox = ParametricInverse('Abs', inv_abs_param, inv_abs_approx, is_approx=True)
 
+# def shape_batch(shape, batch_mode, batch_size):
+#     """Return a modified shape to account for batch"""
+#     assert batch_mode in [None, "broadcast", "unique"]
+#     if batch_mode is None:
+#         return shape
+#     elif batch_mode == "param":
+#         return tf.TensorShape([1]).concatenate(shape)
+#     elif batch_mode == "unique":
+#         return tf.TensorShape([batch_size]).concatenate(shape)
+
 ## Mul
 def inv_mulf_param(z): return (ph_or_var(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_mulf(z, params): return (iden(params[0]), z[0]/params[0])
@@ -150,9 +160,11 @@ def inv_split(z): return (z[0],)
 def inv_split_approx(z):
     """Outputs the mean of its inputs and the error as the variance"""
     mean = tf.add_n(z)/len(z)
-    dists = [tf.reduce_mean(tf.abs(t - mean)) for t in z]
-    error = tf.add_n(dists)/len(z)
-    return (mean,), (error,)
+    variances = [tf.abs(t - mean) for t in z]
+    mean_variances = tf.add_n(variances)/len(z)
+    batched_error = tf.reduce_mean(mean_variances,
+                                   reduction_indices=dims_bar_batch(mean_variances))
+    return (mean,), (batched_error,)
 
 invsplit = Injection('Split', inv_split, is_approx=False)
 invsplitapprox = Injection('Split', inv_split_approx, is_approx=True)

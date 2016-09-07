@@ -1,5 +1,6 @@
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Average over many runs
 # Make it into a line plot instead of histogram
@@ -23,7 +24,7 @@ def profile2d(x,  total_time, ybins=20, max_error=30.0, cumulative=True):
     result = plt.imshow(img, extent=[0, total_time, 0, max_error], aspect='auto')
     # l = plt.plot(bins)
     plt.ylabel('Error - |f(x*) - x|')
-    plt.xlabel('Time')
+    plt.xlabel('Time (s)')
     plt.colorbar()
     return result, img
 

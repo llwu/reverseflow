@@ -1,5 +1,6 @@
 import pi
 from pi import invert
+from pi import analysis
 import tensorflow as tf
 from tensorflow import float32
 import numpy as np
@@ -23,6 +24,7 @@ def gen_graph(g, batch_size, is_placeholder):
 
 n_iters = 1000
 batch_size = 128
+max_time = 50
 
 # Default graph and session
 g = tf.get_default_graph()
@@ -32,8 +34,8 @@ in_out_var = gen_graph(g, batch_size, False)
 y_batch = gen_y(in_out_var["outputs"])
 
 loss_op, absdiffs, mean_loss_per_batch_op, mean_loss_per_batch_op, target_outputs = gen_loss_model(in_out_var, sess)
-loss_data, loss_hist = min_fx_y(loss_op, mean_loss_per_batch_op, in_out_var, target_outputs, y_batch, sess,
-                                max_time=50.0)
+loss_data, loss_hist, total_time = min_fx_y(loss_op, mean_loss_per_batch_op, in_out_var, target_outputs, y_batch, sess,
+                                max_time=max_time)
 
 in_out_ph = gen_graph(g, batch_size, True)
 x, y = in_out_ph['inputs']['x'], in_out_ph['inputs']['y']
@@ -42,12 +44,12 @@ inv_g, inv_inputs, inv_outputs_map = pi.invert.invert((z,))
 
 inv_outputs_map_canonical = {k:inv_outputs_map[v.name] for k,v in in_out_ph['inputs'].items()}
 inv_inp_map = dict(zip(['z'], inv_inputs))
-node_loss_data, std_loss_data = min_param_error(loss, inv_g, inv_inp_map,
+std_loss_hist, domain_loss_hist, total_time_p    = min_param_error(loss_op, mean_loss_per_batch_op, inv_g, inv_inp_map,
                                                 inv_outputs_map_canonical,
                                                 y_batch, in_out_var['inputs'],
                                                 target_outputs,
                                                 sess,
-                                                max_iterations=n_iters)
+                                                max_time=max_time)
 
 # writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', inv_g)
 import numpy as np
