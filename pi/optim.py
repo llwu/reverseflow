@@ -41,6 +41,21 @@ def gen_y(out_tensors):
     sess.close()
     return outputs
 
+def multi_io_loss(a_tensors, b_tensors):
+    """
+    For a vector
+    a_tensors : {name: tf.Tensor}
+    b_tensors : {name: tf.Tensor}
+    """
+    # assert same_kinda_tensors(a_tensors, b_tensors), "mismatch in tensor shapes"
+    absdiffs = {k: tf.abs(a_tensors[k] - b_tensors[k])
+                for k in a_tensors.keys()}
+    mean_loss_per_batch_per_op = {k: tf.reduce_mean(v, reduction_indices=dims_bar_batch(v)) for k,v in absdiffs.items()}
+    mean_loss_per_batch = tf.add_n(list(mean_loss_per_batch_per_op.values())) / len(absdiffs)
+    loss = tf.reduce_mean(mean_loss_per_batch)
+    return loss, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch
+
+
 def gen_loss_model(in_out, sess):
     """
     elementwise_loss_per_batch_per_output : {x:[1,2,3],y:[[1,2,3],[4,5,6]]}
@@ -51,24 +66,39 @@ def gen_loss_model(in_out, sess):
     out_tensors = in_out["outputs"]
     target_outputs = {k: tf.placeholder(v.dtype, shape=v.get_shape(),
                       name="%s_target" % k) for k, v in out_tensors.items()}
-    absdiffs = {k: tf.abs(out_tensors[k] - target_outputs[k])
-                for k in out_tensors.keys()}
-    mean_loss_per_batch_per_op = {k: tf.reduce_mean(v, reduction_indices=dims_bar_batch(v)) for k,v in absdiffs.items()}
-    mean_loss_per_batch = tf.add_n(list(mean_loss_per_batch_per_op.values())) / len(absdiffs)
-    loss = tf.reduce_mean(mean_loss_per_batch)
-    return loss, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch, target_outputs
+    return multi_io_loss(out_tensors, target_outputs) + target_outputs
 
-def nnet(fwd_inputs, fwd_outputs, nnet_template):
+def nnet(fwd_f, fwd_inputs, fwd_outputs, nnet_template, y_batch, sess, **template_kwargs):
     """
     Train a neural network f to map y to x such that f(x) = y.
     loss = |f((f-1(y))) - y|
-    fwd_inputs : (tf.Tensor) - placeholders for forward function inputs
-    fwd_outputs : (tf.Tensor) - placeholders for forward function outputs
+    fwd_inputs : (tf.Tensor) - placeholders for forward function inputs (used for shape only)
+    fwd_outputs : (tf.Tensor) - placeholders for forward function outputs (used for shape only)
     template :: f - a function that builds a neural network given in/out types
                 returns network inputs and outputs
     """
     # wwhats next
-    pass
+    print("fwd", fwd_inputs)
+    inv_inputs = {k: tf.placeholder(v.dtype, shape=v.get_shape()) for k, v  in fwd_outputs.items()}
+    nnet_output_shapes = {k: fwd_inp.get_shape().as_list() for k, fwd_inp in fwd_inputs.items()}
+    nnet_outputs, nnet_params = nnet_template(inv_inputs, nnet_output_shapes, **template_kwargs)
+    print("dada", nnet_params[0].value())
+
+    ## Take outputs of neural network and apply to input of function
+    fwd_outputs = fwd_f(nnet_outputs, **template_kwargs)
+    loss_op, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch_op = multi_io_loss(fwd_outputs, inv_inputs)
+
+    # Training
+    train_step = tf.train.GradientDescentOptimizer(0.00001).minimize(loss_op)
+    sess.run(tf.initialize_all_variables())
+
+    ## Generate y data
+    fetch = {"loss": loss_op, "batch_loss": mean_loss_per_batch_op, "train_step": train_step, 'nnet_params':nnet_params}
+    feed = {inv_inputs[k]:y_batch[k] for k in y_batch.keys()}
+    for i in range(10000):
+        output = sess.run(fetch, feed_dict=feed)
+        print(output["loss"])
+        # print("val", output['nnet_params'])
 
 def min_param_error(loss_op, mean_loss_per_batch_op, inv_g, inputs, out_map, y_batch, variables,
                     target_outputs, sess, max_iterations=None,
@@ -84,7 +114,7 @@ def min_param_error(loss_op, mean_loss_per_batch_op, inv_g, inputs, out_map, y_b
     batch_domain_loss = accumulate_mean_error(errors)
     domain_loss = tf.reduce_mean(batch_domain_loss)
     print("domain_loss", domain_loss)
-    train_step = tf.train.GradientDescentOptimizer(0.1).minimize(domain_loss)
+    train_step = tf.train.GradientDescentOptimizer(0.0001).minimize(domain_loss)
     init = tf.initialize_all_variables()
 
     sess.run(init)

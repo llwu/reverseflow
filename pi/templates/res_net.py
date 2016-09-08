@@ -10,8 +10,12 @@ def batch_flatten(tensors):
     """Flatten a vector of tensors, checking batch sizes are same"""
     return [tf.reshape(t,[t.get_shape()[0].value,-1]) for t in tensors]
 
-# 1. should output_shapes be input to res_net or a kwarg.
-# 2.
+
+def res_net_template_dict(inputs, out_shapes, **kwargs):
+    input_list = list(inputs.values())
+    out_shapes_list = list(out_shapes.values())
+    outputs, params = res_net_template(input_list, out_shapes_list, **kwargs)
+    return dict(zip(out_shapes.keys(), outputs)), params
 
 def res_net_template(inputs, out_shapes, **kwargs):
     """
@@ -23,7 +27,7 @@ def res_net_template(inputs, out_shapes, **kwargs):
     # nblocks = kwargs['nblocks']
     # block_size = kwargs['block_size']
     # output_args = kwargs['output_args']
-    inp_shapes = [x.get_shape() for x in inputs]
+    inp_shapes = [x.get_shape().as_list() for x in inputs]
     assert consistent_batch_size(inp_shapes + out_shapes), "Batch sizes differ"
     flat_input_shapes = [np.prod(inp_shape[1:]) for inp_shape in inp_shapes]
     input_width = np.sum(flat_input_shapes)
@@ -53,7 +57,9 @@ def res_net_template(inputs, out_shapes, **kwargs):
     for i in range(noutputs):
         ub = lb + flat_output_shapes[i]
         out = output_product[:, lb:ub]
-        rout = tf.reshape(out, (out.get_shape()[0].value,) + (out_shapes[i][1:]))
+        new_shape = [out.get_shape().as_list()[0]] + out_shapes[i][1:]
+        print("newshape", new_shape)
+        rout = tf.reshape(out, new_shape)
         outputs.append(rout)
         lb = ub
 
