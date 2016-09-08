@@ -58,11 +58,14 @@ def gen_loss_model(in_out, sess):
     loss = tf.reduce_mean(mean_loss_per_batch)
     return loss, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch, target_outputs
 
-
-def nnet():
+def nnet(fwd_inputs, fwd_outputs, nnet_template):
     """
     Train a neural network f to map y to x such that f(x) = y.
     loss = |f((f-1(y))) - y|
+    fwd_inputs : (tf.Tensor) - placeholders for forward function inputs
+    fwd_outputs : (tf.Tensor) - placeholders for forward function outputs
+    template :: f - a function that builds a neural network given in/out types
+                returns network inputs and outputs
     """
     # wwhats next
     pass
