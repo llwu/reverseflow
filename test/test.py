@@ -74,7 +74,7 @@ z = x*y + x
 zxf = z.graph
 inv_g = invert(f, (z,))
 
-## Algorithm
+## Alapplyrithm
 # Construct flag-map, P
 # Add input placeholders for each output of g
 #

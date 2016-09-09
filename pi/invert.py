@@ -5,22 +5,27 @@ from pi.defaults import default_inverses, dispatches
 from pi.inv_ops.inv_math_ops import inj_test
 from pi.util import *
 
-def apply_inv_op(g, optype, inv_inputs, fwd_inputs, inverses=default_inverses):
+
+def apply_inv_op(g, optype, inv_inputs, fwd_inputs, shrunk_params=None,
+                 inverses=default_inverses):
     """
     g :: tf.Graph - graph to add to
     op :: tf.Op - op to invert
     inputs :: [tf.Tensor] - inputs to inv_op
     inverses :: {tf.}
     """
-    return dispatches[optype](g, inv_inputs, fwd_inputs, inverses=inverses)
+    return dispatches[optype](g, inv_inputs, fwd_inputs,
+                              shrunk_params=shrunk_params, inverses=inverses)
 
-def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
+
+def invert(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_same_graph=True):
     """
     Parametrically Invert a function
 
     out_tensors :: (tf.tensor) - all outputs of function
     inverses :: {tf.op.type : pi.Inverse} - which inverses are used for which op
     inv_in_same_graph :: bool - build the inverse in same graph?
+    shrunk_params :: [tf.Tensor | tf.Variable] - The effective paramter space
     """
     if inv_in_same_graph == False:
         # inv_g = tf.Graph()
@@ -83,7 +88,10 @@ def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
                 continue
 
             # Apply inv op to inv graph, collecting outputs (inputs to fwd_op)
-            inv_outputs, corres = apply_inv_op(inv_g, op.type, inv_inputs, fwd_inputs, inverses)
+            inv_outputs, corres = apply_inv_op(inv_g, op.type, inv_inputs,
+                                               fwd_inputs,
+                                               shrunk_params=shrunk_params,
+                                               inverses=inverses)
 
             # For every output of inverse op
             for i, inv_out in enumerate(inv_outputs):
@@ -114,7 +122,7 @@ def invert(out_tensors, inverses=default_inverses, inv_in_same_graph=True):
                     else:
                         # Multiple equivalent tensors
                         inputs = tuple(equiv_tensors)
-                        (unsplit_output,) = inverses["Split"].go(inv_g, inputs)
+                        (unsplit_output,) = inverses["Split"].apply(inv_g, inputs)
                         tensor_map[inp] = unsplit_output
                     print("Checkmap", len(inp.consumers()), tensor_map[inp])
 
