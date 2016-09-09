@@ -112,7 +112,7 @@ def enhanced_pi(inv_g, inv_inputs, inv_inp_gen, shrunk_params, shrunk_param_gen,
     errors = inv_g.get_collection("errors")
     batch_domain_loss = accumulate_mean_error(errors)
     domain_loss = tf.reduce_mean(batch_domain_loss)
-    train_step = tf.train.GradientDescentOptimizer(0.001).minimize(domain_loss)
+    train_step = tf.train.GradientDescentOptimizer(0.1).minimize(domain_loss)
     init = tf.initialize_all_variables()
     sess.run(init)
 

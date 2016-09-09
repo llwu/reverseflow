@@ -54,10 +54,13 @@ def infinite_input(batch_size):
     generator_graph = tf.Graph()
     with generator_graph.as_default() as g:
         in_out_var = gen_graph(g, batch_size, False)
+        sess = tf.Session(graph=generator_graph)
+        init = tf.initialize_all_variables()
 
     while True:
         with generator_graph.as_default() as g:
-            output = gen_y(in_out_var["outputs"])
+            sess.run(init)
+            output = sess.run(in_out_var['outputs'])
         yield output
 
 
