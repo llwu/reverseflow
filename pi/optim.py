@@ -183,32 +183,25 @@ def enhanced_pi(inv_g, inv_inputs, inv_inp_gen, shrunk_params, shrunk_param_gen,
     return domain_loss_hist, std_loss_hist, total_time
 
 
-
-def min_param_error(loss_op, mean_loss_per_batch_op, inv_g, inputs, inv_outputs, y_batch, variables,
-                    target_outputs, sess, max_iterations=None,
-                    max_time=10.0, time_grain=1.0):
+def min_param_error(inv_g, inv_inputs, inv_inp_gen,
+                    inv_outputs, check_loss, sess, max_iterations=None, max_time=10.0, time_grain=1.0):
     """
-    Solve inverse problem by searching over parameter values which minimize
-    error range error.
+    Train a neural network enhanced parametric inverse
+    inv_inp : {name: tf.Tesor}
+    inv_inp_gen : coroutine -> {inv_inp_name: np.array}
     """
-    assert (max_iterations is None) != (max_time is None), "set stop time xor max-iterations"
-
-    # Generate loss_op
+    ## Feed in a sample of inputs from the cross product y X parameer inputs
+    ## minimize node error
     errors = inv_g.get_collection("errors")
     batch_domain_loss = accumulate_mean_error(errors)
     domain_loss = tf.reduce_mean(batch_domain_loss)
-    print("domain_loss", domain_loss)
-    train_step = tf.train.GradientDescentOptimizer(0.0001).minimize(domain_loss)
+    train_step = tf.train.GradientDescentOptimizer(0.01).minimize(domain_loss)
     init = tf.initialize_all_variables()
-
     sess.run(init)
-    fetch = {"train_step":train_step, "domain_loss":domain_loss,
-             "batch_domain_loss": batch_domain_loss}
-    fetch.update(inv_outputs)
-    input_feed = {inputs[k]:y_batch[k] for k in y_batch.keys()}
 
-    domain_loss_data = []
-    std_loss_data = []
+    fetches = {"train_step": train_step, "domain_loss": domain_loss,
+               "batch_domain_loss": batch_domain_loss}
+    fetches.update(inv_outputs)
 
     total_time = previous_time = 0.0
     domain_loss_hist = collections.OrderedDict()
@@ -217,7 +210,9 @@ def min_param_error(loss_op, mean_loss_per_batch_op, inv_g, inputs, inv_outputs,
     curr_time_slice = 0
     domain_loss_hist[curr_time_slice] = np.array([])
     std_loss_hist[curr_time_slice] = np.array([])
-
+    ## Generate data
+    inv_inp_batch = next(inv_inp_gen)
+    input_feed = {inv_inputs[k]: inv_inp_batch[k] for k in inv_inp_batch.keys()}
     i = 0
     while True:
         if max_iterations is not None and i > max_iterations:
@@ -225,21 +220,18 @@ def min_param_error(loss_op, mean_loss_per_batch_op, inv_g, inputs, inv_outputs,
         elif max_time is not None and total_time > max_time:
             break
         i = i + 1
-        start_time = time.clock()
-        output = sess.run(fetch, feed_dict=input_feed)
-        end_time = time.clock()
-        elapsed = end_time - start_time
-        total_time = elapsed + total_time
-        print("OUTPUT", output)
 
-        std_loss = evaluate_loss(loss_op, mean_loss_per_batch_op, output, variables, y_batch, target_outputs, sess)
-        std_loss_data.append(std_loss)
-        domain_loss_data.append(output['domain_loss'])
+        ## Training Step
+        elapsed, output = timed_run(sess, fetches=fetches, feed_dict=input_feed)
+        total_time = elapsed + total_time
+
+        inv_outputs_values = {k: output[k] for k in inv_outputs.keys()}
+        std_loss = check_loss(inv_outputs_values, inv_inp_batch)
 
         if std_loss["loss"] < 0.3:
             # Generate new elements of y and reinitialize x
-            y_batch = gen_y(in_out["outputs"])
-            target_feed = {target_outputs[k]: y_batch[k] for k in y_batch.keys()}
+            inv_inp_batch = next(inv_inp_gen)
+            input_feed = {inv_inputs[k]: inv_inp_batch[k] for k in inv_inp_batch.keys()}
             domain_loss_hist[curr_time_slice] = np.concatenate([domain_loss_hist[curr_time_slice], output['batch_domain_loss']])
             std_loss_hist[curr_time_slice] = np.concatenate([std_loss_hist[curr_time_slice], std_loss['batch_loss']])
 
@@ -250,9 +242,82 @@ def min_param_error(loss_op, mean_loss_per_batch_op, inv_g, inputs, inv_outputs,
             curr_time_slice += 1
             domain_loss_hist[curr_time_slice] = []
             std_loss_hist[curr_time_slice] = []
+        print("domain", output["domain_loss"], "std:", std_loss["loss"])
 
-        print("i", i, output['domain_loss'], std_loss)
-    return std_loss_hist, domain_loss_hist, total_time
+    return domain_loss_hist, std_loss_hist, total_time
+
+
+#
+#
+# def min_param_error(loss_op, mean_loss_per_batch_op, inv_g, inputs, inv_outputs, y_batch, variables,
+#                     target_outputs, sess, max_iterations=None,
+#                     max_time=10.0, time_grain=1.0):
+#     """
+#     Solve inverse problem by searching over parameter values which minimize
+#     error range error.
+#     """
+#     assert (max_iterations is None) != (max_time is None), "set stop time xor max-iterations"
+#
+#     # Generate loss_op
+#     errors = inv_g.get_collection("errors")
+#     batch_domain_loss = accumulate_mean_error(errors)
+#     domain_loss = tf.reduce_mean(batch_domain_loss)
+#     print("domain_loss", domain_loss)
+#     train_step = tf.train.GradientDescentOptimizer(0.0001).minimize(domain_loss)
+#     init = tf.initialize_all_variables()
+#
+#     sess.run(init)
+#     fetch = {"train_step":train_step, "domain_loss":domain_loss,
+#              "batch_domain_loss": batch_domain_loss}
+#     fetch.update(inv_outputs)
+#     input_feed = {inputs[k]:y_batch[k] for k in y_batch.keys()}
+#
+#     domain_loss_data = []
+#     std_loss_data = []
+#
+#     total_time = previous_time = 0.0
+#     domain_loss_hist = collections.OrderedDict()
+#     std_loss_hist = collections.OrderedDict()
+#
+#     curr_time_slice = 0
+#     domain_loss_hist[curr_time_slice] = np.array([])
+#     std_loss_hist[curr_time_slice] = np.array([])
+#
+#     i = 0
+#     while True:
+#         if max_iterations is not None and i > max_iterations:
+#             break
+#         elif max_time is not None and total_time > max_time:
+#             break
+#         i = i + 1
+#         start_time = time.clock()
+#         output = sess.run(fetch, feed_dict=input_feed)
+#         end_time = time.clock()
+#         elapsed = end_time - start_time
+#         total_time = elapsed + total_time
+#         print("OUTPUT", output)
+#
+#         std_loss = evaluate_loss(loss_op, mean_loss_per_batch_op, output, variables, y_batch, target_outputs, sess)
+#         std_loss_data.append(std_loss)
+#         domain_loss_data.append(output['domain_loss'])
+#
+#         if std_loss["loss"] < 0.3:
+#             # Generate new elements of y and reinitialize x
+#             y_batch = gen_y(in_out["outputs"])
+#             target_feed = {target_outputs[k]: y_batch[k] for k in y_batch.keys()}
+#             domain_loss_hist[curr_time_slice] = np.concatenate([domain_loss_hist[curr_time_slice], output['batch_domain_loss']])
+#             std_loss_hist[curr_time_slice] = np.concatenate([std_loss_hist[curr_time_slice], std_loss['batch_loss']])
+#
+#         if total_time - previous_time > time_grain:
+#             previous_time = total_time
+#             domain_loss_hist[curr_time_slice] = np.concatenate([domain_loss_hist[curr_time_slice], output['batch_domain_loss']])
+#             std_loss_hist[curr_time_slice] = np.concatenate([std_loss_hist[curr_time_slice], std_loss['batch_loss']])
+#             curr_time_slice += 1
+#             domain_loss_hist[curr_time_slice] = []
+#             std_loss_hist[curr_time_slice] = []
+#
+#         print("i", i, output['domain_loss'], std_loss)
+#     return std_loss_hist, domain_loss_hist, total_time
 
 
 def min_fx_y(loss_op, mean_loss_per_batch_op, in_out, target_outputs, y_batch,

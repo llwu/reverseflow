@@ -53,8 +53,12 @@ def invert(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_sa
         # Errors
         errors = []
 
-        input_to_function_appox = {}
-        input_to_function_appox.update(shrunk_params)
+        ## Horrible hack
+        if shrunk_params is not None:
+            input_to_function_appox = {}
+            input_to_function_appox.update(shrunk_params)
+        else:
+            input_to_function_appox = None
 
         # Op colouring - to invert g we invert each op in g individually
         # an op is ready to be inverted only when in outputs (inputs to inv_op)
@@ -76,7 +80,8 @@ def invert(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_sa
                 final_inv_inputs[k] = inv_inp_tensor
                 tensor_map[out_tensor] = inv_inp_tensor
                 tensor_map2[out_tensor] = [inv_inp_tensor]
-                input_to_function_appox[name] = inv_inp_tensor
+                if shrunk_params is not None:
+                    input_to_function_appox[name] = inv_inp_tensor
 
 
         # Iterate through each op in g and invert

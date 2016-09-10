@@ -30,7 +30,7 @@ class ParametricInverse(Inverse):
         Inverse.__init__(self, atype, invf, is_approx)
         self.param_gen = param_gen
 
-    def apply(self, graph, inputs, params_are_ph=True, shrunk_params=None, **invf_kwargs):
+    def apply(self, graph, inputs, params_are_ph=False, shrunk_params=None, **invf_kwargs):
         """
         Apply inverse operation to graph
         graph : tf.Graph - graph to apply op in
@@ -45,8 +45,7 @@ class ParametricInverse(Inverse):
                 # If shrunk_params, then use a nnet template to construct params of necessary size
                 if shrunk_params is None:
                     # If there's no shrunk params create Variables for parameters
-                    assert False
-                    params = tuple([ph_or_var(t.dtype, t.shape, t.name, params_are_ph) for t in params_types])
+                    params = tuple([ph_or_var(t['dtype'], t['shape'], t['name'], params_are_ph) for t in params_types])
                 else:
                     print("CALLING RES_NET")
                     out_shapes = [t['shape'].as_list() for t in params_types]

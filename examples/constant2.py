@@ -24,9 +24,10 @@ def constant_gen_graph(g, batch_size, is_placeholder):
 
 
 def main(argv):
-    options = {'batch_size': 512, 'max_time': 30.0,
+    options = {'batch_size': 512, 'max_time': 1.0,
                'logdir': '/home/zenna/repos/inverse/log',
-               'nnet_enhanced_pi':True}
+               'nnet_enhanced_pi': True,
+               'pointwise_pi': True}
     g = tf.get_default_graph()
     gen_graph = constant_gen_graph
     fwd_f = constant_fwd_f

@@ -174,10 +174,9 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
         pos = orig + rd*step_sz*i
         voxel_indices = np.floor(pos*res)
         pruned = np.clip(voxel_indices,0,res-1)
-        p_int =  pruned.astype('int32')
-        # print("SMELLY SHIT FACE", p_int.shape)
+        p_int = pruned.astype('int32')
         indices = np.reshape(p_int, (nmatrices*width*height,3))
-        flat_indices = indices[:,0] + res * (indices[:,1] + res * indices[:,2])
+        flat_indices = indices[:, 0] + res * (indices[:, 1] + res * indices[:, 2])
         # print("ishape", flat_indices.shape, "vshape", voxels.get_shape())
         # attenuation = voxels[:, indices[:,0],indices[:,1],indices[:,2]]
         attenuation = tf.gather(voxels, flat_indices)

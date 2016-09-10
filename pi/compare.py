@@ -13,6 +13,18 @@ import tensorflow as tf
 from tensorflow import float32
 
 
+def pointwise_pi(g, gen_graph, inv_inp_gen, check_loss, batch_size, sess,
+                 max_time, logdir):
+    with g.name_scope('pointwise_pi'):
+        in_out_ph = gen_graph(g, batch_size, True)
+        inv_results = invert(in_out_ph['outputs'])
+        inv_g, inv_inputs, inv_outputs_map = inv_results
+        inv_outputs_map_canonical = {k: inv_outputs_map[v.name] for k, v in in_out_ph['inputs'].items()}
+        result = min_param_error(inv_g, inv_inputs, inv_inp_gen,
+                                 inv_outputs_map_canonical,
+                                 check_loss, sess, max_time=max_time)
+        return result
+
 def nnet_enhanced_pi(g, gen_graph, inv_inp_gen, param_types, param_gen,
                      check_loss, batch_size, sess, max_time, logdir):
     ## Inverse Graph
@@ -53,6 +65,14 @@ def compare(g, gen_graph, fwd_f, param_types, param_gen, options):
     check_loss = gen_loss_evaluator(loss_op, mean_loss_per_batch, target_outputs, in_out_var["inputs"], sess)
 
     inv_inp_gen = infinite_input(gen_graph, batch_size)
+
+    if options['pointwise_pi']:
+        result = pointwise_pi(g, gen_graph, inv_inp_gen, check_loss, batch_size,
+                              sess, max_time, logdir)
+        domain_loss_hist, std_loss_hist, total_time = result
+        domain_loss_hists["pointwise_pi"] = domain_loss_hist
+        total_times["pointwise_pi"] = total_time
+        std_loss_hists["pointwise_pi"] = std_loss_hist
 
     if options['nnet_enhanced_pi']:
         result = nnet_enhanced_pi(g, gen_graph, inv_inp_gen, param_types, param_gen,
