@@ -114,9 +114,9 @@ if nnet_enhanced_pi:
         std_loss_hists["nnet_enhanced_pi"] = std_loss_hist
 
 import matplotlib.pyplot as plt
-pi.analysis.profile2d(domain_loss_hist, total_time, max_error=0.3)
+pi.analysis.profile2d(domain_loss_hist, total_time)
 plt.figure()
-pi.analysis.profile2d(std_loss_hist, total_time, max_error=0.3)
+pi.analysis.profile2d(std_loss_hist, total_time)
 plt.show()
 
 if search_x:

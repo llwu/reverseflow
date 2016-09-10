@@ -17,12 +17,14 @@ def apply_inv_op(g, optype, inv_inputs, fwd_inputs, shrunk_params=None,
     return dispatches[optype](g, inv_inputs, fwd_inputs,
                               shrunk_params=shrunk_params, inverses=inverses)
 
+def first_value(d):
+    return next (iter (d.values()))
 
 def invert(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_same_graph=True):
     """
     Parametrically Invert a function
 
-    out_tensors :: (tf.tensor) - all outputs of function
+    out_tensors :: (name: tf.tensor) - all outputs of function
     inverses :: {tf.op.type : pi.Inverse} - which inverses are used for which op
     inv_in_same_graph :: bool - build the inverse in same graph?
     shrunk_params :: [tf.Tensor | tf.Variable] - The effective paramter space
@@ -32,8 +34,8 @@ def invert(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_sa
         raise NotImplementedError()
 
     assert len(out_tensors) > 0, "Need at least one output"
-    assert same([t.graph for t in out_tensors]), "All graphs of out tensors should be same"
-    inv_g = out_tensors[0].graph
+    assert same([t.graph for t in out_tensors.values()]), "All graphs of out tensors should be same"
+    inv_g = first_value(out_tensors).graph
     with inv_g.name_scope("inv_g"):
         # Map between tensors in fwd and inverse graph
         tensor_map = {}
@@ -43,7 +45,7 @@ def invert(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_sa
         tensor_map2 = {}
 
         # Inputs to inverse function
-        final_inv_inputs = []
+        final_inv_inputs = {}
 
         # Map between inputp placeholder names and outputs
         inv_output_map = {}
@@ -61,16 +63,17 @@ def invert(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_sa
         ops = pqdict()
 
         # Make a placeholder (i.e. input) in inv_g for each output of g
-        for i, out_tensor in enumerate(out_tensors):
+        for k, out_tensor in out_tensors.items():
             assert len(out_tensor.consumers()) == 0, "Provided output has consumers"
             op = out_tensor.op
             nouts = len(op.outputs)
             ops[op] = nouts - 1
 
             with inv_g.as_default():
-                name = "inv_input_%s" % i
+                name = "inv_input_%s" % k
                 inv_inp_tensor = tf.placeholder(dtype=out_tensor.dtype, shape=out_tensor.get_shape(), name=name)
-                final_inv_inputs.append(inv_inp_tensor)
+                # final_inv_inputs.append(inv_inp_tensor)
+                final_inv_inputs[k] = inv_inp_tensor
                 tensor_map[out_tensor] = inv_inp_tensor
                 tensor_map2[out_tensor] = [inv_inp_tensor]
                 input_to_function_appox[name] = inv_inp_tensor

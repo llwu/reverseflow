@@ -4,6 +4,30 @@ import numpy as np
 iden = tf.identity
 
 
+
+def infinite_input(gen_graph, batch_size):
+    generator_graph = tf.Graph()
+    with generator_graph.as_default() as g:
+        in_out_var = gen_graph(g, batch_size, False)
+        sess = tf.Session(graph=generator_graph)
+        init = tf.initialize_all_variables()
+
+    while True:
+        with generator_graph.as_default() as g:
+            sess.run(init)
+            output = sess.run(in_out_var['outputs'])
+        yield output
+
+
+def infinite_samples(sampler, shape):
+    while True:
+        yield sampler(*shape)
+
+
+def dictionary_gen(x):
+    while True:
+        yield {k: next(v) for k, v in x.items()}
+
 def tensor_type(dtype, shape, name):
     """Creates a dict for type of tensor"""
     return {'dtype': dtype, 'shape': shape, 'name': name}
