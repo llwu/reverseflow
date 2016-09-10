@@ -51,6 +51,9 @@ def invert(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_sa
         # Errors
         errors = []
 
+        input_to_function_appox = {}
+        input_to_function_appox.update(shrunk_params)
+
         # Op colouring - to invert g we invert each op in g individually
         # an op is ready to be inverted only when in outputs (inputs to inv_op)
         # have been created. op_nouts: OP in G -> Number output tensors created in invg
@@ -58,17 +61,20 @@ def invert(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_sa
         ops = pqdict()
 
         # Make a placeholder (i.e. input) in inv_g for each output of g
-        for out_tensor in out_tensors:
+        for i, out_tensor in enumerate(out_tensors):
             assert len(out_tensor.consumers()) == 0, "Provided output has consumers"
             op = out_tensor.op
             nouts = len(op.outputs)
             ops[op] = nouts - 1
 
             with inv_g.as_default():
-                inv_inp_tensor = tf.placeholder(dtype=out_tensor.dtype, shape=out_tensor.get_shape(), name="inv_input")
+                name = "inv_input_%s" % i
+                inv_inp_tensor = tf.placeholder(dtype=out_tensor.dtype, shape=out_tensor.get_shape(), name=name)
                 final_inv_inputs.append(inv_inp_tensor)
                 tensor_map[out_tensor] = inv_inp_tensor
                 tensor_map2[out_tensor] = [inv_inp_tensor]
+                input_to_function_appox[name] = inv_inp_tensor
+
 
         # Iterate through each op in g and invert
         while len(ops) > 0:
@@ -90,7 +96,7 @@ def invert(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_sa
             # Apply inv op to inv graph, collecting outputs (inputs to fwd_op)
             inv_outputs, corres = apply_inv_op(inv_g, op.type, inv_inputs,
                                                fwd_inputs,
-                                               shrunk_params=shrunk_params,
+                                               shrunk_params=input_to_function_appox,
                                                inverses=inverses)
 
             # For every output of inverse op

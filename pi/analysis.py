@@ -6,10 +6,13 @@ import numpy as np
 # Make it into a line plot instead of histogram
 
 
-def profile2d(x,  total_time, ybins=20, max_error=30.0, cumulative=True):
+def profile2d(x,  total_time, ybins=20, max_error=None, cumulative=True):
     """
     Plot a histogram of error vs number of examples
     """
+    if max_error is None:
+        max_error = np.max(np.concatenate(list(x.values())))
+
     xbins = len(x)
     img = np.random.rand(ybins, xbins)
     for k, v in x.items():

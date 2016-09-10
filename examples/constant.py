@@ -5,13 +5,9 @@ import tensorflow as tf
 from tensorflow import float32
 import numpy as np
 from pi.optim import min_param_error, min_fx_y, gen_y, gen_loss_model, nnet
-from pi.optim import enhanced_pi
+from pi.optim import enhanced_pi, gen_loss_evaluator
 from pi.util import *
 import pi.templates.res_net
-
-
-def tensor_rand(tensors):
-    return {t: np.random.rand(*t.get_shape().as_list()) for t in tensors}
 
 
 def fwd_f(inputs):
@@ -34,9 +30,9 @@ def gen_graph(g, batch_size, is_placeholder):
         outputs = fwd_f(inputs)
         return {"inputs": inputs, "outputs": outputs}
 
-n_iters = 1000
-batch_size = 128
-max_time = 50
+# Preferences
+batch_size = 512
+max_time = 30.0
 
 # Default graph and session
 g = tf.get_default_graph()
@@ -46,6 +42,7 @@ data_generator = False
 nnet_approx = False
 nnet_enhanced_pi = True
 pointwise_pi = False
+search_x = False
 
 ## create data generator
 
@@ -74,12 +71,15 @@ def dictionary_gen(x):
 
 inv_inp_gen = infinite_input(batch_size)
 
-if data_generator:
-    ## Generate graph for generating output data
-    in_out_var = gen_graph(g, batch_size, False)
-    print(in_out_var)
-    y_batch = gen_y(in_out_var["outputs"])
+# For analytics
+domain_loss_hists = {}
+std_loss_hists = {}
+total_times = {}
 
+## Vreate evaluator
+in_out_var = gen_graph(g, batch_size, False)
+loss_op, absdiffs, mean_loss_per_batch_op, mean_loss_per_batch, target_outputs = gen_loss_model(in_out_var, sess)
+check_loss = gen_loss_evaluator(loss_op, mean_loss_per_batch, target_outputs, in_out_var["inputs"], sess)
 
 if nnet_approx:
     ## Neural Network Construction
@@ -92,23 +92,37 @@ if nnet_enhanced_pi:
         in_out_ph = gen_graph(g, batch_size, True)
         x, y = in_out_ph['inputs']['x'], in_out_ph['inputs']['y']
         z = in_out_ph['outputs']['z']
-        min_param_size = 5
+        min_param_size = 1
         shrunk_params = {'theta': tf.placeholder(dtype=tf.float32, shape=(batch_size, min_param_size), name="shrunk_param")}
         inv_g, inv_inputs, inv_outputs_map = pi.invert.invert((z,),
                                                               shrunk_params=shrunk_params)
         inv_inp_map = dict(zip(['z'], inv_inputs))
+        inv_outputs_map_canonical = {k:inv_outputs_map[v.name] for k,v in in_out_ph['inputs'].items()}
 
         generators = {k: infinite_samples(np.random.rand, v.get_shape().as_list()) for k,v in shrunk_params.items()}
         shrunk_param_gen = dictionary_gen(generators)
-        enhanced_pi(inv_g, inv_inp_map, inv_inp_gen, shrunk_params, shrunk_param_gen,
-                    inv_outputs_map, sess, max_iterations=10000)
         writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', inv_g)
+        # assert False
+        # Train
+        result = enhanced_pi(inv_g, inv_inp_map, inv_inp_gen, shrunk_params,
+                             shrunk_param_gen, inv_outputs_map_canonical,
+                             check_loss, sess, max_time=max_time)
+        domain_loss_hist, std_loss_hist, total_time = result
 
-assert False
+        domain_loss_hists["nnet_enhanced_pi"] = domain_loss_hist
+        total_times["nnet_enhanced_pi"] = total_time
+        std_loss_hists["nnet_enhanced_pi"] = std_loss_hist
 
-# loss_op, absdiffs, mean_loss_per_batch_op, mean_loss_per_batch_op, target_outputs = gen_loss_model(in_out_var, sess)
-# loss_data, loss_hist, total_time = min_fx_y(loss_op, mean_loss_per_batch_op, in_out_var, target_outputs, y_batch, sess,
-#                                 max_time=max_time)
+import matplotlib.pyplot as plt
+pi.analysis.profile2d(domain_loss_hist, total_time, max_error=0.3)
+plt.figure()
+pi.analysis.profile2d(std_loss_hist, total_time, max_error=0.3)
+plt.show()
+
+if search_x:
+    result = min_fx_y(loss_op, mean_loss_per_batch_op, in_out_var,
+                      target_outputs, y_batch, sess, max_time=max_time)
+    loss_data, loss_hist, total_time = result
 
 if pointwise_pi:
     ## Inverse Graph
