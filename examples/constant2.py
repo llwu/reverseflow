@@ -24,11 +24,10 @@ def constant_gen_graph(g, batch_size, is_placeholder):
 
 
 def main(argv):
-    options = {'batch_size': 512, 'max_time': 1.0,
+    options = {'batch_size': 2, 'max_time': 1.0,
                'logdir': '/home/zenna/repos/inverse/log',
                'nnet_enhanced_pi': True,
                'pointwise_pi': True}
-    g = tf.get_default_graph()
     gen_graph = constant_gen_graph
     fwd_f = constant_fwd_f
     min_param_size = 1
@@ -39,7 +38,7 @@ def main(argv):
     param_gen = {k: infinite_samples(np.random.rand, v['shape'])
                   for k, v in param_types.items()}
     shrunk_param_gen = dictionary_gen(param_gen)
-    compare(g, gen_graph, constant_fwd_f, param_types, shrunk_param_gen, options)
+    compare(gen_graph, constant_fwd_f, param_types, shrunk_param_gen, options)
 
 if __name__ == "__main__":
     main(sys.argv)
