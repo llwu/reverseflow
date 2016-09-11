@@ -274,6 +274,30 @@ def min_param_error(inv_g, inv_inputs, inv_inp_gen, inv_outputs, check_loss,
 
     return domain_loss_hist, std_loss_hist, total_time
 
+def update_batch_loss_mins(batch_loss_mins, batch_loss):
+    if batch_loss_mins is None:
+        return batch_loss
+    else:
+        return np.minimum(batch_loss, batch_loss_mins)
+
+def selective_update(new_values, old_values, do_batch_refresh):
+    return np.where(do_batch_refresh, new_values, old_values)
+
+def infty_like(a):
+    """
+    Return an array of infinities with shape of a
+    """
+    b = np.empty(a.shape)
+    b[:] = np.infty
+    return b
+
+def expand_dims_like(a,b):
+    """
+    Expand the dimensions of a with ones to be like b
+    """
+    assert b.ndim > a.ndim
+    extra_dim_ones = [1 for i in range(b.ndim-1)]
+    return a.reshape([-1]+extra_dim_ones)
 
 def min_fx_y(loss_op, batch_loss_op, inv_inputs, inv_inp_gen, sess, max_iterations=None,
              max_time=10.0, time_grain=1.0):
@@ -298,6 +322,8 @@ def min_fx_y(loss_op, batch_loss_op, inv_inputs, inv_inp_gen, sess, max_iteratio
     ## Generate data
     inv_inp_batch = next(inv_inp_gen)
     input_feed = {inv_inputs[k]: inv_inp_batch[k] for k in inv_inp_batch.keys()}
+
+    batch_loss_mins = None # ew
     i = 0
     while True:
         if max_iterations is not None and i > max_iterations:
@@ -309,19 +335,46 @@ def min_fx_y(loss_op, batch_loss_op, inv_inputs, inv_inp_gen, sess, max_iteratio
         ## Training Step
         elapsed, output = timed_run(sess, fetches=fetches, feed_dict=input_feed)
         total_time = elapsed + total_time
-        std_loss = output
+        batch_loss = output['batch_loss']
 
-        if std_loss["loss"] < 0.3:
+        # Is the (elemement wise) loss zero?
+        eps = 1e-5
+        batch_loss_zero = batch_loss < eps
+
+        new_batch_loss_mins = update_batch_loss_mins(batch_loss_mins, batch_loss)
+        if batch_loss_mins is None:
+            batch_loss_mins_change = infty_like(batch_loss)
+        else:
+            batch_loss_mins_change = batch_loss_mins - new_batch_loss_mins
+            # relative_change = batch_loss_mins_change / batch_loss_mins
+        min_min_loss = 0.001
+        batch_loss_converged = batch_loss_mins_change < min_min_loss
+        do_batch_refresh = np.logical_or(batch_loss_zero, batch_loss_converged)
+        batch_loss_mins = new_batch_loss_mins
+
+        # print(batch_loss_mins, batch_loss_mins_change, batch_loss_converged)
+        if np.any(batch_loss_zero):
             # Generate new elements of y and reinitialize x
-            inv_inp_batch = next(inv_inp_gen)
-            input_feed = {inv_inputs[k]: inv_inp_batch[k] for k in inv_inp_batch.keys()}
-            std_loss_hist[curr_time_slice] = np.concatenate([std_loss_hist[curr_time_slice], std_loss['batch_loss']])
+            new_inv_inp_batch = next(inv_inp_gen)
+            input_feed = {inv_inputs[k]: np.where(expand_dims_like(do_batch_refresh, inv_inp_batch[k]),
+                                                  new_inv_inp_batch[k],
+                                                  input_feed[inv_inputs[k]])
+                          for k in inv_inp_batch.keys()}
+            # update minimums
+            batch_loss_mins = np.where(do_batch_refresh,
+                                       infty_like(batch_loss_mins),
+                                       batch_loss_mins)
+            # FOllowing line is wrong because it lumps everything on
+            good_indices = batch_loss_zero.nonzero()[0]
+            a = std_loss_hist[curr_time_slice]
+            b = batch_loss.take(good_indices)
+            std_loss_hist[curr_time_slice] = np.concatenate([a,b])
 
         if total_time - previous_time > time_grain:
             previous_time = total_time
-            std_loss_hist[curr_time_slice] = np.concatenate([std_loss_hist[curr_time_slice], std_loss['batch_loss']])
+            std_loss_hist[curr_time_slice] = np.concatenate([std_loss_hist[curr_time_slice], output['batch_loss']])
             curr_time_slice += 1
             std_loss_hist[curr_time_slice] = []
-        print("std:", std_loss["loss"])
+        print("std:", output["loss"])
 
     return std_loss_hist, total_time
