@@ -12,6 +12,11 @@ from pi.invert import invert, invert2
 import tensorflow as tf
 from tensorflow import float32
 
+def search_x(sess, max_time):
+    result = min_fx_y(loss_op, batch_loss_op, in_out_var,
+                      target_outputs, y_batch, sess, max_time=max_time)
+    loss_data, loss_hist, total_time = result
+
 
 def pointwise_pi(g, gen_graph, inv_inp_gen, check_loss, batch_size, sess,
                  max_time, logdir):
@@ -49,8 +54,8 @@ def nnet_enhanced_pi(g, gen_graph, inv_inp_gen, param_types, param_gen,
 
 def loss_checker(g, sess, gen_graph, batch_size):
     in_out_var = gen_graph(g, batch_size, False)
-    loss_op, absdiffs, mean_loss_per_batch_op, mean_loss_per_batch, target_outputs = gen_loss_model(in_out_var, sess)
-    check_loss = gen_loss_evaluator(loss_op, mean_loss_per_batch, target_outputs, in_out_var["inputs"], sess)
+    loss_op, absdiffs, batch_loss_op, batch_loss, target_outputs = gen_loss_model(in_out_var, sess)
+    check_loss = gen_loss_evaluator(loss_op, batch_loss, target_outputs, in_out_var["inputs"], sess)
     return check_loss
 
 def compare(gen_graph, fwd_f, param_types, param_gen, options):
@@ -89,3 +94,33 @@ def compare(gen_graph, fwd_f, param_types, param_gen, options):
             domain_loss_hists["nnet_enhanced_pi"] = domain_loss_hist
             total_times["nnet_enhanced_pi"] = total_time
             std_loss_hists["nnet_enhanced_pi"] = std_loss_hist
+
+    if options['min_fx_y']:
+        g_fxy = tf.Graph()
+        sess_fxy = tf.Session(graph=g_fxy)
+        with g_fxy.as_default():
+            in_out_var = gen_graph(g_fxy, batch_size, False)
+            loss_op, absdiffs, batch_loss_op, batch_loss, target_outputs = gen_loss_model(in_out_var, sess_fxy)
+            print("b1", batch_loss)
+            print("b2", batch_loss_op)
+            check_loss = gen_loss_evaluator(loss_op, batch_loss, target_outputs, in_out_var["inputs"], sess_fxy)
+            result = min_fx_y(loss_op, batch_loss, target_outputs, inv_inp_gen,
+                              sess_fxy, max_iterations=None, max_time=max_time,
+                              time_grain=1.0)
+            std_loss_hist, total_time = result
+            total_times["min_fx_y"] = total_time
+            std_loss_hists["min_fx_y"] = std_loss_hist
+
+    if options['nnet']:
+        g_nnet = tf.Graph()
+        sess_nnet = tf.Session(graph=g_nnet)
+        template = options['template']
+        with g_nnet.as_default():
+            in_out_var = gen_graph(g_nnet, batch_size, False)
+            result = nnet(fwd_f, in_out_var['inputs'], in_out_var['outputs'],
+                          inv_inp_gen, template, sess_nnet, max_time=max_time)
+            std_loss_hist, total_time = result
+            total_times["nnet"] = total_time
+            std_loss_hists["nnet"] = std_loss_hist
+
+    return std_loss_hists, domain_loss_hists, total_times

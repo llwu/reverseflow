@@ -4,6 +4,7 @@ import getopt
 import tensorflow as tf
 import numpy as np
 from pi.util import *
+from pi.templates.res_net import res_net_template_dict
 
 ## Constant
 def constant_fwd_f(inputs):
@@ -24,10 +25,13 @@ def constant_gen_graph(g, batch_size, is_placeholder):
 
 
 def main(argv):
-    options = {'batch_size': 2, 'max_time': 1.0,
+    options = {'batch_size': 512, 'max_time': 600.0,
                'logdir': '/home/zenna/repos/inverse/log',
+               'template': res_net_template_dict,
                'nnet_enhanced_pi': True,
-               'pointwise_pi': True}
+               'pointwise_pi': True,
+               'min_fx_y': True,
+               'nnet': True}
     gen_graph = constant_gen_graph
     fwd_f = constant_fwd_f
     min_param_size = 1
@@ -38,7 +42,24 @@ def main(argv):
     param_gen = {k: infinite_samples(np.random.rand, v['shape'])
                   for k, v in param_types.items()}
     shrunk_param_gen = dictionary_gen(param_gen)
-    compare(gen_graph, constant_fwd_f, param_types, shrunk_param_gen, options)
+    return compare(gen_graph, constant_fwd_f, param_types, shrunk_param_gen, options)
 
 if __name__ == "__main__":
-    main(sys.argv)
+    global x
+    x = main(sys.argv)
+
+std_loss_hists, domain_loss_hists, total_times = x
+
+import matplotlib.pyplot as plt
+import pi
+for k, v in std_loss_hists.items():
+    print(k)
+    pi.analysis.profile2d(v, total_times[k], max_error=1.0)
+    plt.title('std_loss %s' % k)
+    plt.figure()
+
+for k, v in domain_loss_hists.items():
+    print(k)
+    pi.analysis.profile2d(v, total_times[k])
+    plt.title('domain_loss %s' % k)
+    plt.figure()
