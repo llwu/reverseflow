@@ -3,7 +3,7 @@ import pi
 from pi import invert
 from pi import analysis
 import numpy as np
-from pi.optim import min_param_error, min_fx_y, gen_y, gen_loss_model, nnet
+from pi.optim import min_param_error, min_fx_y, gen_y, gen_loss_model, nnet, min_fx_param_error
 from pi.optim import enhanced_pi, gen_loss_evaluator
 from pi.util import *
 import pi.templates.res_net
@@ -29,6 +29,18 @@ def pointwise_pi(g, gen_graph, inv_inp_gen, check_loss, batch_size, sess,
         result = min_param_error(inv_g, inv_inputs, inv_inp_gen,
                                  inv_outputs_map_canonical,
                                  check_loss, sess, max_time=max_time)
+        return result
+
+def min_fx_param(g, gen_graph, inv_inp_gen, fwd_f, batch_size, sess,
+                 max_time, logdir):
+    with g.name_scope('min_fx_param'):
+        in_out_ph = gen_graph(g, batch_size, True)
+        inv_results = invert(in_out_ph['outputs'])
+        inv_g, inv_inputs, inv_outputs_map = inv_results
+        inv_outputs_map_canonical = {k: inv_outputs_map[v.name] for k, v in in_out_ph['inputs'].items()}
+        result = min_fx_param_error(inv_g, inv_inputs, inv_inp_gen,
+                                 inv_outputs_map_canonical,
+                                 fwd_f, sess, max_time=max_time)
         return result
 
 def nnet_enhanced_pi(g, gen_graph, inv_inp_gen, param_types, param_gen,
@@ -121,6 +133,18 @@ def compare(gen_graph, fwd_f, param_types, param_gen, options):
             std_loss_hist, total_time = result
             total_times["min_fx_y"] = total_time
             std_loss_hists["min_fx_y"] = std_loss_hist
+
+    if options['min_fx_param']:
+        g_pi_fx = tf.Graph()
+        sess_pi_fx = tf.Session(graph=g_pi_fx)
+        with g_pi_fx.as_default():
+            print("Evaluating Pointwise_pi on graph")
+            result = min_fx_param(g_pi_fx, gen_graph, inv_inp_gen, fwd_f,
+                                  batch_size, sess_pi_fx, max_time, logdir)
+            domain_loss_hist, std_loss_hist, total_time = result
+            domain_loss_hists["min_fx_param"] = domain_loss_hist
+            total_times["min_fx_param"] = total_time
+            std_loss_hists["min_fx_param"] = std_loss_hist
 
     if options['nnet']:
         g_nnet = tf.Graph()
