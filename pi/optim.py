@@ -150,7 +150,8 @@ def nnet(fwd_f, fwd_inputs, fwd_outputs, inv_inp_gen, nnet_template,
 
 
 def enhanced_pi(inv_g, inv_inputs, inv_inp_gen, shrunk_params, shrunk_param_gen,
-                inv_outputs, check_loss, sess, max_iterations=None, max_time=10.0, time_grain=1.0):
+                inv_outputs, check_loss, sess, max_iterations=None, max_time=10.0,
+                optimizer=tf.train.GradientDescentOptimizer(0.1), time_grain=1.0):
     """
     Train a neural network enhanced parametric inverse
     inv_inp : {name: tf.Tesor}
@@ -162,7 +163,7 @@ def enhanced_pi(inv_g, inv_inputs, inv_inp_gen, shrunk_params, shrunk_param_gen,
     assert len(errors) > 0, "No errors with this parametric inverse to optimize"
     batch_domain_loss = accumulate_mean_error(errors)
     domain_loss = tf.reduce_mean(batch_domain_loss)
-    train_step = tf.train.GradientDescentOptimizer(10.0).minimize(domain_loss)
+    train_step = optimizer.minimize(domain_loss)
     init = tf.initialize_all_variables()
     sess.run(init)
 
@@ -207,7 +208,7 @@ def enhanced_pi(inv_g, inv_inputs, inv_inp_gen, shrunk_params, shrunk_param_gen,
             curr_time_slice += 1
             domain_loss_hist[curr_time_slice] = []
             std_loss_hist[curr_time_slice] = []
-        print("domain", output["domain_loss"], "std:", std_loss["loss"])
+        print("enhanced_pi: ", "domain", output["domain_loss"], "std:", std_loss["loss"])
 
     return domain_loss_hist, std_loss_hist, total_time
 
@@ -273,7 +274,7 @@ def min_param_error(inv_g, inv_inputs, inv_inp_gen, inv_outputs, check_loss,
             curr_time_slice += 1
             domain_loss_hist[curr_time_slice] = []
             std_loss_hist[curr_time_slice] = []
-        print("domain", output["domain_loss"], "std:", std_loss["loss"])
+        print("min_param_error:", "domain", output["domain_loss"], "std:", std_loss["loss"])
 
     return domain_loss_hist, std_loss_hist, total_time
 
@@ -344,7 +345,7 @@ def min_fx_param_error(inv_g, inv_inputs, inv_inp_gen, inv_outputs, fwd_f,
             curr_time_slice += 1
             domain_loss_hist[curr_time_slice] = []
             std_loss_hist[curr_time_slice] = []
-        print("domain", output["domain_loss"], "std:", output["loss"])
+        print("min_fx_param_error", "domain", output["domain_loss"], "std:", output["loss"])
 
     return domain_loss_hist, std_loss_hist, total_time
 
@@ -449,6 +450,6 @@ def min_fx_y(loss_op, batch_loss_op, inv_inputs, inv_inp_gen, sess, max_iteratio
             std_loss_hist[curr_time_slice] = np.concatenate([std_loss_hist[curr_time_slice], output['batch_loss']])
             curr_time_slice += 1
             std_loss_hist[curr_time_slice] = []
-        print("std:", output["loss"])
+        print("min_fx_y", "std:", output["loss"])
 
     return std_loss_hist, total_time

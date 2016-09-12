@@ -43,16 +43,11 @@ def plot(runs, total_time, max_error=None):
     import matplotlib.pyplot as plt
     import pi
     for k, v in std_loss_hists.items():
-        if k == 'nnet': continue
-        print(k)
-        print(k=='nnet')
         pi.analysis.profile2d(v, total_time, max_error=max_error)
         plt.title('std_loss %s' % k)
         plt.figure()
 
     for k, v in domain_loss_hists.items():
-        print(k)
-        if k == 'nnet': continue
         pi.analysis.profile2d(v, total_time, max_error=max_error)
         plt.title('domain_loss %s' % k)
         plt.figure()
@@ -96,7 +91,10 @@ def profile2d(x,  total_time, ybins=20, max_error=None, cumulative=True):
 
     print("MAX_ERRPR", max_error)
     print("here")
-
+    if np.isinf(max_error):
+        max_error = None
+    if np.isnan(max_error):
+        return False
     xbins = len(x)
     img = np.random.rand(ybins, xbins)
     for k, v in x.items():

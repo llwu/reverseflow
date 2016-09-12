@@ -40,7 +40,8 @@ def min_fx_param(g, gen_graph, inv_inp_gen, fwd_f, batch_size, sess,
         inv_outputs_map_canonical = {k: inv_outputs_map[v.name] for k, v in in_out_ph['inputs'].items()}
         result = min_fx_param_error(inv_g, inv_inputs, inv_inp_gen,
                                  inv_outputs_map_canonical,
-                                 fwd_f, sess, max_time=max_time)
+                                 fwd_f, sess, max_time=max_time,
+                                 optimizer=tf.train.GradientDescentOptimizer(0.0001))
         return result
 
 def nnet_enhanced_pi(g, gen_graph, inv_inp_gen, param_types, param_gen,

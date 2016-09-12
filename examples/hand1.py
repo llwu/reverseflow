@@ -26,14 +26,14 @@ def constant_gen_graph(g, batch_size, is_placeholder):
 
 
 def main(argv):
-    options = {'batch_size': 512, 'max_time': 5.0,
+    options = {'batch_size': 512, 'max_time': 20.0,
                'logdir': '/home/zenna/repos/inverse/log',
                'template': res_net_template_dict,
-               'nnet_enhanced_pi': False,
+               'nnet_enhanced_pi': True,
                'pointwise_pi': False,
-               'min_fx_y': True,
-               'nnet': False,
-               'min_fx_param': True,
+               'min_fx_y': False,
+               'nnet': True,
+               'min_fx_param': False,
                'nruns': 2}
     gen_graph = constant_gen_graph
     fwd_f = constant_fwd_f
@@ -48,7 +48,8 @@ def main(argv):
     return compare(gen_graph, constant_fwd_f, param_types, shrunk_param_gen, options)
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
     global runs
     runs = main(sys.argv)
     import pi
-    pi.analysis.plot(runs, 10.0)
+    pi.analysis.plot(runs, 30.0)
