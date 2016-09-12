@@ -22,6 +22,7 @@ def pointwise_pi(g, gen_graph, inv_inp_gen, check_loss, batch_size, sess,
                  max_time, logdir):
     with g.name_scope('pointwise_pi'):
         in_out_ph = gen_graph(g, batch_size, True)
+        print(in_out_ph, "In and Out")
         inv_results = invert(in_out_ph['outputs'])
         inv_g, inv_inputs, inv_outputs_map = inv_results
         inv_outputs_map_canonical = {k: inv_outputs_map[v.name] for k, v in in_out_ph['inputs'].items()}
@@ -54,6 +55,7 @@ def nnet_enhanced_pi(g, gen_graph, inv_inp_gen, param_types, param_gen,
 
 def loss_checker(g, sess, gen_graph, batch_size):
     in_out_var = gen_graph(g, batch_size, False)
+    writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', g)
     loss_op, absdiffs, batch_loss_op, batch_loss, target_outputs = gen_loss_model(in_out_var, sess)
     check_loss = gen_loss_evaluator(loss_op, batch_loss, target_outputs, in_out_var["inputs"], sess)
     return check_loss
@@ -68,11 +70,11 @@ def compare(gen_graph, fwd_f, param_types, param_gen, options):
     total_times = {}
     std_loss_hists = {}
 
-
     inv_inp_gen = infinite_input(gen_graph, batch_size)
-
     if options['pointwise_pi']:
         g_pi = tf.Graph()
+        print("Evaluating Pointwise_pi on graph")
+        print(summary(g_pi))
         sess_pi = tf.Session(graph=g_pi)
         with g_pi.as_default():
             check_loss = loss_checker(g_pi, sess_pi, gen_graph, batch_size)
@@ -86,6 +88,8 @@ def compare(gen_graph, fwd_f, param_types, param_gen, options):
     if options['nnet_enhanced_pi']:
         g_npi = tf.Graph()
         sess_npi = tf.Session(graph=g_npi)
+        print("nnet enhanced pi")
+        print(summary(g_npi))
         with g_npi.as_default():
             check_loss = loss_checker(g_npi, sess_npi, gen_graph, batch_size)
             result = nnet_enhanced_pi(g_npi, gen_graph, inv_inp_gen, param_types, param_gen,
@@ -99,10 +103,17 @@ def compare(gen_graph, fwd_f, param_types, param_gen, options):
         g_fxy = tf.Graph()
         sess_fxy = tf.Session(graph=g_fxy)
         with g_fxy.as_default():
+            print("BEFORE")
+            detailed_summary(g_fxy)
+            print(summary(g_fxy))
+            print("AFTA")
             in_out_var = gen_graph(g_fxy, batch_size, False)
+            # assert False
+            print("min fx y pi")
+            # print(summary(g_fxy))
+            writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', g_fxy)
             loss_op, absdiffs, batch_loss_op, batch_loss, target_outputs = gen_loss_model(in_out_var, sess_fxy)
-            print("b1", batch_loss)
-            print("b2", batch_loss_op)
+            # print(summary(g_fxy))
             check_loss = gen_loss_evaluator(loss_op, batch_loss, target_outputs, in_out_var["inputs"], sess_fxy)
             result = min_fx_y(loss_op, batch_loss, target_outputs, inv_inp_gen,
                               sess_fxy, max_iterations=None, max_time=max_time,
@@ -117,6 +128,8 @@ def compare(gen_graph, fwd_f, param_types, param_gen, options):
         template = options['template']
         with g_nnet.as_default():
             in_out_var = gen_graph(g_nnet, batch_size, False)
+            print("nnet")
+            print(summary(g_nnet))
             result = nnet(fwd_f, in_out_var['inputs'], in_out_var['outputs'],
                           inv_inp_gen, template, sess_nnet, max_time=max_time)
             std_loss_hist, total_time = result

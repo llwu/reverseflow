@@ -159,9 +159,10 @@ def enhanced_pi(inv_g, inv_inputs, inv_inp_gen, shrunk_params, shrunk_param_gen,
     ## Feed in a sample of inputs from the cross product y X parameer inputs
     ## minimize node error
     errors = inv_g.get_collection("errors")
+    assert len(errors) > 0, "No errors with this parametric inverse to optimize"
     batch_domain_loss = accumulate_mean_error(errors)
     domain_loss = tf.reduce_mean(batch_domain_loss)
-    train_step = tf.train.GradientDescentOptimizer(0.001).minimize(domain_loss)
+    train_step = tf.train.GradientDescentOptimizer(10.0).minimize(domain_loss)
     init = tf.initialize_all_variables()
     sess.run(init)
 
@@ -221,9 +222,11 @@ def min_param_error(inv_g, inv_inputs, inv_inp_gen, inv_outputs, check_loss,
     ## Feed in a sample of inputs from the cross product y X parameer inputs
     ## minimize node error
     errors = inv_g.get_collection("errors")
+    assert len(errors) > 0, "No errors with this parametric inverse to optimize"
+
     batch_domain_loss = accumulate_mean_error(errors)
     domain_loss = tf.reduce_mean(batch_domain_loss)
-    train_step = tf.train.GradientDescentOptimizer(0.001).minimize(domain_loss)
+    train_step = tf.train.GradientDescentOptimizer(10.0).minimize(domain_loss)
     init = tf.initialize_all_variables()
     sess.run(init)
 

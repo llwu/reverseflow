@@ -1,10 +1,15 @@
 ## (Inerse) Rendering
 ## ==================
+from pi.compare import compare
+import sys
+import getopt
 import tensorflow as tf
 import numpy as np
-import sys
-# floatX = tf.float32
+from pi.util import *
+from pi.templates.res_net import res_net_template_dict
+
 floatX = 'float32'
+
 
 def rand_rotation_matrix(deflection=1.0, randnums=None, floatX='float32'):
     """
@@ -192,44 +197,92 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
     return tf.select(mask.reshape(img_shape), pixels, tf.ones_like(pixels)), rd, ro, tn_x, tf.ones(img_shape), orig, voxels
 
 
-# def main(argv):
-    ## Args
+def render_fwd_f(inputs):
+    voxels = inputs['voxels']
+    options = {}
+    width = options['width'] = 128
+    height = options['height'] = 128
+    res = options['res'] = 32
+    nsteps = options['nsteps'] = 3
+    nvoxgrids = options['nvoxgrids'] = 1
+    nviews = options['nviews'] = 1
+    rotation_matrices = rand_rotation_matrices(nviews)
+    out = gen_img(voxels, rotation_matrices, width, height, nsteps, res)
+    out_img = out[0]
+    outputs = {"out_img": out_img}
+    return outputs
+
+
+def render_gen_graph(g, batch_size, is_placeholder):
+    nvoxgrids = 1
+    res = 32
+    with g.name_scope("fwd_g"):
+        voxels = ph_or_var(tf.float32, name="voxels",
+                           shape=(nvoxgrids, res, res, res),
+                           is_placeholder=is_placeholder)
+        inputs = {"voxels": voxels}
+        outputs = render_fwd_f(inputs)
+        return {"inputs": inputs, "outputs": outputs}
+
+
 global options
 global render
 global test_files, train_files
 global net, output_layer, cost_f, cost_f_dict, val_f, call_f, call_f_dict
 global views, voxels, outputs, net
 
+def main(argv):
+    options = {'batch_size': 10, 'max_time': 60.0,
+               'logdir': '/home/zenna/repos/inverse/log',
+               'template': res_net_template_dict,
+               'nnet_enhanced_pi': False,
+               'pointwise_pi': False,
+               'min_fx_y': True,
+               'nnet': False}
+    min_param_size = 10
+    param_types = {'theta': tensor_type(dtype=tf.float32,
+                   shape=(options['batch_size'], min_param_size),
+                   name="shrunk_param")}
 
-options = {}
-width = options['width'] = 128
-height = options['height'] = 128
-res = options['res'] = 32
-nsteps = options['nsteps'] = 3
-nvoxgrids = options['nvoxgrids'] = 1
-nviews = options['nviews'] = 1
-
-print(options)
-
-rotation_matrices = rand_rotation_matrices(nviews)
-# rotation_matrices = tf.placeholder(tf.float32, shaspe=(3,3))
-voxels = tf.placeholder(tf.float32, shape=(nvoxgrids, res, res, res))
-out = gen_img(voxels, rotation_matrices, width, height, nsteps, res)
-g = tf.get_default_graph()
-print("Compiling Render Function")
-writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', g)
-voxel_grids = np.load("/home/zenna/data/ModelNet40/alltrain32.npy")
-voxel = voxel_grids[120].reshape(1, res, res, res)
-sess = tf.Session()
-output_img = sess.run(out[0], feed_dict={voxels:voxel})
-import matplotlib.pyplot as plt
-# print(output_img.shape)
-plt.imshow(output_img.reshape(width, height))
-plt.show()
-## Test the inverse function
-
-# render = function([voxels, rotation_matrices], out, mode=curr_mode)
+    param_gen = {k: infinite_samples(np.random.rand, v['shape'])
+                  for k, v in param_types.items()}
+    shrunk_param_gen = dictionary_gen(param_gen)
+    return compare(render_gen_graph, render_fwd_f, param_types, shrunk_param_gen, options)
 
 
-# if __name__ == "__main__":
-#    main(sys.argv[1:])
+def standalone():
+    options = {}
+    width = options['width'] = 128
+    height = options['height'] = 128
+    res = options['res'] = 32
+    nsteps = options['nsteps'] = 3
+    nvoxgrids = options['nvoxgrids'] = 1
+    nviews = options['nviews'] = 1
+
+    print(options)
+    rotation_matrices = rand_rotation_matrices(nviews)
+    # rotation_matrices = tf.placeholder(tf.float32, shaspe=(3,3))
+    voxels = tf.placeholder(tf.float32, shape=(nvoxgrids, res, res, res))
+    out = gen_img(voxels, rotation_matrices, width, height, nsteps, res)
+    g = tf.get_default_graph()
+    print("Compiling Render Function")
+    writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', g)
+    voxel_grids = np.load("/home/zenna/data/ModelNet40/alltrain32.npy")
+    voxel = voxel_grids[840].reshape(1, res, res, res)
+    sess = tf.Session()
+    output_img = sess.run(out[0], feed_dict={voxels:voxel})
+    import matplotlib.pyplot as plt
+    # print(output_img.shape)
+    plt.imshow(output_img.reshape(width, height))
+    plt.show()
+    ## Test the inverse function
+
+    # render = function([voxels, rotation_matrices], out, mode=curr_mode)
+
+
+    # if __name__ == "__main__":
+    #    main(sys.argv[1:])
+
+if __name__ == "__main__":
+    global x
+    x = main(sys.argv)

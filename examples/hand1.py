@@ -9,15 +9,16 @@ from pi.templates.res_net import res_net_template_dict
 ## Constant
 def constant_fwd_f(inputs):
     x, y = inputs['x'], inputs['y']
-    z = x * y + x
+    a = (x*y)
+    z = a * 2 + x
     outputs = {"z": z}
     return outputs
 
 def constant_gen_graph(g, batch_size, is_placeholder):
     with g.name_scope("fwd_g"):
-        x = ph_or_var(tf.float32, name="x", shape=(batch_size, 1),
+        x = ph_or_var(tf.float32, name="x", shape=(batch_size, 128),
                       is_placeholder=is_placeholder)
-        y = ph_or_var(tf.float32, name="y", shape=(batch_size, 1),
+        y = ph_or_var(tf.float32, name="y", shape=(batch_size, 128),
                       is_placeholder=is_placeholder)
         inputs = {"x": x, "y": y}
         outputs = constant_fwd_f(inputs)
@@ -25,11 +26,11 @@ def constant_gen_graph(g, batch_size, is_placeholder):
 
 
 def main(argv):
-    options = {'batch_size': 512, 'max_time': 60.0,
+    options = {'batch_size': 512, 'max_time': 600.0,
                'logdir': '/home/zenna/repos/inverse/log',
                'template': res_net_template_dict,
-               'nnet_enhanced_pi': False,
-               'pointwise_pi': False,
+               'nnet_enhanced_pi': True,
+               'pointwise_pi': True,
                'min_fx_y': True,
                'nnet': False}
     gen_graph = constant_gen_graph
