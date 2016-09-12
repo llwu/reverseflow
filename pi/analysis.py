@@ -22,9 +22,6 @@ def update_accum(accum, loss_type, algo, t, batch_loss):
         for i in range(t - (len(accum[loss_type][algo]) - 1)):
             ar = np.array([])
             accum[loss_type][algo].append(ar)
-    # print(accum[loss_type][algo][t])
-    # print(batch_loss)
-    # accum[loss_type][algo][t] = np.concatenate([accum[loss_type][algo][t], batch_loss])
 
 def accumulate_runs(runs, hist_type):
     accum = {} # std_loss_hist => data

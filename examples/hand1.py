@@ -29,10 +29,11 @@ def main(argv):
     options = {'batch_size': 512, 'max_time': 5.0,
                'logdir': '/home/zenna/repos/inverse/log',
                'template': res_net_template_dict,
-               'nnet_enhanced_pi': True,
-               'pointwise_pi': True,
+               'nnet_enhanced_pi': False,
+               'pointwise_pi': False,
                'min_fx_y': True,
                'nnet': False,
+               'min_fx_param': True,
                'nruns': 2}
     gen_graph = constant_gen_graph
     fwd_f = constant_fwd_f
