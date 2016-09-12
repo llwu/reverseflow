@@ -26,13 +26,14 @@ def constant_gen_graph(g, batch_size, is_placeholder):
 
 
 def main(argv):
-    options = {'batch_size': 512, 'max_time': 600.0,
+    options = {'batch_size': 512, 'max_time': 5.0,
                'logdir': '/home/zenna/repos/inverse/log',
                'template': res_net_template_dict,
                'nnet_enhanced_pi': True,
                'pointwise_pi': True,
                'min_fx_y': True,
-               'nnet': False}
+               'nnet': False,
+               'nruns': 2}
     gen_graph = constant_gen_graph
     fwd_f = constant_fwd_f
     min_param_size = 1
@@ -46,21 +47,7 @@ def main(argv):
     return compare(gen_graph, constant_fwd_f, param_types, shrunk_param_gen, options)
 
 if __name__ == "__main__":
-    global x
-    x = main(sys.argv)
-
-std_loss_hists, domain_loss_hists, total_times = x
-
-import matplotlib.pyplot as plt
-import pi
-for k, v in std_loss_hists.items():
-    print(k)
-    pi.analysis.profile2d(v, total_times[k])
-    plt.title('std_loss %s' % k)
-    plt.figure()
-
-for k, v in domain_loss_hists.items():
-    print(k)
-    pi.analysis.profile2d(v, total_times[k])
-    plt.title('domain_loss %s' % k)
-    plt.figure()
+    global runs
+    runs = main(sys.argv)
+    import pi
+    pi.analysis.plot(runs, 10.0)
