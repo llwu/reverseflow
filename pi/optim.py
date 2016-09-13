@@ -97,7 +97,6 @@ def num_params(tensors):
 
 def nnet(fwd_f, fwd_inputs, fwd_outputs, inv_inp_gen, nnet_template,
          sess, max_iterations=None, max_time=1.0, time_grain=1.0,
-         optimizer= tf.train.AdamOptimizer(0.001),
          **template_kwargs):
     """
     Train a neural network f to map y to x such that f(x) = y.
@@ -108,6 +107,7 @@ def nnet(fwd_f, fwd_inputs, fwd_outputs, inv_inp_gen, nnet_template,
                 returns network inputs and outputs
     """
     # wwhats next
+    optimizer= tf.train.AdamOptimizer(0.001)
     inv_inputs = {k: tf.placeholder(v.dtype, shape=v.get_shape()) for k, v  in fwd_outputs.items()}
     nnet_output_shapes = {k: fwd_inp.get_shape().as_list() for k, fwd_inp in fwd_inputs.items()}
     nnet_outputs, nnet_params = nnet_template(inv_inputs, nnet_output_shapes, **template_kwargs)
@@ -223,19 +223,18 @@ def enhanced_pi(inv_g, inv_inputs, inv_inp_gen, shrunk_params, shrunk_param_gen,
 
 def rightinv_pi_fx(inv_g, inv_inputs, inv_inp_gen, inv_outputs, fwd_f, sess,
                 max_iterations=None, max_time=10.0,
-                optimizer=tf.train.GradientDescentOptimizer(0.01),
                 time_grain=1.0):
     """
     Train a neural network enhanced parametric inverse
     inv_inp : {name: tf.Tesor}
     inv_inp_gen : coroutine -> {inv_inp_name: np.array}
     """
-
+    optimizer=tf.train.GradientDescentOptimizer(0.0001)
+    # optimizer=tf.train.AdamOptimizer(0.0001)
     errors = inv_g.get_collection("errors")
     net_params = inv_g.get_collection("net_params")
     print("Finding nnet enhanced pi for right inverse")
     print("Number of parameters", num_params(net_params))
-    assert False
     assert len(errors) > 0, "No errors with this parametric inverse to optimize"
     batch_domain_loss = accumulate_mean_error(errors)
     domain_loss = tf.reduce_mean(batch_domain_loss)
@@ -244,7 +243,10 @@ def rightinv_pi_fx(inv_g, inv_inputs, inv_inp_gen, inv_outputs, fwd_f, sess,
     fwd_outputs = fwd_f(inv_outputs)
     loss_op, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch_op = multi_io_loss(fwd_outputs, inv_inputs)
 
-    train_step = optimizer.minimize(loss_op)
+    # actual_loss = domain_loss
+    actual_loss = loss_op
+    # actual_loss = (loss_op + domain_loss) / 2
+    train_step = optimizer.minimize(actual_loss)
     init = tf.initialize_all_variables()
     sess.run(init)
 
@@ -260,6 +262,13 @@ def rightinv_pi_fx(inv_g, inv_inputs, inv_inp_gen, inv_outputs, fwd_f, sess,
     curr_time_slice = 0
     domain_loss_hist[curr_time_slice] = np.array([])
     std_loss_hist[curr_time_slice] = np.array([])
+    print("Evaluate loss before training")
+    inv_inp_batch = next(inv_inp_gen)
+    input_feed = {inv_inputs[k]: inv_inp_batch[k] for k in inv_inp_batch.keys()}
+    elapsed, output = timed_run(sess, fetches=fetches, feed_dict=input_feed)
+    print("rightinv_pi_fx: ", "domain", output["domain_loss"], "std:", output["loss"])
+
+    print("Starting Trainin")
     i = 0
     while True:
         if max_iterations is not None and i > max_iterations:

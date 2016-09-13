@@ -4,6 +4,26 @@ import numpy as np
 import pdb
 from collections import OrderedDict
 
+def error_plot(runs):
+    lengend_dict = {'nnet':'n-net', 'rightinv_pi_fx':"p-inverse"}
+    accum_runs = accumulate_runs(runs, 'std_loss_hists')
+    line_style = {'nnet':'r--', 'rightinv_pi_fx':'b'}
+    legend = []
+    for algo, v in accum_runs['std_loss_hists'].items():
+        x = list(v.keys())
+        y = list(v.values())
+        y_error = list(map(np.var, y))
+        y_means = list(map(np.mean, y))
+        plt.semilogy(x, y_means, line_style[algo])
+        legend.append(algo)
+
+    plt.legend(legend, loc='upper right')
+    plt.ylabel('Error - |f(x*) - x|')
+    plt.xlabel('Time (s)')
+
+def full_suite_analysis(runs):
+    pass
+
 # Average over many runs
 # Make it into a line plot instead of histogram
 def update_accum(accum, loss_type, algo, t, batch_loss):

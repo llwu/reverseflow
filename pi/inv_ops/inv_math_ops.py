@@ -144,6 +144,7 @@ invabsapprox = ParametricInverse('Abs', inv_abs_param, inv_abs_approx, is_approx
 ## Mul
 def inv_mulf_param(z): return (tensor_type(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_mulf(z, params): return (iden(params[0]), z[0]/params[0])
+# def inv_mulf(z, params): return (tf.pow(z[0], params[0]), tf.pow(z[0], 1-params[0]))
 invmul = ParametricInverse('Mul', inv_mulf, inv_mulf_param, is_approx=False)
 
 def inv_mulc(z, consts): return (z[0]/ consts[0],)
@@ -186,18 +187,29 @@ def inv_split_approx(z):
 invsplit = Injection('Split', inv_split, is_approx=False)
 invsplitapprox = Injection('Split', inv_split_approx, is_approx=True)
 
+
+
+def bound_loss(x, a, b):
+    a = tf.constant(a, shape=x.get_shape())
+    b = tf.constant(b, shape=x.get_shape())
+    zero = tf.constant(0.0, shape=x.get_shape())
+    print((x>b).get_shape())
+    print("s@",(x-b).get_shape())
+    g = tf.select(x>b, x-b, tf.select(x<a, a-x, zero))
+    return tf.reduce_mean(g,reduction_indices=dims_bar_batch(g))
+
 ## Sin
 def inv_sinf_param(z): return (tensor_type(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_sinf(z, params): return (tf.asin(z[0])*params[0],)
-invsin = ParametricInverse('Sin', inv_sinf_param, inv_sinf, is_approx=False)
+invsin = ParametricInverse('Sin', inv_sinf_param, inv_sinf, is_approx=True)
 
-def inj_sinf(z): return (tf.asin(z[0]),)
-injsin = Injection('Sin', inj_sinf, is_approx=False)
+def inj_sinf(z): return (tf.asin(tf.clip_by_value(z[0],-1,1)),), (bound_loss(z[0], -1.0, 1.0),)
+injsin = Injection('Sin', inj_sinf, is_approx=True)
 
 ## Cos
 def inv_cosf_param(z): return (tensor_type(z[0].dtype, shape=z[0].get_shape(), name="theta"),)
 def inv_cosf(z, params): return (tf.acos(z[0])*params[0],)
-invcos = ParametricInverse('Cos', inv_cosf_param, inv_cosf, is_approx=False)
+invcos = ParametricInverse('Cos', inv_cosf_param, inv_cosf, is_approx=True)
 
-def inj_cosf(z): return (tf.acos(z[0]),)
-injcos = Injection('Cos', inj_cosf, is_approx=False)
+def inj_cosf(z): return (tf.acos(tf.clip_by_value(z[0],-1,1)),), (bound_loss(z[0], -1.0, 1.0),)
+injcos = Injection('Cos', inj_cosf, is_approx=True)

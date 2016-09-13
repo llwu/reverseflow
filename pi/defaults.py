@@ -21,7 +21,9 @@ approx_inverses = {'Abs': invabsapprox,
                    'Sub_Const1': invsubc1,
                    'Sub_Const2': invsubc2,
                    'Exp': injexp,
-                   'Reshape': injreshape}
+                   'Reshape': injreshape,
+                   'Sin': injsin,
+                   'Cos': injcos}
 
 exact_inverses = {'Mul': invmul,
                     'Add': invadd,

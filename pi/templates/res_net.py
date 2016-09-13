@@ -45,7 +45,8 @@ def res_net_template(inputs, out_shapes, **kwargs):
     x = tf.concat(1, flat_inputs)
 
     ## Layers
-    W = tf.Variable(tf.zeros([input_width, output_width]), name="W")
+    W = tf.Variable(tf.random_uniform([input_width, output_width]), name="W")
+    # W = tf.Variable(tf.zeros([input_width, output_width]), name="W")
     b = tf.Variable(tf.zeros([output_width]), name="b")
     l1_op = tf.matmul(x, W) + b
     params = params + [W, b]

@@ -68,7 +68,7 @@ def nnet_enhanced_pi(g, gen_graph, inv_inp_gen, param_types, param_gen,
 
 def rightinv_pi(g, gen_graph, inv_inp_gen, fwd_f, batch_size, sess, max_time, logdir):
     ## Inverse Graph
-    with g.name_scope('nnet_enhanced_pi'):
+    with g.name_scope('rightinv_pi'):
         in_out_ph = gen_graph(g, batch_size, True)
         inv_results = invert(in_out_ph['outputs'], shrunk_params={})
         inv_g, inv_inputs, inv_outputs_map = inv_results

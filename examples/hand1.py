@@ -32,7 +32,7 @@ def main(argv):
                'nnet_enhanced_pi': False,
                'pointwise_pi': False,
                'min_fx_y': False,
-               'nnet': False,
+               'nnet': True,
                'min_fx_param': False,
                'rightinv_pi_fx': True,
                'nruns': 2}
