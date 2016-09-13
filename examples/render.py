@@ -194,16 +194,17 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
     pixels = tf.reshape(img, img_shape)
     mask = t14>t04
     # print(mask.reshape())
-    return tf.select(mask.reshape(img_shape), pixels, tf.ones_like(pixels)), rd, ro, tn_x, tf.ones(img_shape), orig, voxels
+    return pixels,
+    # return tf.select(mask.reshape(img_shape), pixels, tf.ones_like(pixels)), rd, ro, tn_x, tf.ones(img_shape), orig, voxels
 
 
 def render_fwd_f(inputs):
     voxels = inputs['voxels']
     options = {}
-    width = options['width'] = 128
-    height = options['height'] = 128
+    width = options['width'] = 32
+    height = options['height'] = 32
     res = options['res'] = 32
-    nsteps = options['nsteps'] = 3
+    nsteps = options['nsteps'] = 2
     nvoxgrids = options['nvoxgrids'] = 1
     nviews = options['nviews'] = 1
     rotation_matrices = rand_rotation_matrices(nviews)
@@ -232,13 +233,16 @@ global net, output_layer, cost_f, cost_f_dict, val_f, call_f, call_f_dict
 global views, voxels, outputs, net
 
 def main(argv):
-    options = {'batch_size': 10, 'max_time': 60.0,
+    options = {'batch_size': 128, 'max_time': 100.0,
                'logdir': '/home/zenna/repos/inverse/log',
                'template': res_net_template_dict,
                'nnet_enhanced_pi': False,
-               'pointwise_pi': False,
-               'min_fx_y': True,
-               'nnet': False}
+               'pointwise_pi': True,
+               'min_fx_y': False,
+               'nnet': True,
+               'min_fx_param': False,
+               'rightinv_pi_fx': False,
+               'nruns': 2}
     min_param_size = 10
     param_types = {'theta': tensor_type(dtype=tf.float32,
                    shape=(options['batch_size'], min_param_size),
@@ -250,15 +254,7 @@ def main(argv):
     return compare(render_gen_graph, render_fwd_f, param_types, shrunk_param_gen, options)
 
 
-def standalone():
-    options = {}
-    width = options['width'] = 128
-    height = options['height'] = 128
-    res = options['res'] = 32
-    nsteps = options['nsteps'] = 3
-    nvoxgrids = options['nvoxgrids'] = 1
-    nviews = options['nviews'] = 1
-
+def standalone(options):
     print(options)
     rotation_matrices = rand_rotation_matrices(nviews)
     # rotation_matrices = tf.placeholder(tf.float32, shaspe=(3,3))
@@ -268,21 +264,22 @@ def standalone():
     print("Compiling Render Function")
     writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', g)
     voxel_grids = np.load("/home/zenna/data/ModelNet40/alltrain32.npy")
-    voxel = voxel_grids[840].reshape(1, res, res, res)
+    voxel = voxel_grids[np.random.randint(0,voxel_grids.shape[0])].reshape(1, res, res, res)
     sess = tf.Session()
     output_img = sess.run(out[0], feed_dict={voxels:voxel})
     import matplotlib.pyplot as plt
     # print(output_img.shape)
     plt.imshow(output_img.reshape(width, height))
     plt.show()
-    ## Test the inverse function
-
-    # render = function([voxels, rotation_matrices], out, mode=curr_mode)
-
-
-    # if __name__ == "__main__":
-    #    main(sys.argv[1:])
 
 if __name__ == "__main__":
+    options = {}
+    width = options['width'] = 128
+    height = options['height'] = 128
+    res = options['res'] = 32
+    nsteps = options['nsteps'] = 1
+    nvoxgrids = options['nvoxgrids'] = 1
+    nviews = options['nviews'] = 1
     global x
-    x = main(sys.argv)
+    # standalone(options)
+    x = main(options)

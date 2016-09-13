@@ -19,7 +19,9 @@ approx_inverses = {'Abs': invabsapprox,
                    'Neg':invneg,
                    'Sub': invsub,
                    'Sub_Const1': invsubc1,
-                   'Sub_Const2': invsubc2}
+                   'Sub_Const2': invsubc2,
+                   'Exp': injexp,
+                   'Reshape': injreshape}
 
 exact_inverses = {'Mul': invmul,
                     'Add': invadd,
@@ -36,4 +38,6 @@ dispatches = {'Mul':dispatch_mul,
               'Sub':dispatch_sub,
               'Neg':dispatch_neg,
               'Sin':dispatch_sin,
-              'Cos':dispatch_cos}
+              'Cos':dispatch_cos,
+              'Reshape':dispatch_reshape,
+              'Exp':dispatch_exp}

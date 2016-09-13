@@ -52,6 +52,7 @@ class ParametricInverse(Inverse):
                     print(out_shapes, shrunk_params)
                     with graph.name_scope("neuran-net"):
                         params, net_params = res_net_template(list(shrunk_params.values()), out_shapes)
+                        add_many_to_collection(graph, "net_params", net_params)
 
                 add_many_to_collection(graph, "params", params)
                 ops = self.invf(inputs, params=params, **invf_kwargs)

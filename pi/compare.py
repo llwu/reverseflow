@@ -3,7 +3,7 @@ import pi
 from pi import invert
 from pi import analysis
 import numpy as np
-from pi.optim import min_param_error, min_fx_y, gen_y, gen_loss_model, nnet, min_fx_param_error
+from pi.optim import min_param_error, min_fx_y, gen_y, gen_loss_model, nnet, min_fx_param_error, rightinv_pi_fx
 from pi.optim import enhanced_pi, gen_loss_evaluator
 from pi.util import *
 import pi.templates.res_net
@@ -65,6 +65,23 @@ def nnet_enhanced_pi(g, gen_graph, inv_inp_gen, param_types, param_gen,
                              inv_outputs_map_canonical,
                              check_loss, sess, max_time=max_time)
         return result
+
+def rightinv_pi(g, gen_graph, inv_inp_gen, fwd_f, batch_size, sess, max_time, logdir):
+    ## Inverse Graph
+    with g.name_scope('nnet_enhanced_pi'):
+        in_out_ph = gen_graph(g, batch_size, True)
+        inv_results = invert(in_out_ph['outputs'], shrunk_params={})
+        inv_g, inv_inputs, inv_outputs_map = inv_results
+
+        inv_outputs_map_canonical = {k: inv_outputs_map[v.name]
+                                     for k, v in in_out_ph['inputs'].items()}
+
+        writer = tf.train.SummaryWriter(logdir, inv_g)
+        result = rightinv_pi_fx(inv_g, inv_inputs, inv_inp_gen,
+                                inv_outputs_map_canonical,
+                                fwd_f, sess, max_time=max_time)
+        return result
+
 
 def loss_checker(g, sess, gen_graph, batch_size):
     in_out_var = gen_graph(g, batch_size, False)
@@ -162,6 +179,19 @@ def compare(gen_graph, fwd_f, param_types, param_gen, options):
                 std_loss_hist, total_time = result
                 total_times["nnet"] = total_time
                 std_loss_hists["nnet"] = std_loss_hist
+
+        if options['rightinv_pi_fx']:
+            g_rpifx = tf.Graph()
+            sess_rpifx = tf.Session(graph=g_rpifx)
+            print("right inverse pi")
+            print(summary(g_rpifx))
+            with g_rpifx.as_default():
+                result = rightinv_pi(g_rpifx, gen_graph, inv_inp_gen,
+                                          fwd_f, batch_size, sess_rpifx, max_time, logdir)
+                domain_loss_hist, std_loss_hist, total_time = result
+                domain_loss_hists["rightinv_pi_fx"] = domain_loss_hist
+                total_times["rightinv_pi_fx"] = total_time
+                std_loss_hists["rightinv_pi_fx"] = std_loss_hist
 
         runs.append({'std_loss_hists': std_loss_hists,
                     'domain_loss_hists': domain_loss_hists,

@@ -26,14 +26,15 @@ def constant_gen_graph(g, batch_size, is_placeholder):
 
 
 def main(argv):
-    options = {'batch_size': 512, 'max_time': 20.0,
+    options = {'batch_size': 512, 'max_time': 100.0,
                'logdir': '/home/zenna/repos/inverse/log',
                'template': res_net_template_dict,
-               'nnet_enhanced_pi': True,
+               'nnet_enhanced_pi': False,
                'pointwise_pi': False,
                'min_fx_y': False,
-               'nnet': True,
+               'nnet': False,
                'min_fx_param': False,
+               'rightinv_pi_fx': True,
                'nruns': 2}
     gen_graph = constant_gen_graph
     fwd_f = constant_fwd_f

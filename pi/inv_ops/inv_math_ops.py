@@ -2,6 +2,33 @@ import tensorflow as tf
 from pi.inverses import ParametricInverse, Injection
 from pi.clamps import *
 from pi.util import *
+import pdb
+
+def evaly(t):
+    sess = tf.Session(graph=t.graph)
+    res = t.eval(session=sess)
+    sess.close()
+    return res
+
+def dispatch_reshape(graph, inv_inputs, fwd_inputs, shrunk_params, inverses):
+    concrete_shape = fwd_inputs[0].get_shape()
+    op = inverses['Reshape'].apply(graph, inv_inputs, shape=concrete_shape)
+    corres = {op[0]: fwd_inputs[0]}
+    return op, corres
+
+def inj_reshapef(z, shape): return (tf.reshape(z[0], shape),)
+injreshape = Injection('Reshape', inj_reshapef, is_approx=False)
+
+def dispatch_exp(graph, inv_inputs, fwd_inputs, shrunk_params, inverses):
+    # pdb.set_trace()
+    assert len(inv_inputs) == 1, "inv_exp has one input"
+    assert len(fwd_inputs) == 1, "exp has one inputs"
+    op = inverses['Exp'].apply(graph, inv_inputs)
+    corres = {op[0]:fwd_inputs[0]}
+    return op, corres
+
+def inj_expf(z): return (tf.log(z[0]),)
+injexp = Injection('Exp', inj_expf, is_approx=False)
 
 def inj_if_one_const(constant):
     """
