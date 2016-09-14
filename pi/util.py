@@ -85,6 +85,7 @@ def detailed_summary(g):
         if in_namescope(t, 'random_graph'):
             print(t.name, t.get_shape(), len(t.consumers()), t.dtype)
 
+# import pdb
 def summary(g):
     return """
     graph has %s tensors.
@@ -93,10 +94,10 @@ def summary(g):
     %s ops
     """ % (len(all_tensors(g)), num_ph(g), len(get_outputs(g)), len(g.get_operations()))
 
-def infinite_input(gen_graph, batch_size):
+def infinite_input(gen_graph, batch_size, seed):
     generator_graph = tf.Graph()
     with generator_graph.as_default() as g:
-        in_out_var = gen_graph(g, batch_size, False)
+        in_out_var = gen_graph(g, batch_size, False, seed=seed)
         sess = tf.Session(graph=generator_graph)
         init = tf.initialize_all_variables()
 

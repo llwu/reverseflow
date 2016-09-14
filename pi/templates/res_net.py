@@ -28,6 +28,8 @@ def res_net_template(inputs, out_shapes, **kwargs):
     # block_size = kwargs['block_size']
     # output_args = kwargs['output_args']
     inp_shapes = [x.get_shape().as_list() for x in inputs]
+    print("Input Shapes to Resnet", inp_shapes)
+    print("Output Shapes to Resnet", out_shapes)
     assert consistent_batch_size(inp_shapes + out_shapes), "Batch sizes differ"
     flat_input_shapes = [np.prod(inp_shape[1:]) for inp_shape in inp_shapes]
     input_width = np.sum(flat_input_shapes)

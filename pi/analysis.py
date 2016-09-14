@@ -4,21 +4,39 @@ import numpy as np
 import pdb
 from collections import OrderedDict
 
+def clean_xy(x,y):
+    new_x = []
+    new_y = []
+    assert len(x)==len(y)
+    for i in range(len(y)):
+        if len(y[i]) > 0:
+            new_x.append(x[i])
+            new_y.append(y[i])
+    return new_x, new_y
+
 def error_plot(runs):
     lengend_dict = {'nnet':'n-net', 'rightinv_pi_fx':"p-inverse"}
     accum_runs = accumulate_runs(runs, 'std_loss_hists')
     line_style = {'nnet':'r--', 'rightinv_pi_fx':'b'}
+    edge_color = {'nnet':'r', 'rightinv_pi_fx':'b'}
     legend = []
     for algo, v in accum_runs['std_loss_hists'].items():
         x = list(v.keys())
         y = list(v.values())
-        y_error = list(map(np.var, y))
-        y_means = list(map(np.mean, y))
-        plt.semilogy(x, y_means, line_style[algo])
-        legend.append(algo)
+        x, y = clean_xy(x, y)
+        y_upper = list(map(lambda x: np.percentile(x, 75), y))
+        y_lower = list(map(lambda x: np.percentile(x, 25), y))
+        y_median = list(map(np.median, y))
+        plt.semilogy(x, y_median, line_style[algo], label=lengend_dict[algo])
+        plt.semilogy(x, y_upper, line_style[algo])
+        plt.semilogy(x, y_lower, line_style[algo])
+        plt.fill_between(x, y_upper, y_lower, alpha=0.5, edgecolor=edge_color[algo], facecolor=edge_color[algo])
+        # legend.append("")
+        # legend.append(algo)
+        # legend.append("")
 
-    plt.legend(legend, loc='upper right')
-    plt.ylabel('Error - |f(x*) - x|')
+    plt.legend(loc='upper right')
+    plt.ylabel('Error - |f(x) - y|')
     plt.xlabel('Time (s)')
 
 def full_suite_analysis(runs):

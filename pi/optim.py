@@ -61,12 +61,15 @@ def multi_io_loss(a_tensors, b_tensors):
     a_tensors : {name: tf.Tensor}
     b_tensors : {name: tf.Tensor}
     """
+    print("a inputs", list(a_tensors.keys()))
+    print("b inputs", list(b_tensors.keys()))
     # assert same_kinda_tensors(a_tensors, b_tensors), "mismatch in tensor shapes"
     absdiffs = {k: tf.abs(a_tensors[k] - b_tensors[k])
                 for k in a_tensors.keys()}
+
     mean_loss_per_batch_per_op = {k: tf.reduce_mean(v, reduction_indices=dims_bar_batch(v)) for k,v in absdiffs.items()}
-    mean_loss_per_batch = tf.add_n(list(mean_loss_per_batch_per_op.values())) / len(absdiffs)
-    loss = tf.reduce_mean(mean_loss_per_batch)
+    mean_loss_per_batch = tf.div(tf.add_n(list(mean_loss_per_batch_per_op.values())), len(absdiffs), name="mean_loss_per_batch")
+    loss = tf.reduce_mean(mean_loss_per_batch, name="std_loss")
     return loss, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch
 
 
@@ -97,7 +100,7 @@ def num_params(tensors):
 
 def nnet(fwd_f, fwd_inputs, fwd_outputs, inv_inp_gen, nnet_template,
          sess, max_iterations=None, max_time=1.0, time_grain=1.0,
-         **template_kwargs):
+         seed=0, **template_kwargs):
     """
     Train a neural network f to map y to x such that f(x) = y.
     loss = |f((f-1(y))) - y|
@@ -107,16 +110,19 @@ def nnet(fwd_f, fwd_inputs, fwd_outputs, inv_inp_gen, nnet_template,
                 returns network inputs and outputs
     """
     # wwhats next
-    optimizer= tf.train.AdamOptimizer(0.001)
-    inv_inputs = {k: tf.placeholder(v.dtype, shape=v.get_shape()) for k, v  in fwd_outputs.items()}
-    nnet_output_shapes = {k: fwd_inp.get_shape().as_list() for k, fwd_inp in fwd_inputs.items()}
-    nnet_outputs, nnet_params = nnet_template(inv_inputs, nnet_output_shapes, **template_kwargs)
-    print("Finding right-inverse approximation by neural network")
-    print("Number of parameters", num_params(nnet_params))
+    g = tf.get_default_graph()
+    with g.name_scope("nnet"):
+        inv_inputs = {k: tf.placeholder(v.dtype, shape=v.get_shape()) for k, v  in fwd_outputs.items()}
+        nnet_output_shapes = {k: fwd_inp.get_shape().as_list() for k, fwd_inp in fwd_inputs.items()}
+        nnet_outputs, nnet_params = nnet_template(inv_inputs, nnet_output_shapes, **template_kwargs)
+        print("Finding right-inverse approximation by neural network")
+        print("Number of parameters", num_params(nnet_params))
 
-    ## Take outputs of neural network and apply to input of function
-    fwd_outputs = fwd_f(nnet_outputs, **template_kwargs)
-    loss_op, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch_op = multi_io_loss(fwd_outputs, inv_inputs)
+        with g.name_scope("nnet_loss"):
+            ## Take outputs of neural network and apply to input of function
+            fwd_outputs = fwd_f(nnet_outputs, seed=seed, **template_kwargs)
+            loss_op, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch_op = multi_io_loss(fwd_outputs, inv_inputs)
+            optimizer= tf.train.AdamOptimizer(0.001)
 
     # Training
     train_step = optimizer.minimize(loss_op)
@@ -223,14 +229,14 @@ def enhanced_pi(inv_g, inv_inputs, inv_inp_gen, shrunk_params, shrunk_param_gen,
 
 def rightinv_pi_fx(inv_g, inv_inputs, inv_inp_gen, inv_outputs, fwd_f, sess,
                 max_iterations=None, max_time=10.0,
-                time_grain=1.0):
+                time_grain=1.0, seed=0):
     """
     Train a neural network enhanced parametric inverse
     inv_inp : {name: tf.Tesor}
     inv_inp_gen : coroutine -> {inv_inp_name: np.array}
     """
-    optimizer=tf.train.GradientDescentOptimizer(0.0001)
-    # optimizer=tf.train.AdamOptimizer(0.0001)
+    # optimizer=tf.train.GradientDescentOptimizer(0.0001)
+    optimizer=tf.train.AdamOptimizer(0.01)
     errors = inv_g.get_collection("errors")
     net_params = inv_g.get_collection("net_params")
     print("Finding nnet enhanced pi for right inverse")
@@ -240,7 +246,7 @@ def rightinv_pi_fx(inv_g, inv_inputs, inv_inp_gen, inv_outputs, fwd_f, sess,
     domain_loss = tf.reduce_mean(batch_domain_loss)
 
     ## Take outputs of neural network and apply to input of function
-    fwd_outputs = fwd_f(inv_outputs)
+    fwd_outputs = fwd_f(inv_outputs, seed=seed)
     loss_op, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch_op = multi_io_loss(fwd_outputs, inv_inputs)
 
     # actual_loss = domain_loss

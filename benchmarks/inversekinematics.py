@@ -6,6 +6,12 @@ import numpy as np
 from pi.util import *
 from pi.templates.res_net import res_net_template_dict
 
+## nao: https://www.cs.umd.edu/~nkofinas/Projects/KofinasThesis.pdf
+## Bio: file:///home/zenna/Downloads/65149.pdf
+## Standard Manipulator: http://cdn.intechweb.org/pdfs/379.pdf
+## https://upcommons.upc.edu/bitstream/handle/2099.1/24573/A-Denavit%20Hartenberg.pdf?sequence=2&isAllowed=y
+## Ref: http://s3.amazonaws.com/academia.edu.documents/30756918/10.1.1.60.8175.pdf?AWSAccessKeyId=AKIAJ56TQJRTWSMTNPEA&Expires=1472865779&Signature=1o70EkdUm484Apxh69vX%2F6m3BZQ%3D&response-content-disposition=inline%3B%20filename%3DLearning_inverse_kinematics.pdf
+
 ## Constant
 c = tf.cos
 s = tf.sin
@@ -15,26 +21,26 @@ def ik_fwd_f(inputs):
     d3 = inputs['d3']
     h1 = inputs['h1']
     r11 = -s(phi6)*(c(phi4)*s(phi1) + c(phi1)*c(phi2)*s(phi4) ) - c(phi6)*(c(phi5)*(s(phi1)*s(phi4) - c(phi1)*c(phi2)*c(phi4) ) + c(phi1)*s(phi2)*s(phi5) )
-    # r12 = s(phi6)*(c(phi5)*(s(phi1)*s(phi4) - c(phi1)*c(phi2)*c(phi4) ) + c(phi1)*s(phi2)*s(phi5) ) - c(phi6)*(c(phi4)*s(phi1) + c(phi1)*c(phi2)*s(phi4) )
-    # r13 = s(phi5)*(s(phi1)*s(phi4) - c(phi1)*c(phi2)*c(phi4) ) - c(phi1)*c(phi5)*s(phi2)
-    # r21 = s(phi6)*(c(phi1)*c(phi4) - c(phi2)*s(phi1)*s(phi4) ) + c(phi6)*(c(phi5)*(c(phi1)*s(phi4) + c(phi2)*c(phi4)*s(phi1) ) - s(phi1)*s(phi2)*s(phi5) )
-    # r22 = c(phi6)*(c(phi1)*c(phi4) - c(phi2)*s(phi1)*s(phi4) ) - s(phi6)*(c(phi5)*(c(phi1)*s(phi4) + c(phi2)*c(phi4)*s(phi1) ) - s(phi1)*s(phi2)*s(phi5) )
-    # r23 = -s(phi5)*(c(phi1)*s(phi4) + c(phi2)*c(phi4)*s(phi1) ) - c(phi5)*s(phi1)*s(phi2)
-    # r31 = c(phi6)*(c(phi2)*s(phi5) + c(phi4)*c(phi5)*s(phi2) ) - s(phi2)*s(phi4)*s(phi6)
-    # r32 = -s(phi6)*(c(phi2)*s(phi5) + c(phi4)*c(phi5)*s(phi2) ) - c(phi6)*s(phi2)*s(phi4)
+    r12 = s(phi6)*(c(phi5)*(s(phi1)*s(phi4) - c(phi1)*c(phi2)*c(phi4) ) + c(phi1)*s(phi2)*s(phi5) ) - c(phi6)*(c(phi4)*s(phi1) + c(phi1)*c(phi2)*s(phi4) )
+    r13 = s(phi5)*(s(phi1)*s(phi4) - c(phi1)*c(phi2)*c(phi4) ) - c(phi1)*c(phi5)*s(phi2)
+    r21 = s(phi6)*(c(phi1)*c(phi4) - c(phi2)*s(phi1)*s(phi4) ) + c(phi6)*(c(phi5)*(c(phi1)*s(phi4) + c(phi2)*c(phi4)*s(phi1) ) - s(phi1)*s(phi2)*s(phi5) )
+    r22 = c(phi6)*(c(phi1)*c(phi4) - c(phi2)*s(phi1)*s(phi4) ) - s(phi6)*(c(phi5)*(c(phi1)*s(phi4) + c(phi2)*c(phi4)*s(phi1) ) - s(phi1)*s(phi2)*s(phi5) )
+    r23 = -s(phi5)*(c(phi1)*s(phi4) + c(phi2)*c(phi4)*s(phi1) ) - c(phi5)*s(phi1)*s(phi2)
+    r31 = c(phi6)*(c(phi2)*s(phi5) + c(phi4)*c(phi5)*s(phi2) ) - s(phi2)*s(phi4)*s(phi6)
+    r32 = -s(phi6)*(c(phi2)*s(phi5) + c(phi4)*c(phi5)*s(phi2) ) - c(phi6)*s(phi2)*s(phi4)
     r33 = c(phi2)*c(phi5) - c(phi4)*s(phi2)*s(phi5)
     px = d2*s(phi1) - d3*c(phi1)*s(phi2)
     py = -d2*c(phi1) - d3*s(phi1)*s(phi2)
     pz = h1 + d3*c(phi2)
     outputs = {'px':px, 'py':py,'pz':pz}
     outputs.update({'r11':r11,
-                    # 'r12':r12,
-                    # 'r13':r13,
-                    # 'r21':r21,
-                    # 'r22':r22,
-                    # 'r23':r23,
-                    # 'r31':r31,
-                    # 'r32':r32,
+                    'r12':r12,
+                    'r13':r13,
+                    'r21':r21,
+                    'r22':r22,
+                    'r23':r23,
+                    'r31':r31,
+                    'r32':r32,
                     'r33':r33})
     return outputs
 
@@ -88,34 +94,3 @@ if __name__ == "__main__":
 
 
 ## This is the problem of computing the inverse kinematics of a robot
-
-## nao: https://www.cs.umd.edu/~nkofinas/Projects/KofinasThesis.pdf
-## Bio: file:///home/zenna/Downloads/65149.pdf
-## Standard Manipulator: http://cdn.intechweb.org/pdfs/379.pdf
-## https://upcommons.upc.edu/bitstream/handle/2099.1/24573/A-Denavit%20Hartenberg.pdf?sequence=2&isAllowed=y
-## Ref: http://s3.amazonaws.com/academia.edu.documents/30756918/10.1.1.60.8175.pdf?AWSAccessKeyId=AKIAJ56TQJRTWSMTNPEA&Expires=1472865779&Signature=1o70EkdUm484Apxh69vX%2F6m3BZQ%3D&response-content-disposition=inline%3B%20filename%3DLearning_inverse_kinematics.pdf
-
-#
-# sin = tf.sin
-# cos = tf.cos
-#
-#
-#
-# inverses = pi.defaults.default_inverses
-# inverses['Sin'] = pi.inv_ops.inv_math_ops.injsin
-# inverses['Cos'] = pi.inv_ops.inv_math_ops.injcos
-#
-# print(inverses  )
-# inv_g, inputs, out_map = pi.invert.invert((r11,), inverses=inverses)
-# params = inv_g.get_collection("params")
-# errors = inv_g.get_collection("errors")
-#
-# writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', inv_g)
-# sess = tf.Session(graph=inv_g)
-# input_feed = tensor_rand(inputs)
-# minimize_error(inv_g, input_feed, sess)
-# output = sess.run(feed_dict=input_feed, fetches=out_map)
-#
-# yy = output['fwd_g/y']
-# xx = output['fwd_g/x']
-# ((xx * 2) - (4 * yy)) + 5 + xx
