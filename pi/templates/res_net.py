@@ -11,13 +11,13 @@ def batch_flatten(tensors):
     return [tf.reshape(t,[t.get_shape()[0].value,-1]) for t in tensors]
 
 
-def res_net_template_dict(inputs, out_shapes, **kwargs):
+def template_dict(inputs, out_shapes, **kwargs):
     input_list = list(inputs.values())
     out_shapes_list = list(out_shapes.values())
-    outputs, params = res_net_template(input_list, out_shapes_list, **kwargs)
+    outputs, params = template(input_list, out_shapes_list, **kwargs)
     return dict(zip(out_shapes.keys(), outputs)), params
 
-def res_net_template(inputs, out_shapes, **kwargs):
+def template(inputs, out_shapes, **kwargs):
     """
     Residual neural network inputs
     inputs : [tf.Tensor/tf.Variable] - inputs to by transformed
@@ -74,7 +74,7 @@ def test_res_net():
     y = tf.placeholder(tf.float32, shape=(batch_size, 10, 20))
     inputs = (x,y)
     output_shapes = [(batch_size, 20), (batch_size, 30)]
-    outputs, params = res_net_template(inputs, output_shapes)
+    outputs, params = template(inputs, output_shapes)
 
     ## Run the damn thing
     sess = tf.Session()

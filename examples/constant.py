@@ -4,7 +4,7 @@ import getopt
 import tensorflow as tf
 import numpy as np
 from pi.util import *
-from pi.templates.res_net import res_net_template_dict
+from tensortemplates.res_net import template_dict
 
 ## Constant
 def constant_fwd_f(inputs):
@@ -29,7 +29,7 @@ def constant_gen_graph(g, batch_size, is_placeholder):
 def main(argv):
     options = {'batch_size': 512, 'max_time': 200.0,
                'logdir': '/home/zenna/repos/inverse/log',
-               'template': res_net_template_dict,
+               'template': template_dict,
                'nnet_enhanced_pi': False,
                'pointwise_pi': False,
                'min_fx_y': False,

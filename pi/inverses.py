@@ -1,5 +1,5 @@
 import tensorflow as tf
-from  pi.templates.res_net import res_net_template
+from  tensortemplates.res_net import template
 from pi.util import *
 
 class Inverse():
@@ -23,7 +23,7 @@ class ParametricInverse(Inverse):
     def __init__(self, atype, invf, param_gen, is_approx):
         """
         type :: tf.Operation.type - type of forward operation
-        param :: - generates params
+        param_gen :: - generates params from input
         invf :: computes the inverse function
         is_approx ::
         """
@@ -48,10 +48,11 @@ class ParametricInverse(Inverse):
                     params = tuple([ph_or_var(t['dtype'], t['shape'], t['name'], params_are_ph) for t in params_types])
                 else:
                     print("CALLING RES_NET")
-                    out_shapes = [t['shape'].as_list() for t in params_types]
+                    inp_shapes = [tuple(t['shape'].as_list()) for t in params_types]
+                    out_shapes = [tuple(t['shape'].as_list()) for t in params_types]
                     print(out_shapes, shrunk_params)
                     with graph.name_scope("neuran-net"):
-                        params, net_params = res_net_template(list(shrunk_params.values()), out_shapes)
+                        params, net_params = template(list(shrunk_params.values()), out_shapes)
                         add_many_to_collection(graph, "net_params", net_params)
 
                 add_many_to_collection(graph, "params", params)
@@ -83,11 +84,3 @@ class Injection(Inverse):
                     return op
                 else:
                     return ops
-
-## Parameter Spaces
-## ================
-class ParameterSpace():
-    """A parameter space"""
-    def __init__(self, dtype, shape):
-        self.dtype = dtype
-        self.shape = shape

@@ -15,10 +15,10 @@ def clean_xy(x,y):
     return new_x, new_y
 
 def error_plot(runs):
-    lengend_dict = {'nnet':'n-net', 'rightinv_pi_fx':"p-inverse"}
+    lengend_dict = {'nnet':'neural-net', 'rightinv_pi_fx':"parametric-inverse", 'rightinv_pi_domain':"parametric-inverse-domain"}
     accum_runs = accumulate_runs(runs, 'std_loss_hists')
-    line_style = {'nnet':'r--', 'rightinv_pi_fx':'b'}
-    edge_color = {'nnet':'r', 'rightinv_pi_fx':'b'}
+    line_style = {'nnet':'r--', 'rightinv_pi_fx':'b', 'rightinv_pi_domain':"g"}
+    edge_color = {'nnet':'r', 'rightinv_pi_fx':'b', 'rightinv_pi_domain':"g"}
     legend = []
     for algo, v in accum_runs['std_loss_hists'].items():
         x = list(v.keys())

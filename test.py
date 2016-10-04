@@ -4,7 +4,7 @@ import getopt
 import tensorflow as tf
 import numpy as np
 from pi.util import *
-from pi.templates.res_net import res_net_template_dict
+from tensortemplates.res_net import template_dict
 from pi.generator import *
 import random
 
