@@ -3,7 +3,7 @@ from pi import invert
 import tensorflow as tf
 from tensorflow import float32
 import numpy as np
-from pi.optim import minimize_error
+from bf.optim import minimize_error
 
 
 def tensor_rand(tensors):
@@ -31,12 +31,12 @@ with g.name_scope("fwd_g"):
     phi6 = tf.placeholder(float32, name="phi6", shape = ())
     r11 = -sin(phi6)*(cos(phi4)*sin(phi1)+cos(phi1)*cos(phi2)*sin(phi4)) - cos(phi6)*(cos(phi5)*(sin(phi1)*sin(phi4)-cos(phi1)*cos(phi2)*cos(phi4))+cos(phi1)*sin(phi2)*sin(phi5))
 
-inverses = pi.defaults.default_inverses
-inverses['Sin'] = pi.inv_ops.inv_math_ops.injsin
-inverses['Cos'] = pi.inv_ops.inv_math_ops.injcos
+inverses = bf.defaults.default_inverses
+inverses['Sin'] = bf.inv_ops.inv_math_ops.injsin
+inverses['Cos'] = bf.inv_ops.inv_math_ops.injcos
 
 print(inverses  )
-inv_g, inputs, out_map = pi.invert.invert((r11,), inverses=inverses)
+inv_g, inputs, out_map = bf.invert.invert((r11,), inverses=inverses)
 params = inv_g.get_collection("params")
 errors = inv_g.get_collection("errors")
 

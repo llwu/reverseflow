@@ -12,7 +12,7 @@ y = tf.placeholder(float32, name="y")
 
 z = x * y + x
 g = tf.get_default_graph()
-inv_g, inputs, out_map = pi.invert.invert((z,))
+inv_g, inputs, out_map = bf.invert.invert((z,))
 params = inv_g.get_collection("params")
 errors = inv_g.get_collection("errors")
 

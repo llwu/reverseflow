@@ -1,12 +1,12 @@
 ## (Inerse) Rendering
 ## ==================
-from pi.compare import compare
+from bf.compare import compare
 import sys
 import getopt
 import tensorflow as tf
 import numpy as np
-from pi.util import *
-from pi.templates.res_net import res_net_template_dict
+from bf.util import *
+from bf.templates.res_net import res_net_template_dict
 
 floatX = 'float32'
 

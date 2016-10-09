@@ -1,10 +1,10 @@
 import tensorflow as tf
-import pi.util
+import bf.util
 import numpy as np
 
 def consistent_batch_size(shapes):
     """Are the batch sizes the same"""
-    return pi.util.same([shape[0] for shape in shapes])
+    return bf.util.same([shape[0] for shape in shapes])
 
 def batch_flatten(tensors):
     """Flatten a vector of tensors, checking batch sizes are same"""

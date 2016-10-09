@@ -1,6 +1,6 @@
 import tensorflow as tf
-from  pi.templates.res_net import res_net_template
-from pi.util import *
+from  bf.templates.res_net import res_net_template
+from bf.util import *
 
 class Inverse():
     """Inverse Function"""

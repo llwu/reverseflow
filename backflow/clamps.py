@@ -1,5 +1,5 @@
 import tensorflow as tf
-from pi.util import smthg_like
+from bf.util import smthg_like
 ## Error measures
 ## ==============
 

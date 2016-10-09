@@ -1,7 +1,8 @@
-## Parametric Inversion
+## Backflow
 
-Parametric Inversion is a library for inverting (possibly non-invertible functions).
-It is built on top of tensorflow in python.
+Backflow is a library to execute tensorflow programs backwards.
+
+## Install
 
 ## Quick Start
 
@@ -23,9 +24,9 @@ x = tf.placeholder(float32, name="x")
 y = tf.placeholder(float32, name="y")
 ```
 
-Then call `pi.invert`
+Then call `bf.invert`
 
 python
 ```
-inv_g = pi.invert.invert(g, (x, y))
+inv_g = bf.invert.invert(g, (x, y))
 ```

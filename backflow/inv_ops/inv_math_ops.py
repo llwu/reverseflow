@@ -1,14 +1,8 @@
 import tensorflow as tf
-from pi.inverses import ParametricInverse, Injection
-from pi.clamps import *
-from pi.util import *
+from bf.inverses import ParametricInverse, Injection
+from bf.clamps import *
+from bf.util import *
 import pdb
-
-def evaly(t):
-    sess = tf.Session(graph=t.graph)
-    res = t.eval(session=sess)
-    sess.close()
-    return res
 
 def dispatch_reshape(graph, inv_inputs, fwd_inputs, shrunk_params, inverses):
     concrete_shape = fwd_inputs[0].get_shape()

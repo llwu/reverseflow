@@ -3,11 +3,11 @@ import pi
 from pi import invert
 from pi import analysis
 import numpy as np
-from pi.optim import min_param_error, min_fx_y, gen_y, gen_loss_model, nnet, min_fx_param_error, rightinv_pi_fx
-from pi.optim import enhanced_pi, gen_loss_evaluator
-from pi.util import *
-import pi.templates.res_net
-from pi.invert import invert, invert2
+from bf.optim import min_param_error, min_fx_y, gen_y, gen_loss_model, nnet, min_fx_param_error, rightinv_pi_fx
+from bf.optim import enhanced_pi, gen_loss_evaluator
+from bf.util import *
+import bf.templates.res_net
+from bf.invert import invert, invert2
 
 import tensorflow as tf
 from tensorflow import float32
@@ -111,7 +111,7 @@ def compare(gen_graph, fwd_f, param_types, param_gen, options):
                 print("Evaluating Pointwise_pi on graph")
                 print(summary(g_pi))
                 sess_pi = tf.Session(graph=g_pi)
-                with g_pi.as_default():
+                with g_bf.as_default():
                     check_loss = loss_checker(g_pi, sess_pi, gen_graph, batch_size)
                     result = pointwise_pi(g_pi, gen_graph, inv_inp_gen, check_loss, batch_size,
                                           sess_pi, max_time, logdir)
@@ -125,7 +125,7 @@ def compare(gen_graph, fwd_f, param_types, param_gen, options):
                 sess_npi = tf.Session(graph=g_npi)
                 print("nnet enhanced pi")
                 print(summary(g_npi))
-                with g_npi.as_default():
+                with g_nbf.as_default():
                     check_loss = loss_checker(g_npi, sess_npi, gen_graph, batch_size)
                     result = nnet_enhanced_pi(g_npi, gen_graph, inv_inp_gen, param_types, param_gen,
                                               check_loss, batch_size, sess_npi, max_time, logdir)

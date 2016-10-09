@@ -1,9 +1,9 @@
 import tensorflow as tf
 from tensorflow import float32
 from pqdict import pqdict
-from pi.defaults import default_inverses, dispatches
-from pi.inv_ops.inv_math_ops import inj_test
-from pi.util import *
+from bf.defaults import default_inverses, dispatches
+from bf.inv_ops.inv_math_ops import inj_test
+from bf.util import *
 
 
 def apply_inv_op(g, optype, inv_inputs, fwd_inputs, shrunk_params=None,
@@ -25,7 +25,7 @@ def invert(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_sa
     Parametrically Invert a function
 
     out_tensors :: (name: tf.tensor) - all outputs of function
-    inverses :: {tf.op.type : pi.Inverse} - which inverses are used for which op
+    inverses :: {tf.op.type : bf.Inverse} - which inverses are used for which op
     inv_in_same_graph :: bool - build the inverse in same graph?
     shrunk_params :: [tf.Tensor | tf.Variable] - The effective paramter space
     """
@@ -145,7 +145,7 @@ def invert2(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_s
     Parametrically Invert a function
 
     out_tensors :: (name: tf.tensor) - all outputs of function
-    inverses :: {tf.op.type : pi.Inverse} - which inverses are used for which op
+    inverses :: {tf.op.type : bf.Inverse} - which inverses are used for which op
     inv_in_same_graph :: bool - build the inverse in same graph?
     shrunk_params :: [tf.Tensor | tf.Variable] - The effective paramter space
     """
