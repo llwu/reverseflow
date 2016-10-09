@@ -1,3 +1,5 @@
+"""Tools to compose and manipulate tensorflow graphs"""
+
 import tensorflow as tf
 
 What inputs should you be able to replace?

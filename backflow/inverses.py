@@ -1,6 +1,6 @@
 import tensorflow as tf
-from  bf.templates.res_net import res_net_template
-from bf.util import *
+from tensortemplates.res_net import template
+from backflow.util import *
 
 class Inverse():
     """Inverse Function"""

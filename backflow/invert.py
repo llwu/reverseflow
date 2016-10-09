@@ -1,3 +1,4 @@
+"""Symbolic inversion of tensorflow graph"""
 import tensorflow as tf
 from tensorflow import float32
 from pqdict import pqdict

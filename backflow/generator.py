@@ -1,3 +1,4 @@
+"""Generate random tensorflow graphs"""
 from bf.util import *
 import tensorflow as tf
 import numpy as np

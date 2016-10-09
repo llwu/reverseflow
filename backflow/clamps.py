@@ -1,12 +1,11 @@
+"""Error measures and clamps"""
 import tensorflow as tf
-from bf.util import smthg_like
-## Error measures
-## ==============
+from backflow.util import smthg_like
 
 ## Interval Bounds
 def linear_interval_loss(t, a, b, eps=1e-9):
     """
-    Returns linear distance between a value and an inteveral a,b
+    Returns linear distance between a value and an inteveral [a,b]
     """
     with t.graph.name_scope("linear_interval_loss"):
         loss = tf.maximum(tf.maximum(eps,t-1), tf.maximum(eps,-t)) + eps
@@ -38,10 +37,3 @@ def nearest_a_b_loss(t, a, b, dist=tf.abs):
         a_dist = dist(t - a)
         b_dist = dist(t - b)
         return tf.minimum(a_dist, b_dist)
-
-## Clamps
-## =====
-
-# tf.clip_by_value
-
-## Interval

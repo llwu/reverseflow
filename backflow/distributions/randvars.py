@@ -1,3 +1,4 @@
+"""Primitive Random Variables"""
 import tensorflow as tf
 
 def exponential(w, l):

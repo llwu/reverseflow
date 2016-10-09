@@ -1,3 +1,5 @@
+"""Default parametric inverses to use"""
+
 from bf.inv_ops.inv_math_ops import *
 
 def typecheck_inverses(inverses):
