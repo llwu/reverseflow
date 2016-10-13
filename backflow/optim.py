@@ -88,9 +88,9 @@ def gen_loss_model(in_out, sess):
     return multi_io_loss(out_tensors, target_outputs) + (target_outputs,)
 
 def timed_run(sess, **kwargs):
-    start_time = time.clock()
+    start_time = time.time()
     output = sess.run(**kwargs)
-    end_time = time.clock()
+    end_time = time.time()
     elapsed = end_time - start_time
     return elapsed, output
 
@@ -115,14 +115,15 @@ def nnet(fwd_f, fwd_inputs, fwd_outputs, inv_inp_gen, nnet_template,
     g = tf.get_default_graph()
     with g.name_scope("nnet"):
         inv_inputs = {k: tf.placeholder(v.dtype, shape=v.get_shape()) for k, v  in fwd_outputs.items()}
-        nnet_output_shapes = {k: fwd_inp.get_shape().as_list() for k, fwd_inp in fwd_inputs.items()}
-        nnet_outputs, nnet_params = nnet_template(inv_inputs, nnet_output_shapes, **template_kwargs)
+        nnet_input_shapes = {k: tuple(inv_inp.get_shape().as_list()) for k, inv_inp in inv_inputs.items()}
+        nnet_output_shapes = {k: tuple(fwd_inp.get_shape().as_list()) for k, fwd_inp in fwd_inputs.items()}
+        nnet_outputs, nnet_params = nnet_template(inv_inputs, nnet_input_shapes, nnet_output_shapes, **template_kwargs)
         print("Finding right-inverse approximation by neural network")
         print("Number of parameters", num_params(nnet_params))
 
         with g.name_scope("nnet_loss"):
             ## Take outputs of neural network and apply to input of function
-            fwd_outputs = fwd_f(nnet_outputs, seed=seed, **template_kwargs)
+            fwd_outputs = fwd_f(nnet_outputs, seed=seed)
             loss_op, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch_op = multi_io_loss(fwd_outputs, inv_inputs)
             optimizer= tf.train.AdamOptimizer(0.001)
 
@@ -154,13 +155,16 @@ def nnet(fwd_f, fwd_inputs, fwd_outputs, inv_inp_gen, nnet_template,
         elapsed, output = timed_run(sess, fetches=fetch, feed_dict=input_feed)
         total_time = elapsed + total_time
         std_loss = output
+        curr_time_slice = int(np.floor(total_time))
+        if curr_time_slice not in std_loss_hist:
+            std_loss_hist[curr_time_slice] = np.array([])
 
         std_loss_hist[curr_time_slice] = np.concatenate([std_loss_hist[curr_time_slice], std_loss['batch_loss']])
-
-        if total_time - previous_time > time_grain:
-            previous_time = total_time
-            curr_time_slice += 1
-            std_loss_hist[curr_time_slice] = []
+        #
+        # if total_time - previous_time > time_grain:
+        #     previous_time = total_time
+        #     curr_time_slice += 1
+        #     std_loss_hist[curr_time_slice] = []
         print("nnet-loss", std_loss['loss'])
 
     return std_loss_hist, total_time
@@ -230,8 +234,8 @@ def enhanced_pi(inv_g, inv_inputs, inv_inp_gen, shrunk_params, shrunk_param_gen,
     return domain_loss_hist, std_loss_hist, total_time
 
 def rightinv_pi_fx(inv_g, inv_inputs, inv_inp_gen, inv_outputs, fwd_f, sess,
-                max_iterations=None, max_time=10.0,
-                time_grain=1.0, seed=0):
+                   max_iterations=None, max_time=10.0, std_loss=True,
+                   time_grain=1.0, seed=0):
     """
     Train a neural network enhanced parametric inverse
     inv_inp : {name: tf.Tesor}
@@ -242,6 +246,7 @@ def rightinv_pi_fx(inv_g, inv_inputs, inv_inp_gen, inv_outputs, fwd_f, sess,
     errors = inv_g.get_collection("errors")
     net_params = inv_g.get_collection("net_params")
     print("Finding nnet enhanced pi for right inverse")
+    print("Using std loss?", std_loss)
     print("Number of parameters", num_params(net_params))
     assert len(errors) > 0, "No errors with this parametric inverse to optimize"
     batch_domain_loss = accumulate_mean_error(errors)
@@ -252,7 +257,10 @@ def rightinv_pi_fx(inv_g, inv_inputs, inv_inp_gen, inv_outputs, fwd_f, sess,
     loss_op, absdiffs, mean_loss_per_batch_per_op, mean_loss_per_batch_op = multi_io_loss(fwd_outputs, inv_inputs)
 
     # actual_loss = domain_loss
-    actual_loss = loss_op
+    if std_loss:
+        actual_loss = loss_op
+    else:
+        actual_loss = domain_loss
     # actual_loss = (loss_op + domain_loss) / 2
     train_step = optimizer.minimize(actual_loss)
     init = tf.initialize_all_variables()
@@ -294,16 +302,22 @@ def rightinv_pi_fx(inv_g, inv_inputs, inv_inp_gen, inv_outputs, fwd_f, sess,
         total_time = elapsed + total_time
 
         inv_outputs_values = {k: output[k] for k in inv_outputs.keys()}
+        curr_time_slice = int(np.floor(total_time))
+
+        if curr_time_slice not in domain_loss_hist:
+            domain_loss_hist[curr_time_slice] = np.array([])
+        if curr_time_slice not in std_loss_hist:
+            std_loss_hist[curr_time_slice] = np.array([])
 
         domain_loss_hist[curr_time_slice] = np.concatenate([domain_loss_hist[curr_time_slice], output['batch_domain_loss']])
         std_loss_hist[curr_time_slice] = np.concatenate([std_loss_hist[curr_time_slice], output['batch_loss']])
 
-        if total_time - previous_time > time_grain:
-            previous_time = total_time
-            curr_time_slice += 1
-            domain_loss_hist[curr_time_slice] = []
-            std_loss_hist[curr_time_slice] = []
-        print("rightinv_pi_fx: ", "domain", output["domain_loss"], "std:", output["loss"])
+        # if total_time - previous_time > time_grain:
+        #     previous_time = total_time
+        #     curr_time_slice += 1
+        #     domain_loss_hist[curr_time_slice] = []
+        #     std_loss_hist[curr_time_slice] = []
+        print("rightinv_pi_fx: ", "std_loss", std_loss, "domain", output["domain_loss"], "std:", output["loss"])
 
     return domain_loss_hist, std_loss_hist, total_time
 

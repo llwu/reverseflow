@@ -5,8 +5,13 @@ import sys
 import getopt
 import tensorflow as tf
 import numpy as np
+<<<<<<< HEAD
 from bf.util import *
 from bf.templates.res_net import res_net_template_dict
+=======
+from pi.util import *
+from tensortemplates.res_net import template_dict
+>>>>>>> 1f0dffa638da4f42bf7f50b4dafe542d1e51f226
 
 floatX = 'float32'
 
@@ -235,7 +240,7 @@ global views, voxels, outputs, net
 def main(argv):
     options = {'batch_size': 128, 'max_time': 100.0,
                'logdir': '/home/zenna/repos/inverse/log',
-               'template': res_net_template_dict,
+               'template': template_dict,
                'nnet_enhanced_pi': False,
                'pointwise_pi': True,
                'min_fx_y': False,

@@ -66,7 +66,8 @@ def nnet_enhanced_pi(g, gen_graph, inv_inp_gen, param_types, param_gen,
                              check_loss, sess, max_time=max_time)
         return result
 
-def rightinv_pi(g, gen_graph, inv_inp_gen, fwd_f, batch_size, sess, max_time, seed, logdir):
+def rightinv_pi(g, gen_graph, inv_inp_gen, fwd_f, batch_size, std_loss, sess,
+                max_time, seed, logdir):
     ## Inverse Graph
     with g.name_scope('rightinv_pi'):
         in_out_ph = gen_graph(g, batch_size, True, seed=seed)
@@ -79,7 +80,8 @@ def rightinv_pi(g, gen_graph, inv_inp_gen, fwd_f, batch_size, sess, max_time, se
         writer = tf.train.SummaryWriter(logdir, inv_g)
         result = rightinv_pi_fx(inv_g, inv_inputs, inv_inp_gen,
                                 inv_outputs_map_canonical,
-                                fwd_f, sess, seed=seed, max_time=max_time)
+                                fwd_f, sess, seed=seed, max_time=max_time,
+                                std_loss=std_loss)
         return result
 
 
@@ -100,6 +102,8 @@ def compare(gen_graph, fwd_f, param_types, param_gen, options):
     total_times = {}
     std_loss_hists = {}
     runs = []
+
+    template_kwargs = {'layer_width': 100, 'nblocks': 1, 'block_size': 1, 'output_args' : {'deterministic': True}}
 
     for i in range(nruns):
         seed = np.random.randint(0, 10000)
@@ -177,8 +181,9 @@ def compare(gen_graph, fwd_f, param_types, param_gen, options):
                     in_out_var = gen_graph(g_nnet, batch_size, False, seed=seed)
                     print("nnet")
                     print(summary(g_nnet))
+                    # import pdb; pdb.set_trace()
                     result = nnet(fwd_f, in_out_var['inputs'], in_out_var['outputs'],
-                                  inv_inp_gen, template, sess_nnet, max_time=max_time, seed=seed)
+                                  inv_inp_gen, template, sess_nnet, max_time=max_time, seed=seed, **template_kwargs)
                     std_loss_hist, total_time = result
                     total_times["nnet"] = total_time
                     std_loss_hists["nnet"] = std_loss_hist
@@ -190,16 +195,31 @@ def compare(gen_graph, fwd_f, param_types, param_gen, options):
                 print(summary(g_rpifx))
                 with g_rpifx.as_default():
                     result = rightinv_pi(g_rpifx, gen_graph, inv_inp_gen,
-                                              fwd_f, batch_size, sess_rpifx, max_time, seed, logdir)
+                                         fwd_f, batch_size, True,
+                                         sess_rpifx, max_time, seed, logdir)
                     domain_loss_hist, std_loss_hist, total_time = result
                     domain_loss_hists["rightinv_pi_fx"] = domain_loss_hist
                     total_times["rightinv_pi_fx"] = total_time
                     std_loss_hists["rightinv_pi_fx"] = std_loss_hist
 
+            if options['rightinv_pi_domain']:
+                g_rpidom = tf.Graph()
+                sess_rpidom = tf.Session(graph=g_rpidom)
+                print("right inverse pi: domain")
+                print(summary(g_rpidom))
+                with g_rpidom.as_default():
+                    result = rightinv_pi(g_rpidom, gen_graph, inv_inp_gen,
+                                         fwd_f, batch_size, False,
+                                         sess_rpidom, max_time, seed, logdir)
+                    domain_loss_hist, std_loss_hist, total_time = result
+                    domain_loss_hists["rightinv_pi_domain"] = domain_loss_hist
+                    total_times["rightinv_pi_domain"] = total_time
+                    std_loss_hists["rightinv_pi_domain"] = std_loss_hist
+
             runs.append({'std_loss_hists': std_loss_hists,
                         'domain_loss_hists': domain_loss_hists,
                         'total_times': total_times})
-        except:
-            pass
+        except Exception as e:
+            raise
 
     return runs

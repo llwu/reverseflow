@@ -3,9 +3,15 @@ import sys
 import getopt
 import tensorflow as tf
 import numpy as np
+<<<<<<< HEAD
 from bf.util import *
 from bf.templates.res_net import res_net_template_dict
 from bf.generator import gen_graph, maybe_stop, apply_elem_op
+=======
+from pi.util import *
+from tensortemplates.res_net import template_dict
+from pi.generator import gen_graph, maybe_stop, apply_elem_op
+>>>>>>> 1f0dffa638da4f42bf7f50b4dafe542d1e51f226
 import random
 
 
@@ -43,7 +49,7 @@ def main(argv):
     global stats
     options = {'batch_size': 512, 'max_time': 5.0,
                'logdir': '/home/zenna/repos/inverse/log',
-               'template': res_net_template_dict,
+               'template': template_dict,
                'nnet_enhanced_pi': True,
                'pointwise_pi': True,
                'min_fx_y': True,

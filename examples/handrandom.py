@@ -3,8 +3,13 @@ import sys
 import getopt
 import tensorflow as tf
 import numpy as np
+<<<<<<< HEAD
 from bf.util import *
 from bf.templates.res_net import res_net_template_dict
+=======
+from pi.util import *
+from tensortemplates.res_net import template_dict
+>>>>>>> 1f0dffa638da4f42bf7f50b4dafe542d1e51f226
 
 
 
@@ -42,16 +47,17 @@ def constant_gen_graph(g, batch_size, is_placeholder, seed=0):
 
 
 def main(argv):
-    options = {'batch_size': 512, 'max_time': 200.0,
+    options = {'batch_size': 512, 'max_time': 10.0,
                'logdir': '/home/zenna/repos/inverse/log',
-               'template': res_net_template_dict,
+               'template': template_dict,
                'nnet_enhanced_pi': False,
                'pointwise_pi': False,
                'min_fx_y': False,
-               'nnet': True,
                'min_fx_param': False,
+               'nnet': True,
                'rightinv_pi_fx': True,
-               'nruns': 100}
+               'rightinv_pi_domain': True,
+               'nruns': 50}
     gen_graph = constant_gen_graph
     fwd_f = constant_fwd_f
     min_param_size = 1
