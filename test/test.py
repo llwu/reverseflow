@@ -1,11 +1,11 @@
-from bf.compare import compare
+from rf.compare import compare
 import sys
 import getopt
 import tensorflow as tf
 import numpy as np
-from bf.util import *
-from bf.templates.res_net import res_net_template_dict
-from bf.generator import *
+from rf.util import *
+from rf.templates.res_net import res_net_template_dict
+from rf.generator import *
 import random
 
 for i in range(4):

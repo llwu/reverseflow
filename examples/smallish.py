@@ -17,7 +17,7 @@ with g.name_scope("fwd_g"):
     o1 = (e + 2*f)+(3*z)
     o2 = e + f
 
-inv_g, inputs, out_map, params = bf.invert.invert((o1,o2))
+inv_g, inputs, out_map, params = rf.invert.invert((o1,o2))
 print(out_map)
 
 writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', inv_g)

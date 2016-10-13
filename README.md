@@ -1,6 +1,6 @@
-## Backflow
+## reverseflow
 
-Backflow is a library to execute tensorflow programs backwards.
+reverseflow is a library to execute tensorflow programs backwards.
 
 ## Install
 
@@ -24,9 +24,9 @@ x = tf.placeholder(float32, name="x")
 y = tf.placeholder(float32, name="y")
 ```
 
-Then call `bf.invert`
+Then call `rf.invert`
 
 python
 ```
-inv_g = bf.invert.invert(g, (x, y))
+inv_g = rf.invert.invert(g, (x, y))
 ```

@@ -1,6 +1,6 @@
 """Default parametric inverses to use"""
 
-from bf.inv_ops.inv_math_ops import *
+from reverseflow.inv_ops.inv_math_ops import *
 
 def typecheck_inverses(inverses):
     """Do types of keys in inverse list match the types of the Inverses"""

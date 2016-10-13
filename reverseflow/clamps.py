@@ -1,6 +1,6 @@
 """Error measures and clamps"""
 import tensorflow as tf
-from backflow.util import smthg_like
+from reverseflow.util import smthg_like
 
 ## Interval Bounds
 def linear_interval_loss(t, a, b, eps=1e-9):

@@ -1,8 +1,8 @@
 """Inverse Ops of tensorflows math_ops"""
 import tensorflow as tf
-from backflow.inverses import ParametricInverse, Injection
-from backflow.clamps import *
-from backflow.util import *
+from reverseflow.inverses import ParametricInverse, Injection
+from reverseflow.clamps import *
+from reverseflow.util import *
 
 def dispatch_reshape(graph, inv_inputs, fwd_inputs, shrunk_params, inverses):
     concrete_shape = fwd_inputs[0].get_shape()

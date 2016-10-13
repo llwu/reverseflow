@@ -1,11 +1,6 @@
 import tensorflow as tf
-<<<<<<< HEAD:backflow/inverses.py
 from tensortemplates.res_net import template
-from backflow.util import *
-=======
-from  tensortemplates.res_net import template
-from pi.util import *
->>>>>>> 1f0dffa638da4f42bf7f50b4dafe542d1e51f226:pi/inverses.py
+from reverseflow.util import *
 
 class Inverse():
     """Inverse Function"""

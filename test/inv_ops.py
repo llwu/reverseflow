@@ -1,5 +1,5 @@
 ## Test the parametric inverses
-import backflow.inv_ops.inv_math_ops as inv_math_ops
+import reverseflow.inv_ops.inv_math_ops as inv_math_ops
 
 def approx_eq(a, b, tolerance=1e-5):
     """is a approximately equal to b"""

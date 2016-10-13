@@ -1,5 +1,5 @@
 """Generate random tensorflow graphs"""
-from bf.util import *
+from rf.util import *
 import tensorflow as tf
 import numpy as np
 import random

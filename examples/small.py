@@ -1,5 +1,4 @@
-import pi
-from pi import invert
+from reverseflow.invert import invert
 import tensorflow as tf
 from tensorflow import float32
 
@@ -12,7 +11,7 @@ y = tf.placeholder(float32, name="y")
 
 z = x * y + x
 g = tf.get_default_graph()
-inv_g, inputs, out_map = bf.invert.invert((z,))
+inv_g, inputs, out_map = invert((z,))
 params = inv_g.get_collection("params")
 errors = inv_g.get_collection("errors")
 

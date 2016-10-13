@@ -81,12 +81,12 @@ def plot(runs, total_time, max_error=None):
     import matplotlib.pyplot as plt
     import pi
     for k, v in std_loss_hists.items():
-        bf.analysis.profile2d(v, total_time, max_error=max_error)
+        rf.analysis.profile2d(v, total_time, max_error=max_error)
         plt.title('std_loss %s' % k)
         plt.figure()
 
     for k, v in domain_loss_hists.items():
-        bf.analysis.profile2d(v, total_time, max_error=max_error)
+        rf.analysis.profile2d(v, total_time, max_error=max_error)
         plt.title('domain_loss %s' % k)
         plt.figure()
 

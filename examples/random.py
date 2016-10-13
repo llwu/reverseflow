@@ -1,17 +1,11 @@
-from bf.compare import compare
+from rf.compare import compare
 import sys
 import getopt
 import tensorflow as tf
 import numpy as np
-<<<<<<< HEAD
-from bf.util import *
-from bf.templates.res_net import res_net_template_dict
-from bf.generator import gen_graph, maybe_stop, apply_elem_op
-=======
-from pi.util import *
-from tensortemplates.res_net import template_dict
-from pi.generator import gen_graph, maybe_stop, apply_elem_op
->>>>>>> 1f0dffa638da4f42bf7f50b4dafe542d1e51f226
+from rf.util import *
+from rf.templates.res_net import res_net_template_dict
+from rf.generator import gen_graph, maybe_stop, apply_elem_op
 import random
 
 

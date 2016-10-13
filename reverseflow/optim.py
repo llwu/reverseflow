@@ -4,7 +4,7 @@ import tensorflow as tf
 import numpy as np
 import time
 import collections
-from bf.util import *
+from rf.util import *
 ## Comparisons
 ## 1. Search other x in X to find x* = argmin(|f(x), y|)
 ## 2. Search other theta to find theta* and corresponding x* such that error node = zero
