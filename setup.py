@@ -12,7 +12,7 @@ setup(
     packages=['reverseflow'],
     install_requires=['tensorflow>=0.11.0rc0',
                       'numpy>=1.7'],
-    url='http://edwardlib.org',
+    url='http://www.zenna.org',
     license='Apache License 2.0',
     classifiers=['License :: OSI Approved :: Apache Software License',
                  'Programming Language :: Python :: 2.7',
