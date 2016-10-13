@@ -18,10 +18,13 @@ def apply_inv_op(g, optype, inv_inputs, fwd_inputs, shrunk_params=None,
     return dispatches[optype](g, inv_inputs, fwd_inputs,
                               shrunk_params=shrunk_params, inverses=inverses)
 
-def first_value(d):
-    return next (iter (d.values()))
 
-def invert(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_same_graph=True):
+def first_value(d):
+    return next(iter(d.values()))
+
+
+def invert(out_tensors, shrunk_params=None, inverses=default_inverses,
+           inv_in_same_graph=True):
     """
     Parametrically Invert a function
 
@@ -30,7 +33,7 @@ def invert(out_tensors, shrunk_params=None, inverses=default_inverses, inv_in_sa
     inv_in_same_graph :: bool - build the inverse in same graph?
     shrunk_params :: [tf.Tensor | tf.Variable] - The effective paramter space
     """
-    if inv_in_same_graph == False:
+    if inv_in_same_graph is False:
         raise NotImplementedError()
 
     assert len(out_tensors) > 0, "Need at least one output"
