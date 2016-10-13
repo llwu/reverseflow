@@ -6,6 +6,17 @@ from collections import OrderedDict
 iden = tf.identity
 
 
+# def shape_eq(a, b, none_is_ok=False):
+#     """Are these shapes the same"""
+#     if a is None or a == tf.TensorShape(None):
+#         return True
+#     else:
+#         for i in range(len(a)):
+#             if a[i] != b[i]:
+#                 return False
+#     return True
+
+
 def in_namescope(t, namescope):
     """
     Is tensor t in namescope
