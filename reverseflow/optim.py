@@ -11,17 +11,6 @@ from rf.util import *
 ## 3. Serching over parameters for neural network to find h:Y->X such that argmin(|f(h(y)), y|)
 ## 4. Search over
 
-# 1. Need to repeat it over many data points
-# 2. Need stopping criteria
-# 3. Get loss from other methods
-# 3. Get out dict
-# Need to collec the time
-
-# So there's a pretty high degree of variance between runs.
-# depending on initial point and on learning_rate
-# need to run more than one example.
-#
-
 def accumulate_mean_error(errors):
     return tf.add_n(errors)/len(errors)
 
