@@ -1,3 +1,6 @@
+from typing import Set
+
+
 class CompositeArrow(Arrow):
     """
     Composite arrow
@@ -5,23 +8,27 @@ class CompositeArrow(Arrow):
     primtive arrows or themselves compositions.
     """
 
-    def __init__(self, arrows: List[Arrow],
-                 edges: Bimap[OutPort, InPort]) -> None:
+    def get_arrows() -> Set[Arrow]:
+        """Return all the constituent arrows of composition"""
+        arrows = Set()
+        for (out_port, in_port) in edges.items():
+            arrows.add(out_port.arrow)
+            arrows.add(in_port.arrow)
+
+        self.arrows = arrows
+        return arrows
+
+    def __init__(self, edges: Bimap[OutPort, InPort]) -> None:
         """
         init this bad boy
         """
-        self.arrows = arrows
         self.edges = edges
         self.in_ports = []  # type: List[InPort]
         self.out_ports = []  # type: List[OutPort]
         in_i = 0
         out_i = 0
 
-        # TODO: checks that each arrow in edges is an arrow in list
-        # TODO: actually do we even need the list? maybe have (possibly cached)
-        #       self.get_arrows()
-        #
-
+        arrows = self.get_arrows()
         for arrow in arrows:
             for in_port in arrow.in_ports:
                 if in_port not in edges.right_to_left:
