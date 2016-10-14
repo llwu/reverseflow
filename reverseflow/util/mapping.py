@@ -5,7 +5,7 @@ R = TypeVar('R')
 
 
 class Bimap(Generic[L, R]):
-    """Bidirectional map"""
+    """Bidirectional and bijective map"""
 
     def __init__(self):
         self.left_to_right = {}
@@ -14,3 +14,18 @@ class Bimap(Generic[L, R]):
     def add(self, left, right):
         self.left_to_right[left] = right
         self.right_to_left[right] = left
+
+class ImageBimap(Generic[L, R]):
+    """Bidirectional map for non-injective function"""
+
+    def __init__(self):
+        # TODO
+        pass
+
+    def fwd(l: L) -> R:
+        # TODO
+        pass
+
+    def inv(r: R) -> Set[L]:
+        # TODO
+        pass
