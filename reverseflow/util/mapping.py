@@ -11,21 +11,31 @@ class Bimap(Generic[L, R]):
         self.left_to_right = {}
         self.right_to_left = {}
 
-    def add(self, left, right):
+    def add(self, left: L, right: R):
         self.left_to_right[left] = right
         self.right_to_left[right] = left
+
+    def fwd(self, left: L) -> R:
+        return self.left_to_right[left]
+
+    def inv(self, right: R) -> L:
+        return self.right_to_left[right]
 
 class ImageBimap(Generic[L, R]):
     """Bidirectional map for non-injective function"""
 
     def __init__(self):
-        # TODO
-        pass
+        self.left_to_right = {}
+        self.right_to_left = {}
 
-    def fwd(l: L) -> R:
-        # TODO
-        pass
+    def add(self, left: L, right: R):
+        self.left_to_right[left] = right
+        if right not in self.right_to_left:
+            self.right_to_left[right] = Set()
+        self.right_to_left[right].add(left)
 
-    def inv(r: R) -> Set[L]:
-        # TODO
-        pass
+    def fwd(self, left: L) -> R:
+        return self.left_to_right[left]
+
+    def inv(self, right: R) -> Set[L]:
+        return self.right_to_left[right]
