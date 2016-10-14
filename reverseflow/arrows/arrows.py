@@ -1,5 +1,6 @@
 from typing import List
 
+
 class Arrow:
     """Abstract arrow class"""
 
@@ -12,11 +13,13 @@ class Arrow:
     def get_out_ports(self):
         return self.out_ports
 
+
 class PrimitiveArrow(Arrow):
     """Primitive arrow"""
 
     def __init__(self):
         pass
+
 
 class Bimap:
     """Bidirectional map"""
@@ -29,10 +32,11 @@ class Bimap:
         self.left_to_right[left] = right
         self.right_to_left[right] = left
 
+
 class CompositeArrow(Arrow):
     """Composite arrow"""
 
-    def __init__(self, arrows: List[Arrow], edges: Bimap):
+    def __init__(self, arrows: List[Arrow], edges: Bimap) -> None:
         self.arrows = arrows
         self.edges = edges
         self.in_ports = []
@@ -54,6 +58,7 @@ class CompositeArrow(Arrow):
                     self.edges.add(out_port, new_port)
         # create ports
 
+
 class AddArrow(PrimitiveArrow):
     """Addition op"""
 
@@ -63,6 +68,7 @@ class AddArrow(PrimitiveArrow):
 
     def invert(self):
         pass
+
 
 class MulArrow(PrimitiveArrow):
     """Multiplication op"""
@@ -74,6 +80,7 @@ class MulArrow(PrimitiveArrow):
     def invert(self):
         pass
 
+
 class DuplArrow(PrimitiveArrow):
     """Duplication op"""
 
@@ -84,6 +91,7 @@ class DuplArrow(PrimitiveArrow):
     def invert(self):
         pass
 
+
 class Port():
     """Port"""
 
@@ -91,21 +99,12 @@ class Port():
         self.arrow = arrow
         self.index = index
 
+
 class InPort(Port):
     """Input port"""
     pass
 
+
 class OutPort(Port):
     """Output port"""
     pass
-
-a = MulArrow()
-b = AddArrow()
-c = DuplArrow()
-edges = Bimap()
-# change the rest
-edges.add(c.get_out_ports()[0], a.get_in_ports()[0]) # dupl -> mul
-edges.add(c.get_out_ports()[1], b.get_in_ports()[0]) # dupl -> add
-edges.add(a.get_out_ports()[0], b.get_in_ports()[1]) # mul -> add
-d = CompositeArrow([a, b, c], edges)
-import pdb; pdb.set_trace()

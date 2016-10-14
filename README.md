@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/zenna/reverseflow.svg?branch=master)](https://travis-ci.org/zenna/reverseflow)
+[![Build Status](https://travis-ci.org/zenna/reverseflow.svg?branch=rewrite)](https://travis-ci.org/zenna/reverseflow)
 
 ## reverseflow
 
