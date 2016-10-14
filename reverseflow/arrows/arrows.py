@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, TypeVar, Generic
 
 
 class Arrow:
@@ -14,14 +14,46 @@ class Arrow:
         return self.out_ports
 
 
+class Port():
+    """
+    Port
+
+    An entry or exit to an Arrow, analogous to argument position of multivariate
+    function.
+
+    A port is uniquely determined by the arrow it belongs to and a pin.
+
+    On the boundary of a composite arrow, ports are simultaneously inports
+    (since they take input from outside world) and outputs (since inside they
+    project outward to
+    """
+
+    def __init__(self, arrow: Arrow, index: int) -> None:
+        self.arrow = arrow
+        self.index = index
+
+
+class InPort(Port):
+    """Input port"""
+    pass
+
+
+class OutPort(Port):
+    """Output port"""
+    pass
+
+
 class PrimitiveArrow(Arrow):
     """Primitive arrow"""
 
     def __init__(self):
         pass
 
+L = TypeVar('L')
+R = TypeVar('R')
 
-class Bimap:
+
+class Bimap(Generic[L, R]):
     """Bidirectional map"""
 
     def __init__(self):
@@ -34,29 +66,35 @@ class Bimap:
 
 
 class CompositeArrow(Arrow):
-    """Composite arrow"""
+    """
+    Composite arrow
+    A composite arrow is a composition of simpler arrows, which may be either
+    primtive arrows or themselves compositions.
+    """
 
-    def __init__(self, arrows: List[Arrow], edges: Bimap) -> None:
+    def __init__(self, arrows: List[Arrow], edges: Bimap[OutPort, InPort]) -> None:
         self.arrows = arrows
         self.edges = edges
-        self.in_ports = []
-        self.out_ports = []
+        self.in_ports = []  # type: List[InPort]
+        self.out_ports = []  # type: List[OutPort]
         in_i = 0
         out_i = 0
+
         for arrow in arrows:
             for in_port in arrow.get_in_ports():
-                if in_port not in edges.left_to_right:
-                    new_port = InPort(self, in_i)
-                    in_i += 1
-                    self.in_ports.append(new_port)
-                    self.edges.add(new_port, in_port)
-            for out_port in arrow.get_out_ports():
-                if out_port not in edges.right_to_left:
-                    new_port = OutPort(self, out_i)
+                if in_port not in edges.right_to_left:
+                    boundary_outport = OutPort(self, out_i)
                     out_i += 1
-                    self.out_ports.append(new_port)
-                    self.edges.add(out_port, new_port)
-        # create ports
+                    self.out_ports.append(boundary_outport)
+                    self.edges.add(boundary_outport, in_port)
+
+        for arrow in arrows:
+            for out_port in arrow.get_out_ports():
+                if out_port not in edges.left_to_right:
+                    boundary_inport = InPort(self, in_i)
+                    in_i += 1
+                    self.in_ports.append(boundary_inport)
+                    self.edges.add(out_port, boundary_inport)
 
 
 class AddArrow(PrimitiveArrow):
@@ -90,21 +128,3 @@ class DuplArrow(PrimitiveArrow):
 
     def invert(self):
         pass
-
-
-class Port():
-    """Port"""
-
-    def __init__(self, arrow, index):
-        self.arrow = arrow
-        self.index = index
-
-
-class InPort(Port):
-    """Input port"""
-    pass
-
-
-class OutPort(Port):
-    """Output port"""
-    pass
