@@ -1,4 +1,3 @@
-
 class CompositeArrow(Arrow):
     """
     Composite arrow
@@ -24,15 +23,13 @@ class CompositeArrow(Arrow):
         #
 
         for arrow in arrows:
-            for in_port in arrow.get_in_ports():
+            for in_port in arrow.in_ports:
                 if in_port not in edges.right_to_left:
                     boundary_outport = OutPort(self, out_i)
                     out_i += 1
                     self.out_ports.append(boundary_outport)
                     self.edges.add(boundary_outport, in_port)
-
-        for arrow in arrows:
-            for out_port in arrow.get_out_ports():
+            for out_port in arrow.out_ports:
                 if out_port not in edges.left_to_right:
                     boundary_inport = InPort(self, in_i)
                     in_i += 1

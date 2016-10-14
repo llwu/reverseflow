@@ -1,6 +1,6 @@
 """These are arrows for control flow of input"""
 
-from reverseflow.arrows.arrows import PrimitiveArrow
+from reverseflow.arrows.primitivearrow import PrimitiveArrow
 
 
 class DuplArrow(PrimitiveArrow):
