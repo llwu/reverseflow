@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-from typing import TypeVar, Generic, Set
-=======
 from typing import TypeVar, Generic, Tuple, List, Set
->>>>>>> 883f5c95d9e2f58176cc72ad88b57167af8fb318
 
 L = TypeVar('L')
 R = TypeVar('R')
