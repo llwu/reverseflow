@@ -44,7 +44,7 @@ def all_tensors_filter(g, filters):
     good_tensors = []
     for t in tensors:
         for f in filter:
-            if filter(t) os False:
+            if filter(t) is False:
                 break
             good_tensors.append(t)
     return good_tensors

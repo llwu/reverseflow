@@ -1,5 +1,4 @@
-## (Inerse) Rendering
-## ==================
+""" (Inverse) Rendering"""
 from rf.compare import compare
 import sys
 import getopt
@@ -59,6 +58,7 @@ def rand_rotation_matrix(deflection=1.0, randnums=None, floatX='float32'):
 def rand_rotation_matrices(n, floatX='float32'):
     return np.stack([rand_rotation_matrix(floatX=floatX) for i in range(n)])
 
+
 # Genereate values in raster space, x[i,j] = [i,j]
 def gen_fragcoords(width, height):
     """Create a (width * height * 2) matrix, where element i,j is [i,j]
@@ -66,16 +66,19 @@ def gen_fragcoords(width, height):
     raster_space = np.zeros([width, height, 2], dtype=floatX)
     for i in range(width):
         for j in range(height):
-            raster_space[i,j] = np.array([i,j], dtype=floatX) + 0.5
+            raster_space[i, j] = np.array([i, j], dtype=floatX) + 0.5
     return raster_space
+
 
 # Append an image filled with scalars to the back of an image.
 def stack(intensor, width, height, scalar):
     scalars = np.ones([width, height, 1], dtype=floatX) * scalar
     return np.concatenate([intensor, scalars], axis=2)
 
+
 def switch(cond, a, b):
     return cond*a + (1-cond)*b
+
 
 def dot(a, b):
     """Dot product of two a and b"""
@@ -85,8 +88,10 @@ def dot(a, b):
     print("C", c.get_shape())
     return c
 
+
 def norm(x):
     return np.linalg.norm(x, 2, axis=3)
+
 
 def make_ro(r, raster_space, width, height):
     """Symbolically render rays starting with raster_space according to geometry
@@ -98,29 +103,31 @@ def make_ro(r, raster_space, width, height):
     # Put it in NDC space, -1, 1
     screen_space = -1.0 + 2.0 * norm_raster_space
     # Make pixels square by mul by aspect ratio
-    ndc_space = screen_space * np.array([resolution[0]/resolution[1],1.0], dtype=floatX)
+    ndc_space = screen_space * np.array([resolution[0]/resolution[1], 1.0],
+                                        dtype=floatX)
     # Ray Direction
 
     # Position on z-plane
-    ndc_xyz = stack(ndc_space, width, height, 1.0)*0.5 # Change focal length
+    ndc_xyz = stack(ndc_space, width, height, 1.0)*0.5  # Change focal length
 
     # Put the origin farther along z-axis
-    ro = np.array([0,0,1.5], dtype=floatX)
+    ro = np.array([0, 0, 1.5], dtype=floatX)
 
     # Rotate both by same rotation matrix
-    ro_t = np.dot(np.reshape(ro, (1,3)), r)
+    ro_t = np.dot(np.reshape(ro, (1, 3)), r)
     ndc_t = np.dot(np.reshape(ndc_xyz, (1, width, height, 3)), r)
     print(ndc_t.shape, width, height, nmatrices)
     ndc_t = np.reshape(ndc_t, (width, height, nmatrices, 3))
-    ndc_t = np.transpose(ndc_t, (2,0,1,3))
+    ndc_t = np.transpose(ndc_t, (2, 0, 1, 3))
 
     # Increment by 0.5 since voxels are in [0, 1]
     ro_t = ro_t + 0.5
     ndc_t = ndc_t + 0.5
     # Find normalise ray dirs from origin to image plane
-    unnorm_rd = ndc_t - np.reshape(ro_t, (nmatrices,1,1,3))
+    unnorm_rd = ndc_t - np.reshape(ro_t, (nmatrices, 1, 1, 3))
     rd = unnorm_rd / np.reshape(norm(unnorm_rd), (nmatrices, width, height, 1))
     return rd, ro_t
+
 
 def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
     """Renders n voxel grids in m different views
@@ -130,16 +137,16 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
     """
     raster_space = gen_fragcoords(width, height)
     rd, ro = make_ro(rotation_matrix, raster_space, width, height)
-    a = 0 - ro # c = 0
-    b = 1 - ro # c = 1
+    a = 0 - ro  # c = 0
+    b = 1 - ro  # c = 1
     nmatrices = rotation_matrix.shape[0]
     tn = np.reshape(a, (nmatrices, 1, 1, 3))/rd
     tff = np.reshape(b, (nmatrices, 1, 1, 3))/rd
-    tn_true = np.minimum(tn,tff)
-    tff_true = np.maximum(tn,tff)
+    tn_true = np.minimum(tn, tff)
+    tff_true = np.maximum(tn, tff)
     # do X
-    tn_x = tn_true[:,:,:,0]
-    tff_x = tff_true[:,:,:,0]
+    tn_x = tn_true[:, :, :, 0]
+    tff_x = tff_true[:, :, :, 0]
     tmin = 0.0
     tmax = 10.0
     t0 = tmin
@@ -147,13 +154,13 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
     t02 = np.where(tn_x > t0, tn_x, t0)
     t12 = np.where(tff_x < t1, tff_x, t1)
     # y
-    tn_x = tn_true[:,:,:,1]
-    tff_x = tff_true[:,:,:,1]
+    tn_x = tn_true[:, :, :, 1]
+    tff_x = tff_true[:, :, :, 1]
     t03 = np.where(tn_x > t02, tn_x, t02)
     t13 = np.where(tff_x < t12, tff_x, t12)
-    #z
-    tn_x = tn_true[:,:,:,2]
-    tff_x = tff_true[:,:,:,2]
+    # z
+    tn_x = tn_true[:, :, :, 2]
+    tff_x = tff_true[:, :, :, 2]
     t04 = np.where(tn_x > t03, tn_x, t03)
     t14 = np.where(tff_x < t13, tff_x, t13)
 
@@ -165,12 +172,13 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
     print("hello", nvoxgrids)
     left_over = np.ones((nvoxgrids, nmatrices * width * height,))
     step_size = (t14 - t04)/nsteps
-    orig = np.reshape(ro, (nmatrices, 1, 1, 3)) + rd * np.reshape(t04,(nmatrices, width, height, 1))
+    orig = np.reshape(ro, (nmatrices, 1, 1, 3)) \
+        + rd * np.reshape(t04, (nmatrices, width, height, 1))
     xres = yres = zres = res
 
     orig = np.reshape(orig, (nmatrices * width * height, 3))
     rd = np.reshape(rd, (nmatrices * width * height, 3))
-    step_sz = np.reshape(step_size, (nmatrices * width * height,1))
+    step_sz = np.reshape(step_size, (nmatrices * width * height, 1))
     print(voxels)
     voxels = tf.reshape(voxels, [-1])
 
@@ -178,24 +186,27 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
         # print "step", i
         pos = orig + rd*step_sz*i
         voxel_indices = np.floor(pos*res)
-        pruned = np.clip(voxel_indices,0,res-1)
+        pruned = np.clip(voxel_indices, 0, res-1)
         p_int = pruned.astype('int32')
-        indices = np.reshape(p_int, (nmatrices*width*height,3))
-        flat_indices = indices[:, 0] + res * (indices[:, 1] + res * indices[:, 2])
+        indices = np.reshape(p_int, (nmatrices*width*height, 3))
+        flat_indices = indices[:, 0] + res * \
+            (indices[:, 1] + res * indices[:, 2])
         # print("ishape", flat_indices.shape, "vshape", voxels.get_shape())
         # attenuation = voxels[:, indices[:,0],indices[:,1],indices[:,2]]
         attenuation = tf.gather(voxels, flat_indices)
-        print("attenuationcome step to me", attenuation.get_shape(), step_sz.shape)
-        left_over = left_over*tf.exp(-attenuation*step_sz.reshape(nmatrices * width * height))
+        print("attenuation", attenuation.get_shape(), step_sz.shape)
+        reshaped_step_sz = step_sz.reshape(nmatrices * width * height)
+        left_over = left_over*tf.exp(-attenuation * reshaped_step_sz)
 
     img = left_over
     img_shape = tf.TensorShape((nvoxgrids, nmatrices, width, height))
-    print("OKOK", tf.TensorShape((nvoxgrids, nmatrices, width, height)))
+    print("OK", tf.TensorShape((nvoxgrids, nmatrices, width, height)))
     pixels = tf.reshape(img, img_shape)
-    mask = t14>t04
+    mask = t14 > t04
     # print(mask.reshape())
     return pixels,
-    # return tf.select(mask.reshape(img_shape), pixels, tf.ones_like(pixels)), rd, ro, tn_x, tf.ones(img_shape), orig, voxels
+    # return tf.select(mask.reshape(img_shape), pixels, tf.ones_like(pixels)),
+    # rd, ro, tn_x, tf.ones(img_shape), orig, voxels
 
 
 def render_fwd_f(inputs):
@@ -232,6 +243,7 @@ global test_files, train_files
 global net, output_layer, cost_f, cost_f_dict, val_f, call_f, call_f_dict
 global views, voxels, outputs, net
 
+
 def main(argv):
     options = {'batch_size': 128, 'max_time': 100.0,
                'logdir': '/home/zenna/repos/inverse/log',
@@ -249,9 +261,10 @@ def main(argv):
                    name="shrunk_param")}
 
     param_gen = {k: infinite_samples(np.random.rand, v['shape'])
-                  for k, v in param_types.items()}
+                 for k, v in param_types.items()}
     shrunk_param_gen = dictionary_gen(param_gen)
-    return compare(render_gen_graph, render_fwd_f, param_types, shrunk_param_gen, options)
+    return compare(render_gen_graph, render_fwd_f, param_types,
+                   shrunk_param_gen, options)
 
 
 def standalone(options):
@@ -264,7 +277,7 @@ def standalone(options):
     print("Compiling Render Function")
     writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', g)
     voxel_grids = np.load("/home/zenna/data/ModelNet40/alltrain32.npy")
-    voxel = voxel_grids[np.random.randint(0,voxel_grids.shape[0])].reshape(1, res, res, res)
+    voxel = voxel_grids[np.random.randint(0, voxel_grids.shape[0])].reshape(1, res, res, res)
     sess = tf.Session()
     output_img = sess.run(out[0], feed_dict={voxels:voxel})
     import matplotlib.pyplot as plt

@@ -28,3 +28,8 @@ class InPort(Port):
 class OutPort(Port):
     """Output port"""
     pass
+
+
+class ParamInPort(Port):
+    """Parametric port"""
+    pass

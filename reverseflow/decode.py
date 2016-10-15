@@ -1,9 +1,10 @@
 """Decode an arrow into a tensoflow graph"""
 import tensorflow as tf
 from pqdict import pqdict
+from reverseflow.arrows.arrow import Arrow
 
 
-def arrow_to_graph(arrow: reverseflow.arrows.Arrow) -> tf.Graph:
+def arrow_to_graph(arrow: Arrow) -> tf.Graph:
     """Convert an arrow to a tensorflow graph"""
     graph = tf.Graph()
 
@@ -23,12 +24,12 @@ def arrow_to_graph(arrow: reverseflow.arrows.Arrow) -> tf.Graph:
         arrow_colors[sub_arrow] = num_seen_inputs - 1
         input_tensor = tf.placeholder()
 
-    while len(arrows_colors) > 0:
+    while len(arrow_colors) > 0:
         sub_arrow, priority = arrow_colors.popitem()
         assert priority == 0, "All inputs to subarrow should be resolved first"
         assert sub_arrow.is_primitive(), "Convert unflat arrows unimplmented"
         op = graph.create_op(op_type=sub_arrow.name,
-                             inputs=,
-                             dtypes='float32',  # FIXME: Generalize)
+                             inputs=[],
+                             dtypes='float32')  # FIXME: Generalize
         # pop arrow with zero
         # update arrow queue
