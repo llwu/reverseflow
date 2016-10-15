@@ -9,6 +9,7 @@ class AddArrow(PrimitiveArrow):
     """Addition op"""
 
     def __init__(self):
+        self.name = 'Add'
         self.in_ports = [InPort(self, 0), InPort(self, 1)]
         self.out_ports = [OutPort(self, 0)]
 
@@ -25,6 +26,7 @@ class SubArrow(PrimitiveArrow):
     """Subtraction op. Out[1] = In[0] - In[1]"""
 
     def __init__(self):
+        self.name = 'Sub'
         self.in_ports = [InPort(self, 0), InPort(self, 1)]
         self.out_ports = [OutPort(self, 0)]
 
@@ -36,6 +38,7 @@ class MulArrow(PrimitiveArrow):
     """Multiplication op"""
 
     def __init__(self):
+        self.name = 'Mul'
         self.in_ports = [InPort(self, 0), InPort(self, 1)]
         self.out_ports = [OutPort(self, 0)]
 

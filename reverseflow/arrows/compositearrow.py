@@ -10,8 +10,10 @@ class CompositeArrow(Arrow):
     A composite arrow is a composition of simpler arrows, which may be either
     primtive arrows or themselves compositions.
     """
+    def is_primitive(self) -> bool:
+        return False
 
-    def get_arrows(self) -> Set[Arrow]:
+    def get_sub_arrows(self) -> Set[Arrow]:
         """Return all the constituent arrows of composition"""
         arrows = set()
         for (out_port, in_port) in self.edges.items():
@@ -31,7 +33,7 @@ class CompositeArrow(Arrow):
         in_i = 0
         out_i = 0
 
-        arrows = self.get_arrows()
+        arrows = self.get_sub_arrows()
         for arrow in arrows:
             for in_port in arrow.in_ports:
                 if in_port not in edges.right_to_left:
@@ -45,3 +47,14 @@ class CompositeArrow(Arrow):
                     in_i += 1
                     self.in_ports.append(boundary_inport)
                     self.edges.add(out_port, boundary_inport)
+
+    def get_boundary_outports(self) -> Set[OutPort]:
+        """
+        Get the boundary outports
+        """
+        out_ports = set() # type: Set[OutPort]
+        for (out_port, in_port) in self.edges.items():
+            if out_port.arrow is self:
+                out_ports.add(outport)
+
+        return out_ports

@@ -1,5 +1,7 @@
 """Utils which depend on tensorflow"""
 import tensorflow as tf
+import numpy as np
+from collections import OrderedDict
 
 iden = tf.identity
 

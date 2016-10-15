@@ -1,7 +1,8 @@
-"""Assortment of utilities"""
-import tensorflow as tf
-import numpy as np
-from collections import OrderedDict
+"""Assortment of utilities without dependencies"""
+import tensorflow as tf  # TODO: Remove this dependency from this file
+
+# Generators
+# ==========
 
 
 def infinite_input(gen_graph, batch_size, seed):
@@ -28,7 +29,7 @@ def dictionary_gen(x):
         yield {k: next(v) for k, v in x.items()}
 
 
-def same(xs) -> Bool:
+def same(xs) -> bool:
     """All elements in xs are the same?"""
     if len(xs) == 0:
         return True
