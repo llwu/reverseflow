@@ -6,6 +6,8 @@ matrix:
         - python: 3.5
         - python: 3.5
           env: TEST_MODE=PEP8
+        - python: 3.5
+          env: TEST_MODE=MYPY
 notifications:
     email: false
 install:
@@ -41,6 +43,8 @@ install:
 script:
   - if [[ "$TEST_MODE" == "PEP8" ]]; then
        PYTHONPATH=$PWD:$PYTHONPATH py.test --pep8 -m pep8 -n0;
+    elif [[ "$TEST_MODE" == "MYPY"]] then
+      PYTHONPATH=$PWD:$PYTHONPATH mypy ./
     else
        PYTHONPATH=$PWD:$PYTHONPATH py.test tests/;
     fi

@@ -3,7 +3,7 @@ import pi
 import tensorflow as tf
 from tensorflow import float32
 
-## 2d linkage bot
+# 2d linkage bot
 tf.reset_default_graph()
 sess = tf.Session()
 g = tf.get_default_graph()

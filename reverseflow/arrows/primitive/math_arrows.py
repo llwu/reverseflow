@@ -1,4 +1,4 @@
-from reverseflow.arrows.arrow import Arrow
+refrom reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
 from reverseflow.util.mapping import Bimap
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
@@ -10,16 +10,11 @@ class AddArrow(PrimitiveArrow):
 
     def __init__(self):
         self.name = 'Add'
+        # FIXME, this seems redundant! all we need ot know is hte number of
+        # ports
         self.in_ports = [InPort(self, 0), InPort(self, 1)]
         self.out_ports = [OutPort(self, 0)]
-
-    # def invert(self) -> Arrow:
-    #     # consider having theta be something other than an InPort
-    #     z_minus_theta = SubArrow()
-    #     dupl_theta = DuplArrow()
-    #     edges = Bimap()  # type: Bimap[OutPort, InPort]
-    #     edges.add(dupl_theta.out_ports[0], z_minus_theta.in_ports[1])
-    #     return CompositeArrow([z_minus_theta, dupl_theta], edges)
+        self.type = Type((ShapeType))
 
 
 class SubArrow(PrimitiveArrow):

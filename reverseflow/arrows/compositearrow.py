@@ -7,11 +7,14 @@ from reverseflow.arrows.port import InPort, OutPort
 class CompositeArrow(Arrow):
     """
     Composite arrow
-    A composite arrow is a composition of simpler arrows, which may be either
+    A composite arrow is a composition of arrows, which may be either
     primtive arrows or themselves compositions.
     """
     def is_primitive(self) -> bool:
         return False
+
+    def is_parametric(self) -> bool:
+        return len(self.param_inport) > 0
 
     def get_sub_arrows(self) -> Set[Arrow]:
         """Return all the constituent arrows of composition"""
@@ -20,7 +23,6 @@ class CompositeArrow(Arrow):
             arrows.add(out_port.arrow)
             arrows.add(in_port.arrow)
 
-        self.arrows = arrows
         return arrows
 
     def __init__(self, edges: Bimap[OutPort, InPort]) -> None:
@@ -30,8 +32,13 @@ class CompositeArrow(Arrow):
         self.edges = edges
         self.in_ports = []  # type: List[InPort]
         self.out_ports = []  # type: List[OutPort]
+        self.param_inport = [] # type: List[ParamInPort]
         in_i = 0
         out_i = 0
+
+        ## FIXME: Right now the arrows are connected to the inner ports
+        ##        arbitrarily.  This makes it difficult to create composite
+        ##        arrows while knowing how they will be wired up.
 
         arrows = self.get_sub_arrows()
         for arrow in arrows:
@@ -52,9 +59,9 @@ class CompositeArrow(Arrow):
         """
         Get the boundary outports
         """
-        out_ports = set() # type: Set[OutPort]
+        out_ports = set()  # type: Set[OutPort]
         for (out_port, in_port) in self.edges.items():
             if out_port.arrow is self:
-                out_ports.add(outport)
+                out_ports.add(out_port)
 
         return out_ports
