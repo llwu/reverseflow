@@ -19,7 +19,8 @@ def arrow_to_graph(arrow: reverseflow.arrows.Arrow) -> tf.Graph:
     # decrement priority for each arrow connected to inputs
     for sub_arrow in arrow.get_inports():
         tensor = tf.placeholder()
-        arrow_colors[sub_arrow]  # TODO: decrement
+        num_seen_inputs = arrow_colors[sub_arrow]
+        arrow_colors[sub_arrow] = num_seen_inputs - 1  # TODO: decrement
 
     while len(arrows_colors) > 0:
         sub_arrow, priority = arrow_colors.pop()

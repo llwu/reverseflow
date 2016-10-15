@@ -3,10 +3,9 @@ dist: trusty
 language: python
 matrix:
     include:
-        - python: 2.7
-        - python: 2.7
+        - python: 3.5
+        - python: 3.5
           env: TEST_MODE=PEP8
-        - python: 3.4
 notifications:
     email: false
 install:
@@ -35,8 +34,8 @@ install:
   - pip install git+https://github.com/pymc-devs/pymc3
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       pip install https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0rc0-cp27-none-linux_x86_64.whl;
-    elif [[ "$TRAVIS_PYTHON_VERSION" == "3.4" ]]; then
-      pip install https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0rc0-cp34-cp34m-linux_x86_64.whl;
+    elif [[ "$TRAVIS_PYTHON_VERSION" == "3.5" ]]; then
+      pip install https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0rc0-cp35-cp34m-linux_x86_64.whl;
     fi
   - python setup.py install
 script:
