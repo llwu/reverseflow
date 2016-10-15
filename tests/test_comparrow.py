@@ -14,4 +14,6 @@ def test_xyplusx() -> None:
     edges.add(c.get_out_ports()[1], b.get_in_ports()[0])  # dupl -> add
     edges.add(a.get_out_ports()[0], b.get_in_ports()[1])  # mul -> add
     d = CompositeArrow([a, b, c], edges)
-    inv_d = invert(d)
+    tf_d = arrow_to_graph(d)
+    d2 = graph_to_arrow(tf_d)
+    # inv_d = invert(d)
