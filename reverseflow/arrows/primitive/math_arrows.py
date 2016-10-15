@@ -1,5 +1,8 @@
-from reverseflow.util.bimap import Bimap
+from reverseflow.arrows.arrow import Arrow
+from reverseflow.arrows.primitivearrow import PrimitiveArrow
+from reverseflow.util.mapping import Bimap
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
+from reverseflow.arrows.port import InPort, OutPort
 
 
 class AddArrow(PrimitiveArrow):

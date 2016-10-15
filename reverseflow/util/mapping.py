@@ -1,4 +1,4 @@
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Set
 
 L = TypeVar('L')
 R = TypeVar('R')
@@ -11,12 +11,13 @@ class Bimap(Generic[L, R]):
         self.left_to_right = {}
         self.right_to_left = {}
 
-    def add(self, left: T, right: T) -> None:
+    def add(self, left: L, right: R) -> None:
         self.left_to_right[left] = right
         self.right_to_left[right] = left
 
     def items(self):
         return self.left_to_right.items()
+
 
 class ImageBimap(Generic[L, R]):
     """Bidirectional map for non-injective function"""

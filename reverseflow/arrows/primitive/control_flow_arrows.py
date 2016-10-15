@@ -1,5 +1,6 @@
 """These are arrows for control flow of input"""
 
+from reverseflow.arrows.port import InPort, OutPort
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
 
 

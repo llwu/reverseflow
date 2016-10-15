@@ -1,4 +1,7 @@
 from typing import Set
+from reverseflow.arrows.arrow import Arrow
+from reverseflow.util.mapping import Bimap
+from reverseflow.arrows.port import InPort, OutPort
 
 
 class CompositeArrow(Arrow):
@@ -8,10 +11,10 @@ class CompositeArrow(Arrow):
     primtive arrows or themselves compositions.
     """
 
-    def get_arrows() -> Set[Arrow]:
+    def get_arrows(self) -> Set[Arrow]:
         """Return all the constituent arrows of composition"""
-        arrows = Set()
-        for (out_port, in_port) in edges.items():
+        arrows = set()
+        for (out_port, in_port) in self.edges.items():
             arrows.add(out_port.arrow)
             arrows.add(in_port.arrow)
 
