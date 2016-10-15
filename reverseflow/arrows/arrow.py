@@ -7,5 +7,5 @@ class Arrow:
     def __init__(self):
         pass
 
-    def invert():
+    def invert(self):
         pass

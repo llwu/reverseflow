@@ -2,5 +2,5 @@
 import tensorflow as tf
 
 
-def encode(graph: tf.Graph) -> reverseflow.arrows.Arrow:
+def graph_to_arrow(graph: tf.Graph) -> reverseflow.arrows.Arrow:
     pass

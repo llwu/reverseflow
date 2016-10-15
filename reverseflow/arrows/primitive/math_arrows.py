@@ -12,13 +12,13 @@ class AddArrow(PrimitiveArrow):
         self.in_ports = [InPort(self, 0), InPort(self, 1)]
         self.out_ports = [OutPort(self, 0)]
 
-    def invert(self) -> Arrow:
-        # consider having theta be something other than an InPort
-        z_minus_theta = SubArrow()
-        dupl_theta = DuplArrow()
-        edges = Bimap()  # type: Bimap[OutPort, InPort]
-        edges.add(dupl_theta.out_ports[0], z_minus_theta.in_ports[1])
-        return CompositeArrow([z_minus_theta, dupl_theta], edges)
+    # def invert(self) -> Arrow:
+    #     # consider having theta be something other than an InPort
+    #     z_minus_theta = SubArrow()
+    #     dupl_theta = DuplArrow()
+    #     edges = Bimap()  # type: Bimap[OutPort, InPort]
+    #     edges.add(dupl_theta.out_ports[0], z_minus_theta.in_ports[1])
+    #     return CompositeArrow([z_minus_theta, dupl_theta], edges)
 
 
 class SubArrow(PrimitiveArrow):
