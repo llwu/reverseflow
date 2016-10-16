@@ -1,11 +1,11 @@
 """ (Inverse) Rendering"""
-from rf.compare import compare
 import sys
 import getopt
 import tensorflow as tf
 import numpy as np
-from rf.util import *
-from rf.templates.res_net import res_net_template_dict
+from reverseflow.util.misc import *
+from reverseflow.util.tf import *
+# from tensorte.templates.res_net import res_net_template_dict
 
 floatX = 'float32'
 
@@ -18,8 +18,10 @@ def rand_rotation_matrix(deflection=1.0, randnums=None, floatX='float32'):
     rotation. Small deflection => small perturbation.
     randnums: 3 random numbers in the range [0, 1]. If `None`, they will be
     auto-generated.
+
+
+    From: realtimerendering.com/resources/GraphicsGems/gemsiii/rand_rotation.c
     """
-    # from realtimerendering.com/resources/GraphicsGems/gemsiii/rand_rotation.c
 
     if randnums is None:
         randnums = np.random.uniform(size=(3,))
@@ -55,12 +57,12 @@ def rand_rotation_matrix(deflection=1.0, randnums=None, floatX='float32'):
 
 
 # n random matrices
-def rand_rotation_matrices(n, floatX='float32'):
+def rand_rotation_matrices(n: int, floatX='float32'):
     return np.stack([rand_rotation_matrix(floatX=floatX) for i in range(n)])
 
 
 # Genereate values in raster space, x[i,j] = [i,j]
-def gen_fragcoords(width, height):
+def gen_fragcoords(width: int, height: int):
     """Create a (width * height * 2) matrix, where element i,j is [i,j]
        This is used to generate ray directions based on an increment"""
     raster_space = np.zeros([width, height, 2], dtype=floatX)
@@ -71,7 +73,7 @@ def gen_fragcoords(width, height):
 
 
 # Append an image filled with scalars to the back of an image.
-def stack(intensor, width, height, scalar):
+def stack(intensor, width: int, height: int, scalar):
     scalars = np.ones([width, height, 1], dtype=floatX) * scalar
     return np.concatenate([intensor, scalars], axis=2)
 
@@ -245,7 +247,8 @@ global views, voxels, outputs, net
 
 
 def main(argv):
-    options = {'batch_size': 128, 'max_time': 100.0,
+    options = {'batch_size': 128,
+               'max_time': 100.0,
                'logdir': '/home/zenna/repos/inverse/log',
                'template': template_dict,
                'nnet_enhanced_pi': False,
@@ -282,6 +285,7 @@ def standalone(options):
     output_img = sess.run(out[0], feed_dict={voxels:voxel})
     import matplotlib.pyplot as plt
     # print(output_img.shape)
+    import pdb; pdb.set_trace()
     plt.imshow(output_img.reshape(width, height))
     plt.show()
 
@@ -295,4 +299,4 @@ if __name__ == "__main__":
     nviews = options['nviews'] = 1
     global x
     # standalone(options)
-    x = main(options)
+    x = standalone(options)

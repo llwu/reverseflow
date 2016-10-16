@@ -13,18 +13,12 @@ class CompositeArrow(Arrow):
     def is_primitive(self) -> bool:
         return False
 
-    def is_parametric(self) -> bool:
-        return len(self.param_inport) > 0
-
-    def is_approximate(self) -> bool:
-        return len(self.param_inport) > 0
-
     def get_sub_arrows(self) -> Set[Arrow]:
         """Return all the constituent arrows of composition"""
         arrows = set()
         for (out_port, in_port) in self.edges.items():
-            arrows.add(out_port.arrow)
-            arrows.add(in_port.arrow)
+            if out_port.arrow is not self: arrows.add(out_port.arrow)
+            if in_port.arrow is not self: arrows.add(in_port.arrow)
 
         return arrows
 
@@ -64,7 +58,3 @@ class CompositeArrow(Arrow):
 
     def neigh_outport(self, in_port: InPort) -> OutPort:
         return self.edges.inv(in_port)
-
-    def proj_sub_arrow(self, out_port: OutPort) -> Arrow:
-        """What arrow does this outport project to"""
-        return neigh_inport(out_port).arrow

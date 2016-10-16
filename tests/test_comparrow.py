@@ -6,6 +6,7 @@ from reverseflow.util.mapping import Bimap
 from reverseflow.arrows.compositearrow import CompositeArrow
 from reverseflow.decode import arrow_to_graph
 
+
 def test_xyplusx() -> None:
     """f(x,y) = x * y + x"""
     a = MulArrow()
@@ -16,7 +17,11 @@ def test_xyplusx() -> None:
     edges.add(c.out_ports[0], a.in_ports[0])  # dupl -> mul
     edges.add(c.out_ports[1], b.in_ports[0])  # dupl -> add
     edges.add(a.out_ports[0], b.in_ports[1])  # mul -> add
+    edges.add(OutPort(d, 0), c.in_ports[0])
+    edges.add(OutPort(d, 1), a.in_ports[1])
+    edges.add(b.out_ports[0], InPort(d, 1))
     d.add_edges(edges)
+    # import pdb; pdb.set_trace()
     tf_d = arrow_to_graph(d)
     # d2 = graph_to_arrow(tf_d)
 
