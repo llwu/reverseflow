@@ -1,32 +1,33 @@
-"""Inverse Ops for Arrows
-
-Parametric inverses are not unique
-"""
-def inverse_arrow() -> Arrow:
-    # consider having theta be something other than an InPort
-    z_minus_theta = SubArrow()
-    dupl_theta = DuplArrow()
-    edges = Bimap()  # type: Bimap[OutPort, InPort]
-    edges.add(dupl_theta.out_ports[0], z_minus_theta.in_ports[1])
-    return CompositeArrow([z_minus_theta, dupl_theta], edges)
-
-register(AddArrow, inverse_arrow)
+from reverseflow.arrows.arrow import Arrow
+from reverseflow.arrows.compositearrow import CompositeArrow
+from reverseflow.arrows.port import InPort, OutPort
+from reverseflow.util.mapping import Bimap
+from reverseflow.arrows.primitive.math_arrows import AddArrow
 
 
-class InvArrow(CompositeArrow):
-    def is_primitive() -> bool:
-        return False
-
+class InvAddArrow(CompositeArrow, ParametricArrow):
     def __init__(self):
         self.name = "InvAdd"
 
-    def inverse_of(self):
+    def inverse_of() -> Arrow:
         return AddArrow
 
     def procedure(self):
         # consider having theta be something other than an InPort
-        z_minus_theta = SubArrow()
-        dupl_theta = DuplArrow()
+        inv_add = CompositeArrow()
         edges = Bimap()  # type: Bimap[OutPort, InPort]
-        edges.add(dupl_theta.out_ports[0], z_minus_theta.in_ports[1])
-        return CompositeArrow([z_minus_theta, dupl_theta], edges)
+        theta = ParamOutPort(inv_add, 0)
+        z = OutPort(inv_add, 0)
+        z_minus_theta = InPort(inv_add, 0)
+        theta_pass = InPort(inv_add, 1)
+
+        dupl_theta = DuplArrow()
+        sub = SubArrow()
+
+        edges.add(theta, dupl_theta.in_ports[0])
+        edges.add(dupl_theta.out_ports[0], theta_pass)
+        edges.add(z, sub.in_ports[0])
+        edges.add(dupl_theta.out_ports[1], sub.in_ports[1])
+
+        inv_add.add_edges(edges)
+        return inv_add

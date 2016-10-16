@@ -16,6 +16,9 @@ class CompositeArrow(Arrow):
     def is_parametric(self) -> bool:
         return len(self.param_inport) > 0
 
+    def is_approximate(self) -> bool:
+        return len(self.param_inport) > 0
+
     def get_sub_arrows(self) -> Set[Arrow]:
         """Return all the constituent arrows of composition"""
         arrows = set()
@@ -25,35 +28,26 @@ class CompositeArrow(Arrow):
 
         return arrows
 
-    def __init__(self, edges: Bimap[OutPort, InPort]) -> None:
-        """
-        init this bad boy
-        """
-        self.edges = edges
+    def __init__(self):
         self.in_ports = []  # type: List[InPort]
         self.out_ports = []  # type: List[OutPort]
-        self.param_inport = [] # type: List[ParamInPort]
+        self.edges = Bimap()  # type: Bimap[OutPort, InPort]
+
+    def add_edges(self, edges: Bimap[OutPort, InPort]) -> None:
+        """
+        Add edges, check for correctness.
+        """
         in_i = 0
         out_i = 0
+        # TODO: Assertions
+        # TODO: Assert There is be at least one edge from self.outport
+        # TODO: Assert There must be at least one edge to self inports
+        # TODO: Assert There must be no cycles
+        # TODO: Assert Edges are bijective this is true if Bimap is correct AND
+        #       if we have the correct notion of equality for Ports
+        # TODO: Assert No dangling ports (must be contiguous, 0, 1, 2, .., n)
+        self.edges = edges
 
-        ## FIXME: Right now the arrows are connected to the inner ports
-        ##        arbitrarily.  This makes it difficult to create composite
-        ##        arrows while knowing how they will be wired up.
-
-        arrows = self.get_sub_arrows()
-        for arrow in arrows:
-            for in_port in arrow.in_ports:
-                if in_port not in edges.right_to_left:
-                    boundary_outport = OutPort(self, out_i)
-                    out_i += 1
-                    self.out_ports.append(boundary_outport)
-                    self.edges.add(boundary_outport, in_port)
-            for out_port in arrow.out_ports:
-                if out_port not in edges.left_to_right:
-                    boundary_inport = InPort(self, in_i)
-                    in_i += 1
-                    self.in_ports.append(boundary_inport)
-                    self.edges.add(out_port, boundary_inport)
 
     def get_boundary_outports(self) -> Set[OutPort]:
         """
@@ -63,5 +57,14 @@ class CompositeArrow(Arrow):
         for (out_port, in_port) in self.edges.items():
             if out_port.arrow is self:
                 out_ports.add(out_port)
-
         return out_ports
+
+    def neigh_inport(self, out_port: OutPort) -> InPort:
+        return self.edges.fwd(out_port)
+
+    def neigh_outport(self, in_port: InPort) -> OutPort:
+        return self.edges.inv(in_port)
+
+    def proj_sub_arrow(self, out_port: OutPort) -> Arrow:
+        """What arrow does this outport project to"""
+        return neigh_inport(out_port).arrow
