@@ -12,6 +12,7 @@ class DuplArrow(PrimitiveArrow):
 
     def __init__(self, n_duplications=2) -> None:
         self.name = "Dupl"
+        self.n_duplications = n_duplications
         self.in_ports = [InPort(self, 0)]
         self.out_ports = [OutPort(self, i) for i in range(n_duplications)]
 

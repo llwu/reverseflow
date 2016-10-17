@@ -5,10 +5,10 @@ class Port():
     """
     Port
 
-    An entry or exit to an Arrow, analogous to argument position of multivariate
+    An entry or exit to an Arrow, analogous to argument position of multi-arg
     function.
 
-    A port is uniquely determined by the arrow it belongs to and a pin.
+    A port is uniquely determined by the arrow it belongs to and a index.
 
     On the boundary of a composite arrow, ports are simultaneously inports
     (since they take input from outside world) and outputs (since inside they
@@ -30,6 +30,11 @@ class OutPort(Port):
     pass
 
 
-class ParamInPort(Port):
+class ParamPort(Port):
     """Parametric port"""
+    pass
+
+
+class ErrorPort(Port):
+    """Error Port"""
     pass
