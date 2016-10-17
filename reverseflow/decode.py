@@ -50,7 +50,6 @@ def print_arrow_colors(arrow_colors):
 @overload
 def arrow_to_graph(comp_arrow: CompositeArrow) -> Graph:
     """Convert an comp_arrow to a tensorflow graph"""
-    # import pdb; pdb.set_trace()
 
     graph = tf.Graph()  # type: Graph
     with graph.as_default():
@@ -69,15 +68,12 @@ def arrow_to_graph(comp_arrow: CompositeArrow) -> Graph:
         # Use a dict because no guarantee we'll create input tensors in order
         arrow_tensors = dict()  # type: Dict[Arrow, MutableMapping[int, tf.Tensor]]
 
-        # create a tensor for each inport to the composition
+        # create a tensor for each in_port to the composition
         # decrement priority for each arrow connected to inputs
-        for out_port in comp_arrow.get_boundary_outports():
-            in_port = comp_arrow.neigh_inport(out_port)
+        for in_port in comp_arrow.in_ports:
             sub_arrow = in_port.arrow
-            assert sub_arrow is not comp_arrow
             assert sub_arrow in arrow_colors
-            num_seen_inputs = arrow_colors[sub_arrow]
-            arrow_colors[sub_arrow] = num_seen_inputs - 1
+            arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
             input_tensor = tf.placeholder(dtype='float32')  # FIXME: Generalize
             default_add(arrow_tensors, sub_arrow, in_port.index, input_tensor)
 
@@ -89,7 +85,6 @@ def arrow_to_graph(comp_arrow: CompositeArrow) -> Graph:
             assert priority == 0, "Must resolve all inputs to sub_arrow first"
             assert sub_arrow.is_primitive(), "Cannot convert unflat arrow"
             assert valid(sub_arrow, arrow_tensors)
-            # pdb.set_trace()
 
             inputs = list(arrow_tensors[sub_arrow].values())
             # import pdb; pdb.set_trace()
@@ -97,12 +92,14 @@ def arrow_to_graph(comp_arrow: CompositeArrow) -> Graph:
             assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
 
             for i, out_port in enumerate(sub_arrow.out_ports):
-                neigh_port = comp_arrow.neigh_inport(out_port)
-                neigh_arrow = neigh_port.arrow
-                if neigh_arrow is not comp_arrow:
-                    assert neigh_arrow in arrow_colors
-                    arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
-                    default_add(arrow_tensors, neigh_arrow, neigh_port.index,
-                                outputs[i])
+                # FIXME: this is linear search, encapsulate
+                if out_port not in comp_arrow.out_ports:
+                    neigh_port = comp_arrow.neigh_in_port(out_port)
+                    neigh_arrow = neigh_port.arrow
+                    if neigh_arrow is not comp_arrow:
+                        assert neigh_arrow in arrow_colors
+                        arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
+                        default_add(arrow_tensors, neigh_arrow, neigh_port.index,
+                                    outputs[i])
 
         return graph

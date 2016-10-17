@@ -33,7 +33,7 @@ class CompositeArrow(Arrow):
         # TODO: Assert No dangling ports (must be contiguous, 0, 1, 2, .., n)
         self.in_ports = in_ports  # type: List[InPort]
         self.out_ports = out_ports  # type: List[OutPort]
-        self.edges = Bimap()  # type: Bimap[OutPort, InPort]
+        self.edges = edges
 
 
     def get_boundary_outports(self) -> Set[OutPort]:
@@ -46,8 +46,8 @@ class CompositeArrow(Arrow):
                 out_ports.add(out_port)
         return out_ports
 
-    def neigh_inport(self, out_port: OutPort) -> InPort:
+    def neigh_in_port(self, out_port: OutPort) -> InPort:
         return self.edges.fwd(out_port)
 
-    def neigh_outport(self, in_port: InPort) -> OutPort:
+    def neigh_out_port(self, in_port: InPort) -> OutPort:
         return self.edges.inv(in_port)
