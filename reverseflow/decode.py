@@ -1,6 +1,6 @@
 """Decode an arrow into a tensoflow graph"""
 import tensorflow as tf
-from tensorflow import Tensor
+from tensorflow import Tensor, Graph
 from pqdict import pqdict
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.compositearrow import CompositeArrow
@@ -48,9 +48,11 @@ def print_arrow_colors(arrow_colors):
 
 
 @overload
-def arrow_to_graph(comp_arrow: CompositeArrow):
+def arrow_to_graph(comp_arrow: CompositeArrow) -> Graph:
     """Convert an comp_arrow to a tensorflow graph"""
-    graph = tf.Graph()
+    # import pdb; pdb.set_trace()
+
+    graph = tf.Graph()  # type: Graph
     with graph.as_default():
         # A priority queue for each sub_arrow
         # priority is the number of inputs it has which have already been seen
