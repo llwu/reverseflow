@@ -12,7 +12,7 @@ class ParametricArrow(CompositeArrow):
         self.in_ports = []  # type: List[InPort]
         self.out_ports = []  # type: List[OutPort]
         self.param_ports = []  # type: List[ParamPort]
-        self.edges = Bimap()  # type: Bimap[OutPort, InPort]
+        self.edges = Bimap()  # type: EdgeMap
 
     def add_params(self, params: Set[InPort]) -> None:
         """

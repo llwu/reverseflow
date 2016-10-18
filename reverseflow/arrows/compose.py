@@ -16,7 +16,7 @@ def compose(l: PrimitiveArrow, r: PrimitiveArrow) -> CompositeArrow:
                           edges=edges)
 
 @overload
-def compose(a: PrimitiveArrow, b: CompositeArrow) -> CompositeArrow:
+def compose(a: PrimitiveArrow, b: CompositeArrowa) -> CompositeArrow:
     pass
 
 @overload

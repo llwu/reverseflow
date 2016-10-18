@@ -21,7 +21,7 @@ from reverseflow.arrows.port import InPort, OutPort
 #         inv_arrows = fwd_inv.back(a)
 #         return next(iter(inv_arrows))
 #     elif a.is_composite():
-#         new_edges = Bimap()  # type: Bimap[OutPort, InPort]
+#         new_edges = Bimap()  # type: EdgeMap
 #         arrow_to_inv = {}  # type: Dict[Arrow, Arrow]
 #         for out_port, in_port in a.edges.items():
 #             # TODO handle case when constituent arrwos are composite

@@ -3,6 +3,7 @@ from reverseflow.arrows.arrow import Arrow
 from reverseflow.util.mapping import Bimap
 from reverseflow.arrows.port import InPort, OutPort
 
+EdgeMap = Bimap[OutPort, InPort]
 
 class CompositeArrow(Arrow):
     """
@@ -23,7 +24,7 @@ class CompositeArrow(Arrow):
         return arrows
 
     def __init__(self, in_ports: List[InPort], out_ports: List[OutPort],
-                 edges: Bimap[OutPort, InPort]) -> None:
+                 edges: EdgeMap) -> None:
         # TODO: Assertions
         assert len(in_ports) > 0, "Composite Arrow must have in ports"
         assert len(out_ports) > 0, "Composite Arrow must have in ports"
