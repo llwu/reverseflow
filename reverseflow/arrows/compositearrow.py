@@ -3,6 +3,7 @@ from reverseflow.arrows.arrow import Arrow
 from reverseflow.util.mapping import Bimap
 from reverseflow.arrows.port import InPort, OutPort
 
+EdgeMap = Bimap[OutPort, InPort]
 
 class CompositeArrow(Arrow):
     """
@@ -23,7 +24,7 @@ class CompositeArrow(Arrow):
         return arrows
 
     def __init__(self, in_ports: List[InPort], out_ports: List[OutPort],
-                 edges: Bimap[OutPort, InPort]) -> None:
+                 edges: EdgeMap) -> None:
         # TODO: Assertions
         # TODO: Assert There is be at least one edge from self.outport
         # TODO: Assert There must be at least one edge to self inports
@@ -34,17 +35,6 @@ class CompositeArrow(Arrow):
         self.in_ports = in_ports  # type: List[InPort]
         self.out_ports = out_ports  # type: List[OutPort]
         self.edges = edges
-
-
-    def get_boundary_outports(self) -> Set[OutPort]:
-        """
-        Get the boundary outports
-        """
-        out_ports = set()  # type: Set[OutPort]
-        for (out_port, in_port) in self.edges.items():
-            if out_port.arrow is self:
-                out_ports.add(out_port)
-        return out_ports
 
     def neigh_in_port(self, out_port: OutPort) -> InPort:
         return self.edges.fwd(out_port)

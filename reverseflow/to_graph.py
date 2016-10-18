@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow import Tensor, Graph
 from pqdict import pqdict
 from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.compositearrow import CompositeArrow
+from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 from reverseflow.arrows.primitive.math_arrows import *
 from reverseflow.arrows.primitive.control_flow_arrows import *
 from typing import List, Dict, MutableMapping

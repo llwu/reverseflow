@@ -15,7 +15,7 @@ class InvAddArrow(CompositeArrow, ParametricArrow):
     def procedure(self):
         # consider having theta be something other than an InPort
         inv_add = CompositeArrow()
-        edges = Bimap()  # type: Bimap[OutPort, InPort]
+        edges = Bimap()  # type: EdgeMap
         theta = ParamOutPort(inv_add, 0)
         z = OutPort(inv_add, 0)
         z_minus_theta = InPort(inv_add, 0)

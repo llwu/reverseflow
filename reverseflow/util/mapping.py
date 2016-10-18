@@ -1,4 +1,6 @@
-from typing import TypeVar, Generic, Tuple, List, Set, Dict, ItemsView
+"""Mapping functions"""
+from typing import (TypeVar, Generic, Tuple, Set, Dict, ItemsView,
+                    ValuesView, KeysView)
 
 L = TypeVar('L')
 R = TypeVar('R')
@@ -29,6 +31,21 @@ class Bimap(Generic[L, R]):
 
     def items(self) -> ItemsView[L, R]:
         return self.left_to_right.items()
+
+    def keys(self) -> KeysView[L]:
+        return self.left_to_right.keys()
+
+    def values(self) -> ValuesView[R]:
+        return self.left_to_right.values()
+
+    def __getitem__(self, key: L) -> R:
+        return self.fwd(key)
+
+    def __setitem__(self, key: L, value: R):
+        return self.add(key, value)
+
+    def __contains__(self, key: L):
+        return key in self.left_to_right
 
 
 class ImageBimap(Generic[L, R]):
