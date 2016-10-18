@@ -278,14 +278,14 @@ def standalone(options):
     out = gen_img(voxels, rotation_matrices, width, height, nsteps, res)
     g = tf.get_default_graph()
     print("Compiling Render Function")
-    writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', g)
+    writer = tf.train.SummaryWriter('/home/zenna/repos/wacabanga/reverseflow/log', g)
+    import pdb; pdb.set_trace()
     voxel_grids = np.load("/home/zenna/data/ModelNet40/alltrain32.npy")
     voxel = voxel_grids[np.random.randint(0, voxel_grids.shape[0])].reshape(1, res, res, res)
     sess = tf.Session()
     output_img = sess.run(out[0], feed_dict={voxels:voxel})
     import matplotlib.pyplot as plt
     # print(output_img.shape)
-    import pdb; pdb.set_trace()
     plt.imshow(output_img.reshape(width, height))
     plt.show()
 
@@ -294,7 +294,7 @@ if __name__ == "__main__":
     width = options['width'] = 128
     height = options['height'] = 128
     res = options['res'] = 32
-    nsteps = options['nsteps'] = 1
+    nsteps = options['nsteps'] = 6
     nvoxgrids = options['nvoxgrids'] = 1
     nviews = options['nviews'] = 1
     global x

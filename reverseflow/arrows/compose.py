@@ -1,3 +1,5 @@
+from overloading import overload
+
 @overload
 def compose(l: PrimitiveArrow, r: PrimitiveArrow) -> CompositeArrow:
     assert len(l.out_ports) == len(r._in_ports), \

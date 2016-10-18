@@ -25,26 +25,21 @@ class CompositeArrow(Arrow):
     def __init__(self, in_ports: List[InPort], out_ports: List[OutPort],
                  edges: Bimap[OutPort, InPort]) -> None:
         # TODO: Assertions
-        # TODO: Assert There is be at least one edge from self.outport
-        # TODO: Assert There must be at least one edge to self inports
+        assert len(in_ports) > 0, "Composite Arrow must have in ports"
+        assert len(out_ports) > 0, "Composite Arrow must have in ports"
+        self.edges = edges
+        arrows = self.get_arrows()
+        for in_port in in_ports:
+            assert in_port.arrow in arrows, "Designated in_port not in edges"
+            assert in_port not in edges.values(), "in_port must be unconnected"
+
+        for out_port in out_ports:
+            assert out_port.arrow in arrows, "Designated in_port not in edges"
+            assert out_port not in edges.keys(), "out_port must be unconnected"
+
         # TODO: Assert There must be no cycles
-        # TODO: Assert Edges are bijective this is true if Bimap is correct AND
-        #       if we have the correct notion of equality for Ports
-        # TODO: Assert No dangling ports (must be contiguous, 0, 1, 2, .., n)
         self.in_ports = in_ports  # type: List[InPort]
         self.out_ports = out_ports  # type: List[OutPort]
-        self.edges = edges
-
-
-    def get_boundary_outports(self) -> Set[OutPort]:
-        """
-        Get the boundary outports
-        """
-        out_ports = set()  # type: Set[OutPort]
-        for (out_port, in_port) in self.edges.items():
-            if out_port.arrow is self:
-                out_ports.add(out_port)
-        return out_ports
 
     def neigh_in_port(self, out_port: OutPort) -> InPort:
         return self.edges.fwd(out_port)
