@@ -54,9 +54,8 @@ def graph_to_arrow(graph: Graph) -> Arrow:
             print("Found op: ", op.type, ", skipping.")
 
     # TODO: Handle case of when its an output
-    for arrow, op in arrow_to_op.items():
-        for i, inp_tensor in enumerate(op.inputs):
-            #
+    for arrow, op_inputs in arrow_to_op.items():
+        for i, inp_tensor in enumerate(op_inputs):
             if inp_tensor in tensor_to_dupl:
                 dupl = tensor_to_dupl[inp_tensor]
                 output_index = consumer_index(op, inp_tensor)
