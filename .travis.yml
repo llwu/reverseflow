@@ -33,7 +33,6 @@ install:
   - pip install python-coveralls pytest-cov
   - pip install numpydoc
   - pip install pqdict
-  - pip install git+https://github.com/pymc-devs/pymc3
   - pip install overloading
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       pip install https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.11.0rc0-cp27-none-linux_x86_64.whl;
@@ -43,11 +42,11 @@ install:
   - python setup.py install
 script:
   - if [[ "$TEST_MODE" == "PEP8" ]]; then
-       PYTHONPATH=$PWD:$PYTHONPATH py.test --pep8 -m pep8 -n0;
-    elif [[ "$TEST_MODE" == "MYPY"]]; then
-      PYTHONPATH=$PWD:$PYTHONPATH mypy ./;
+      PYTHONPATH=$PWD:$PYTHONPATH py.test --pep8 -m pep8 -n0
+    elif [[ "$TEST_MODE" == "MYPY" ]]; then
+      PYTHONPATH=$PWD:$PYTHONPATH mypy ./
     else
-       PYTHONPATH=$PWD:$PYTHONPATH py.test tests/;
+       PYTHONPATH=$PWD:$PYTHONPATH py.test ./
     fi
 after_success:
   - coveralls
