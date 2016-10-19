@@ -44,8 +44,8 @@ install:
 script:
   - if [[ "$TEST_MODE" == "PEP8" ]]; then
        PYTHONPATH=$PWD:$PYTHONPATH py.test --pep8 -m pep8 -n0;
-    elif [[ "$TEST_MODE" == "MYPY"]] then
-      PYTHONPATH=$PWD:$PYTHONPATH mypy ./
+    elif [[ "$TEST_MODE" == "MYPY"]]; then
+      PYTHONPATH=$PWD:$PYTHONPATH mypy ./;
     else
        PYTHONPATH=$PWD:$PYTHONPATH py.test tests/;
     fi
