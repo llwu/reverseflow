@@ -1,4 +1,5 @@
 from overloading import overload
+from reverseflow.arrows.primitivearrow import PrimitiveArrow
 
 @overload
 def compose(l: PrimitiveArrow, r: PrimitiveArrow) -> CompositeArrow:

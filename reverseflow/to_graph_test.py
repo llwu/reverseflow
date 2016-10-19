@@ -1,5 +1,5 @@
 import tensorflow as tf
-from reverseflow.decode import graph_to_arrow
+from reverseflow.to_arrow import graph_to_arrow
 
 
 def test_xyplusx() -> None:
@@ -7,4 +7,4 @@ def test_xyplusx() -> None:
     x = tf.placeholder('float32')
     y = tf.placeholder('float32')
     z = x * y + x
-    z_arrow = graph_to_arrow(z)
+    graph_to_arrow(z)

@@ -29,7 +29,7 @@ class Bimap(Generic[L, R]):
         if right in self.right_to_left:
             del self.right_to_left[right]
 
-    def update(self, new_map: Bimap) -> None:
+    def update(self, new_map: 'Bimap[L, R]') -> None:
         items = list(new_map.items())
         for (l, r) in items:
             self.add(l, r)
