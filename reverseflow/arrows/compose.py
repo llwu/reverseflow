@@ -1,20 +1,27 @@
+from typing import List
 from overloading import overload
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
+from reverseflow.arrows.arrow import Arrow
+from reverseflow.arrows.compositearrow import CompositeArrow
+from reverseflow.util.mapping import Bimap
+
 
 @overload
 def compose(l: PrimitiveArrow, r: PrimitiveArrow) -> CompositeArrow:
-    assert len(l.out_ports) == len(r._in_ports), \
+    """Connect outputs of arrow l into inputs of arrow r"""
+    assert len(l.out_ports) == len(r.in_ports), \
         "Can't compose %s outports into %s in_ports" % \
-        (len(l.out_ports), len(r._in_ports))
+        (len(l.out_ports), len(r.in_ports))
 
     n_ports_compose = len(l.out_ports)
-    edges = Bimap
+    edges = Bimap()  # type: EdgeMap
     for i in range(n_ports_compose):
         edges.add(l.out_ports[i], r.in_ports[i])
     edges.update(l.edges)
     edges.update(r.edges)
-    return CompositeArrow(in_ports=l.in_ports, out_ports=a.out_ports,
+    return CompositeArrow(in_ports=l.in_ports, out_ports=r.out_ports,
                           edges=edges)
+
 
 @overload
 def compose_comb(l: Arrow, r: Arrow, out_to_in: List[int]) -> CompositeArrow:
@@ -38,5 +45,5 @@ def compose_comb(l: Arrow, r: Arrow, out_to_in: List[int]) -> CompositeArrow:
 
     edges.update(l.edges)
     edges.update(r.edges)
-    return CompositeArrow(in_ports = in_ports, out_ports = out_ports,
-                            edges = edges)
+    return CompositeArrow(in_ports=in_ports, out_ports=out_ports,
+                          edges=edges)

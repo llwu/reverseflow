@@ -1,12 +1,13 @@
 """Convert a tensoflow graph into an arrow"""
-from typing import List, TypeVar
+from typing import List
 from tensorflow import Tensor, Graph, Operation
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 from reverseflow.arrows.primitive.math_arrows import AddArrow, MulArrow
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
-from overloading import overload
 from reverseflow.util.mapping import Bimap
+from reverseflow.util.misc import pos_in_seq
+from overloading import overload
 
 # Mapping between op types and arrows
 # Cannot use multimethods because different ops not distinguished by type
@@ -15,6 +16,7 @@ THE_DICT = {'Add': AddArrow,
 
 
 def arrow_from_op(op: Operation) -> Arrow:
+    """Construct arrow which corresponds to op"""
     return THE_DICT[op.type]()
 
 
@@ -23,27 +25,18 @@ def is_tensor_input(inp_tensor: Tensor) -> bool:
     # A tensor is an input if its op is a placeholder
     return inp_tensor.op.type == 'Placeholder'
 
-T = TypeVar('T')
-
-
-# TODO: Find better name, generalize to ordered containers
-def pos_in(x: T, ys: List[T]) -> int:
-    """Return the index of a value ina list"""
-    for i, y in enumerate(ys):
-        if x == y:
-            return i
-    assert False, "element not in list"
-
 
 def consumer_index(op: Operation, tensor: Tensor) -> int:
     """If op is the ith consumer of tensor, return i"""
-    return pos_in(op, tensor.consumers())
+    return pos_in_seq(op, tensor.consumers())
 
 
 @overload
 def graph_to_arrow(graph: Graph) -> Arrow:
     """Convert a tensorflow graph into an arrow"""
-    # TODO: Infer inputs and outputs
+    # TODO: Should we infer in_ports or should we chose them or both
+    # TODO: How to add duplication to the list
+    # TODO: Handle out_ports
 
     edges = Bimap()  # type: EdgeMap
     ops = graph.get_operations()

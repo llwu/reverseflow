@@ -42,11 +42,11 @@ install:
   - python setup.py install
 script:
   - if [[ "$TEST_MODE" == "PEP8" ]]; then
-      PYTHONPATH=$PWD:$PYTHONPATH py.test --pep8 -m pep8 -n0
+      PYTHONPATH=$PWD:$PYTHONPATH py.test --pep8 -m pep8 -n0;
     elif [[ "$TEST_MODE" == "MYPY" ]]; then
-      PYTHONPATH=$PWD:$PYTHONPATH mypy ./
+      PYTHONPATH=$PWD:$PYTHONPATH mypy ./;
     else
-       PYTHONPATH=$PWD:$PYTHONPATH py.test ./
+       PYTHONPATH=$PWD:$PYTHONPATH py.test ./;
     fi
 after_success:
   - coveralls

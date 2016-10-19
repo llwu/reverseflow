@@ -51,7 +51,7 @@ def print_arrow_colors(arrow_colors):
 def arrow_to_graph(comp_arrow: CompositeArrow) -> Graph:
     """Convert an comp_arrow to a tensorflow graph"""
 
-    graph = tf.Graph(): Graph
+    graph = tf.Graph()  # type: Graph
     with graph.as_default():
         # A priority queue for each sub_arrow
         # priority is the number of inputs it has which have already been seen

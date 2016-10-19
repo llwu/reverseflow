@@ -5,6 +5,7 @@ from reverseflow.arrows.port import InPort, OutPort
 
 EdgeMap = Bimap[OutPort, InPort]
 
+
 class CompositeArrow(Arrow):
     """
     Composite arrow
@@ -29,7 +30,7 @@ class CompositeArrow(Arrow):
         assert len(in_ports) > 0, "Composite Arrow must have in ports"
         assert len(out_ports) > 0, "Composite Arrow must have in ports"
         self.edges = edges
-        arrows = self.get_arrows()
+        arrows = self.get_sub_arrows()
         for in_port in in_ports:
             assert in_port.arrow in arrows, "Designated in_port not in edges"
             assert in_port not in edges.values(), "in_port must be unconnected"
@@ -39,6 +40,8 @@ class CompositeArrow(Arrow):
             assert out_port not in edges.keys(), "out_port must be unconnected"
 
         # TODO: Assert There must be no cycles
+        # TODO: Assert Every inport must be on end of edge or be in in_ports
+        # TODO: Assert Every outport must be on start of edge or in out_ports
         self.in_ports = in_ports  # type: List[InPort]
         self.out_ports = out_ports  # type: List[OutPort]
 
