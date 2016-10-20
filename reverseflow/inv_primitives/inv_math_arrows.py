@@ -1,8 +1,11 @@
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.compositearrow import CompositeArrow
-from reverseflow.arrows.port import InPort, OutPort
+from reverseflow.arrows.parametricarrow import ParametricArrow
+from reverseflow.arrows.port import InPort, OutPort, ParamPort
 from reverseflow.util.mapping import Bimap
-from reverseflow.arrows.primitive.math_arrows import AddArrow
+from reverseflow.arrows.primitive.math_arrows import AddArrow, SubArrow
+from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
+
 
 
 class InvAddArrow(CompositeArrow, ParametricArrow):
@@ -14,20 +17,16 @@ class InvAddArrow(CompositeArrow, ParametricArrow):
 
     def procedure(self):
         # consider having theta be something other than an InPort
-        inv_add = CompositeArrow()
         edges = Bimap()  # type: EdgeMap
-        theta = ParamOutPort(inv_add, 0)
-        z = OutPort(inv_add, 0)
-        z_minus_theta = InPort(inv_add, 0)
-        theta_pass = InPort(inv_add, 1)
-
         dupl_theta = DuplArrow()
         sub = SubArrow()
 
-        edges.add(theta, dupl_theta.in_ports[0])
-        edges.add(dupl_theta.out_ports[0], theta_pass)
-        edges.add(z, sub.in_ports[0])
-        edges.add(dupl_theta.out_ports[1], sub.in_ports[1])
-
-        inv_add.add_edges(edges)
+        in_ports = sub.in_ports[0]
+        out_ports = [sub.out_ports[0], dupl_theta.out_ports[1]]
+        param_ports = [dupl_theta.in_ports[0]]
+        edges.add(sub.in_ports[1], dupl_theta.out_ports[0])
+        inv_add = ParametricArrow(edges=edges,
+                                  in_ports=in_ports,
+                                  out_ports=out_ports,
+                                  param_ports=param_ports)
         return inv_add

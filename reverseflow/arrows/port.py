@@ -19,22 +19,29 @@ class Port():
         self.arrow = arrow
         self.index = index
 
+    def __str__(self):
+        return "Port[%s:%s]" % (self.arrow.name, self.index)
+
 
 class InPort(Port):
     """Input port"""
-    pass
+    def __str__(self):
+        return "In%s" % super().__str__()
 
 
 class OutPort(Port):
     """Output port"""
-    pass
+    def __str__(self):
+        return "Out%s" % super().__str__()
 
 
 class ParamPort(Port):
     """Parametric port"""
-    pass
+    def __str__(self):
+        return "Param%s" % super().__str__()
 
 
 class ErrorPort(Port):
     """Error Port"""
-    pass
+    def __str__(self):
+        return "Error%s" % super().__str__()
