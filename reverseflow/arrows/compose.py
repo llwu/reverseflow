@@ -1,11 +1,14 @@
+"""Defines functions for composing arrows."""
+
 from typing import Dict
-from copy import deepcopy
+from copy import copy
+from overloading import overload
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.port import InPort, OutPort
 from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 from reverseflow.util.mapping import Bimap
-from overloading import overload
+
 
 def compose(l: Arrow, r: Arrow) -> CompositeArrow:
     """Connect outputs of arrow l into inputs of arrow r"""
@@ -21,9 +24,11 @@ def compose(l: Arrow, r: Arrow) -> CompositeArrow:
     edges.update(r.edges)
     return CompositeArrow(edges=edges, in_ports=l.in_ports, out_ports=r.out_ports)
 
+
 @overload
 def edges(a: CompositeArrow) -> EdgeMap:
     return a.edges
+
 
 @overload
 def edges(a: PrimitiveArrow) -> EdgeMap:
@@ -32,11 +37,11 @@ def edges(a: PrimitiveArrow) -> EdgeMap:
 
 def compose_comb(l: Arrow, r: Arrow, out_to_in: Dict[int, int]) -> CompositeArrow:
     """Wires the ports of the primitive arrows on the boundaries."""
-    in_ports = deepcopy(l.in_ports)
-    out_ports = deepcopy(r.out_ports)
+    in_ports = copy(l.in_ports)
+    out_ports = copy(r.out_ports)
 
-    r_in_connect = [False]*len(r.in_ports)
-    new_edges = Bimap() # type: EdgeMap
+    r_in_connect = [False] * len(r.in_ports)
+    new_edges = Bimap()  # type: EdgeMap
     for i in range(len(l.out_ports)):
         if i not in out_to_in:
             out_ports.append(l.out_ports[i])
@@ -51,6 +56,7 @@ def compose_comb(l: Arrow, r: Arrow, out_to_in: Dict[int, int]) -> CompositeArro
     new_edges.update(edges(l))
     new_edges.update(edges(r))
     return CompositeArrow(edges=new_edges, in_ports=in_ports, out_ports=out_ports)
+
 
 def compose_comb_modular(l: Arrow, r: Arrow, out_to_in: Dict[int, int]) -> CompositeArrow:
     """Wires the ports of the composite arrows."""
