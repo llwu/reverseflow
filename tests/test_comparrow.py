@@ -21,9 +21,9 @@ def test_xyplusx() -> None:
     d = CompositeArrow(in_ports=[dupl.in_ports[0], mul.in_ports[1]],
                        out_ports=[add.out_ports[0]], edges=edges)
     # construct same composite arrow with compose_comb
-    dupl_to_mul = [0, -1]
+    dupl_to_mul = { 0:0 }
     c1 = compose_comb(dupl, mul, dupl_to_mul)
-    c1_to_add = [0, 1]
+    c1_to_add = { 0:0 , 1:1 }
     d1 = compose_comb(c1, add, c1_to_add)
     # import pdb; pdb.set_trace()
     tf_d = arrow_to_graph(d)
