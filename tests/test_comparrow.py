@@ -7,10 +7,11 @@ from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 from reverseflow.arrows.compose import compose_comb
 from reverseflow.to_graph import arrow_to_graph
 from reverseflow.to_arrow import graph_to_arrow
-
+import tensorflow as tf
 
 def test_xyplusx() -> None:
     """f(x,y) = x * y + x"""
+    tf.reset_default_graph()
     mul = MulArrow()
     add = AddArrow()
     dupl = DuplArrow()
@@ -26,7 +27,9 @@ def test_xyplusx() -> None:
     c1_to_add = { 0:0 , 1:1 }
     d1 = compose_comb(c1, add, c1_to_add)
     # import pdb; pdb.set_trace()
+    import pdb; pdb.set_trace()
+
     tf_d = arrow_to_graph(d)
-    d_2 = graph_to_arrow(tf_d)
+    # d_2 = graph_to_arrow(tf_d)
 
 test_xyplusx()

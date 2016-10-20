@@ -52,6 +52,12 @@ class Bimap(Generic[L, R]):
     def __contains__(self, key: L):
         return key in self.left_to_right
 
+    def __str__(self):
+        return self.left_to_right.__str__()
+
+    def __repr__(self):
+        return self.left_to_right.__str__()
+
 
 class ImageBimap(Generic[L, R]):
     """Bidirectional map for non-injective function"""
