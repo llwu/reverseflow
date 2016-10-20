@@ -6,6 +6,9 @@ from reverseflow.arrows.port import InPort, OutPort, ParamPort
 class ParametricArrow(CompositeArrow):
     """Parametric arrow"""
 
+    def is_parametric(self) -> bool:
+        return True
+
     def __init__(self,
                  edges: EdgeMap,
                  in_ports: List[InPort],

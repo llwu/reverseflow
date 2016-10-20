@@ -8,6 +8,9 @@ class ApproximateArrow(CompositeArrow):
     Has an addition error output
     """
 
+    def is_approximate() -> bool:
+        return True
+
     def __init__(self,
                  edges: EdgeMap,
                  in_ports: List[InPort],

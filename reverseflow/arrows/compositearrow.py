@@ -12,8 +12,6 @@ class CompositeArrow(Arrow):
     A composite arrow is a composition of arrows, which may be either
     primtive arrows or themselves compositions.
     """
-    def is_primitive(self) -> bool:
-        return False
 
     def get_sub_arrows(self) -> Set[Arrow]:
         """Return all the constituent arrows of composition"""

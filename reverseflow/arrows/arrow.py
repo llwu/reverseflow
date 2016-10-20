@@ -15,3 +15,12 @@ class Arrow:
 
     def num_out_ports(self):
         return len(self.out_ports)
+
+    def is_primitive(self) -> bool:
+        return False
+
+    def is_parametric(self) -> bool:
+        return False
+
+    def is_approximate(self) -> bool:
+        return False
