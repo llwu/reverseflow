@@ -7,12 +7,13 @@ from reverseflow.arrows.primitive.math_arrows import AddArrow, SubArrow
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 
 
-
-class InvAddArrow(CompositeArrow, ParametricArrow):
+class InvAddArrow(ParametricArrow):
     def __init__(self):
         self.name = "InvAdd"
 
+    @staticmethod
     def inverse_of() -> Arrow:
+        """What is this the inverse of"""
         return AddArrow
 
     def procedure(self):

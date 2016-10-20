@@ -18,8 +18,7 @@ def compose(l: Arrow, r: Arrow) -> CompositeArrow:
         edges.add(l.out_ports[i], r.in_ports[i])
     edges.update(l.edges)
     edges.update(r.edges)
-    return CompositeArrow(in_ports=l.in_ports, out_ports=r.out_ports,
-                          edges=edges)
+    return CompositeArrow(edges=edges, in_ports=l.in_ports, out_ports=r.out_ports)
 
 
 def compose_comb(l: Arrow, r: Arrow, out_to_in: List[int]) -> CompositeArrow:
@@ -44,8 +43,7 @@ def compose_comb(l: Arrow, r: Arrow, out_to_in: List[int]) -> CompositeArrow:
 
     edges.update(l.edges)
     edges.update(r.edges)
-    return CompositeArrow(in_ports=in_ports, out_ports=out_ports,
-                          edges=edges)
+    return CompositeArrow(edges=edges, in_ports=in_ports, out_ports=out_ports)
 
 def compose_comb_modular(l: Arrow, r: Arrow, out_to_in: List[int]) -> CompositeArrow:
     """Wires the ports of the composite arrows."""
@@ -67,5 +65,4 @@ def compose_comb_modular(l: Arrow, r: Arrow, out_to_in: List[int]) -> CompositeA
         if not r_in_connect[i]:
             in_ports.append(InPort(r, i))
 
-    return CompositeArrow(in_ports=in_ports, out_ports=out_ports,
-                          edges=edges)
+    return CompositeArrow(edges=edges, in_ports=in_ports, out_ports=out_ports)

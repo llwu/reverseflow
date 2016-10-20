@@ -24,8 +24,8 @@ class CompositeArrow(Arrow):
 
         return arrows
 
-    def __init__(self, in_ports: List[InPort], out_ports: List[OutPort],
-                 edges: EdgeMap) -> None:
+    def __init__(self, edges: EdgeMap, in_ports: List[InPort],
+                 out_ports: List[OutPort]) -> None:
         # TODO: Assertions
         assert len(in_ports) > 0, "Composite Arrow must have in ports"
         assert len(out_ports) > 0, "Composite Arrow must have in ports"

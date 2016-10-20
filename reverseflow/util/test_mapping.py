@@ -1,4 +1,5 @@
-from reverseflow.util.mapping import Bimap, ImageBimap
+"""Test Mapping Functions"""
+from reverseflow.util.mapping import Bimap
 
 
 def test_bimap():

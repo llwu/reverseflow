@@ -7,4 +7,4 @@ def test_xyplusx() -> None:
     x = tf.placeholder('float32')
     y = tf.placeholder('float32')
     z = x * y + x
-    graph_to_arrow(z)
+    graph_to_arrow([z])

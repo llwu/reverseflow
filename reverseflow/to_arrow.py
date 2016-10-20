@@ -104,5 +104,5 @@ def graph_to_arrow(output_tensors: List[Tensor]) -> Arrow:
                                      tensor_to_dupl_idx)
             edges.add(out_port, in_port)
 
-    return CompositeArrow(in_ports=comp_in_ports, out_ports=comp_out_ports,
-                          edges=edges)
+    return CompositeArrow(edges=edges, in_ports=comp_in_ports,
+                          out_ports=comp_out_ports)
