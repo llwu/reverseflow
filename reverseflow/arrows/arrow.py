@@ -19,6 +19,9 @@ class Arrow:
     def is_primitive(self) -> bool:
         return False
 
+    def is_composite(self) -> bool:
+        return False
+
     def is_parametric(self) -> bool:
         return False
 

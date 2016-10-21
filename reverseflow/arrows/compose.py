@@ -10,6 +10,7 @@ from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 from reverseflow.util.mapping import Bimap
 
 
+# llwu: this is probably broken
 def compose(l: Arrow, r: Arrow) -> CompositeArrow:
     """Connect outputs of arrow l into inputs of arrow r"""
     assert len(l.out_ports) == len(r.in_ports), \
@@ -52,6 +53,8 @@ def compose_comb(l: Arrow, r: Arrow, out_to_in: Dict[int, int]) -> CompositeArro
     for i in range(len(r.in_ports)):
         if not r_in_connect[i]:
             in_ports.append(r.in_ports[i])
+
+    # TODO: param_ports.append(), etc. should be trivial
 
     new_edges.update(edges(l))
     new_edges.update(edges(r))
