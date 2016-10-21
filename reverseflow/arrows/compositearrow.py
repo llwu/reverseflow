@@ -13,6 +13,9 @@ class CompositeArrow(Arrow):
     primtive arrows or themselves compositions.
     """
 
+    def is_composite(self) -> bool:
+        return True
+
     def get_sub_arrows(self) -> Set[Arrow]:
         """Return all the constituent arrows of composition"""
         arrows = set()

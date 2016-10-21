@@ -39,3 +39,29 @@ class MulArrow(PrimitiveArrow):
 
     def invert(self):
         pass
+
+class NegArrow(PrimitiveArrow):
+    """Negation op"""
+
+    def __init__(self):
+        self.name = 'Neg'
+        self.in_ports = [InPort(self, 0)]
+        self.out_ports = [OutPort(self, 0)]
+
+class ExpArrow(PrimitiveArrow):
+    """Exponentiaion op"""
+
+    def __init__(self):
+        self.name = 'Exp'
+        # the exponent is the second input
+        self.in_ports = [InPort(self, 0), InPort(self, 1)]
+        self.out_ports = [OutPort(self, 0)]
+
+class LogArrow(PrimitiveArrow):
+    """Logarithm op"""
+
+    def __init__(self):
+        self.name = 'Log'
+        # the base is the first input
+        self.in_ports = [InPort(self, 0), InPort(self, 1)]
+        self.out_ports = [OutPort(self, 0)]
