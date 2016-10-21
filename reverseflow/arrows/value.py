@@ -6,14 +6,15 @@ class MutableValue(Value):
     def is_mutable(self) -> bool:
         return True
 
-    def __init__(value) -> None:
+    def __init__(self, value) -> None:
         self.value = value
 
 
 class ImmutableValue(Value):
-    def is_mutable() -> bool:
+    def is_mutable(self) -> bool:
         return False
 
-    def __init__(value) -> None:
-        self.type = 'float32'
+    def __init__(self, value) -> None:
         self.value = value
+
+    # FIXME: make immutable
