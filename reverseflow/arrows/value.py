@@ -3,7 +3,7 @@ class Value:
 
 
 class MutableValue(Value):
-    def is_mutable() -> bool:
+    def is_mutable(self) -> bool:
         return True
 
     def __init__(value) -> None:
