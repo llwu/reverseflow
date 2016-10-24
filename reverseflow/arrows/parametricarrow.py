@@ -13,6 +13,8 @@ class ParametricArrow(CompositeArrow):
                  edges: EdgeMap,
                  in_ports: List[InPort],
                  out_ports: List[OutPort],
-                 param_ports: List[ParamPort]):
-        super().__init__(edges=edges, in_ports=in_ports, out_ports=out_ports)
+                 param_ports: List[ParamPort],
+                 name: str):
+        super().__init__(edges=edges, in_ports=in_ports, out_ports=out_ports,
+                         name=name)
         self.param_ports = param_ports  # type: List[ParamPort]

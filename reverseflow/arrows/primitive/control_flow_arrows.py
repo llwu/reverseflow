@@ -1,6 +1,5 @@
 """These are arrows for control flow of input"""
 
-from reverseflow.arrows.port import InPort, OutPort
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
 
 
@@ -10,14 +9,9 @@ class DuplArrow(PrimitiveArrow):
     f(x) = (x, x, ..., x)
     """
 
-    def __init__(self, n_duplications=2) -> None:
-        self.name = "Dupl"
-        self.n_duplications = n_duplications
-        self.in_ports = [InPort(self, 0)]
-        self.out_ports = [OutPort(self, i) for i in range(n_duplications)]
-
-    def invert(self):
-        pass
+    def __init__(self, n_duplications=2):
+        name = 'Dupl'
+        super().__init__(n_in_ports=1, n_out_ports=n_duplications, name=name)
 
 
 class IdentityArrow(PrimitiveArrow):
@@ -27,9 +21,5 @@ class IdentityArrow(PrimitiveArrow):
     """
 
     def __init__(self) -> None:
-        self.name = "Identity"
-        self.in_ports = [InPort(self, 0)]
-        self.out_ports = [OutPort(self, 0)]
-
-    def invert(self):
-        pass
+        name = 'Identity'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)

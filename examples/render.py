@@ -3,9 +3,9 @@ import sys
 import getopt
 import tensorflow as tf
 import numpy as np
+import reverseflow.to_arrow
 from reverseflow.util.misc import *
 from reverseflow.util.tf import *
-# from tensorte.templates.res_net import res_net_template_dict
 
 floatX = 'float32'
 
@@ -202,101 +202,66 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
 
     img = left_over
     img_shape = tf.TensorShape((nvoxgrids, nmatrices, width, height))
-    print("OK", tf.TensorShape((nvoxgrids, nmatrices, width, height)))
     pixels = tf.reshape(img, img_shape)
     mask = t14 > t04
     # print(mask.reshape())
-    return pixels,
+    return pixels
     # return tf.select(mask.reshape(img_shape), pixels, tf.ones_like(pixels)),
     # rd, ro, tn_x, tf.ones(img_shape), orig, voxels
 
 
-def render_fwd_f(inputs):
-    voxels = inputs['voxels']
+def default_options():
     options = {}
-    width = options['width'] = 32
-    height = options['height'] = 32
-    res = options['res'] = 32
-    nsteps = options['nsteps'] = 2
-    nvoxgrids = options['nvoxgrids'] = 1
-    nviews = options['nviews'] = 1
+    options['width'] = 128
+    options['height'] = 128
+    options['res'] = 32
+    options['nsteps'] = 6
+    options['nvoxgrids'] = 1
+    options['nviews'] = 1
+    print(options)
+    return options
+
+def generate_graph(nviews, nvoxgrids, width, height, res, nsteps):
     rotation_matrices = rand_rotation_matrices(nviews)
-    out = gen_img(voxels, rotation_matrices, width, height, nsteps, res)
-    out_img = out[0]
-    outputs = {"out_img": out_img}
-    return outputs
+    voxel_input = tf.placeholder(tf.float32, shape=(nvoxgrids, res, res, res))
+    img_output = gen_img(voxel_input, rotation_matrices, width, height, nsteps,
+                        res)
+    return voxel_input, img_output
 
 
-def render_gen_graph(g, batch_size, is_placeholder):
-    nvoxgrids = 1
-    res = 32
-    with g.name_scope("fwd_g"):
-        voxels = ph_or_var(tf.float32, name="voxels",
-                           shape=(nvoxgrids, res, res, res),
-                           is_placeholder=is_placeholder)
-        inputs = {"voxels": voxels}
-        outputs = render_fwd_f(inputs)
-        return {"inputs": inputs, "outputs": outputs}
-
-
-global options
-global render
-global test_files, train_files
-global net, output_layer, cost_f, cost_f_dict, val_f, call_f, call_f_dict
-global views, voxels, outputs, net
-
-
-def main(argv):
-    options = {'batch_size': 128,
-               'max_time': 100.0,
-               'logdir': '/home/zenna/repos/inverse/log',
-               'template': template_dict,
-               'nnet_enhanced_pi': False,
-               'pointwise_pi': True,
-               'min_fx_y': False,
-               'nnet': True,
-               'min_fx_param': False,
-               'rightinv_pi_fx': False,
-               'nruns': 2}
-    min_param_size = 10
-    param_types = {'theta': tensor_type(dtype=tf.float32,
-                   shape=(options['batch_size'], min_param_size),
-                   name="shrunk_param")}
-
-    param_gen = {k: infinite_samples(np.random.rand, v['shape'])
-                 for k, v in param_types.items()}
-    shrunk_param_gen = dictionary_gen(param_gen)
-    return compare(render_gen_graph, render_fwd_f, param_types,
-                   shrunk_param_gen, options)
+def render_voxel(voxel, img_output, voxel_input):
+    sess = tf.Session()
+    output_img = sess.run(img_output, feed_dict={voxel_input: voxel})
+    return output_img
 
 
 def standalone(options):
-    print(options)
-    rotation_matrices = rand_rotation_matrices(nviews)
-    # rotation_matrices = tf.placeholder(tf.float32, shaspe=(3,3))
-    voxels = tf.placeholder(tf.float32, shape=(nvoxgrids, res, res, res))
-    out = gen_img(voxels, rotation_matrices, width, height, nsteps, res)
-    g = tf.get_default_graph()
-    print("Compiling Render Function")
-    writer = tf.train.SummaryWriter('/home/zenna/repos/wacabanga/reverseflow/log', g)
-    import pdb; pdb.set_trace()
-    voxel_grids = np.load("/home/zenna/data/ModelNet40/alltrain32.npy")
-    voxel = voxel_grids[np.random.randint(0, voxel_grids.shape[0])].reshape(1, res, res, res)
-    sess = tf.Session()
-    output_img = sess.run(out[0], feed_dict={voxels:voxel})
     import matplotlib.pyplot as plt
-    # print(output_img.shape)
-    plt.imshow(output_img.reshape(width, height))
+    options = default_options()
+    voxel_input, img_output = generate_graph(**options)
+    img = render_voxel(random_voxel(options['res']), img_output, voxel_input)
+    g = tf.get_default_graph()
+    tf.train.SummaryWriter('/home/zenna/repos/wacabanga/reverseflow/log', g)
+    plt.imshow(img.reshape(options['width'], options['height']))
     plt.show()
 
+
+def random_voxel(res):
+    voxel_grids = np.load("/home/zenna/data/ModelNet40/alltrain32.npy")
+    random_voxel = np.random.randint(0, voxel_grids.shape[0])
+    return voxel_grids[random_voxel].reshape(1, res, res, res)
+
+
+def test_render():
+    options = default_options()
+    voxel_input, img_output = generate_graph(**options)
+    import pdb; pdb.set_trace()
+
+    img = render_voxel(random_voxel(options['res']), img_output, voxel_input)
+
+    reverseflow.to_arrow.graph_to_arrow([img_output])
+    return img
+
 if __name__ == "__main__":
-    options = {}
-    width = options['width'] = 128
-    height = options['height'] = 128
-    res = options['res'] = 32
-    nsteps = options['nsteps'] = 6
-    nvoxgrids = options['nvoxgrids'] = 1
-    nviews = options['nviews'] = 1
-    global x
-    # standalone(options)
-    x = standalone(options)
+    # standalone(default_options())
+    test_render()

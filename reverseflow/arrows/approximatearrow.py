@@ -5,10 +5,10 @@ from reverseflow.arrows.port import InPort, OutPort, ErrorPort
 
 class ApproximateArrow(CompositeArrow):
     """Approximate arrow
-    Has an addition error output
+    Has an additional error output
     """
 
-    def is_approximate() -> bool:
+    def is_approximate(self) -> bool:
         return True
 
     def __init__(self,
