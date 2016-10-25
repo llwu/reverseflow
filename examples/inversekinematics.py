@@ -1,5 +1,3 @@
-from pi import invert
-import pi
 import tensorflow as tf
 from tensorflow import float32
 
@@ -15,6 +13,3 @@ phi2 = tf.placeholder(float32, name="phi2")
 
 x = l1 * tf.cos(phi1) + l2 * tf.cos(phi1+phi2)
 y = l1 * tf.sin(phi1) + l2 * tf.sin(phi1+phi2)
-
-g = tf.get_default_graph()
-writer = tf.train.SummaryWriter('/home/zenna/repos/inverse/log', sess.graph)
