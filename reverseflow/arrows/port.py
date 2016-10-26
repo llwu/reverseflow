@@ -1,3 +1,5 @@
+"""Immutable port classes, should be identified by arrow, index, and type."""
+
 from reverseflow.arrows.arrow import Arrow
 
 
@@ -22,11 +24,29 @@ class Port():
     def __str__(self):
         return "Port[%s:%s]" % (self.arrow.name, self.index)
 
+    def __repr__(self):
+        return "%s:%s" % (repr(self.arrow), self.index)
+
+    def __eq__(self, other):
+        if type(self) == type(other):
+            return ((self.arrow is other.arrow) and (self.index == other.index))
+        else:
+            return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(self.__repr__())
+
 
 class InPort(Port):
     """Input port"""
     def __str__(self):
         return "In%s" % super().__str__()
+
+    def __repr__(self):
+        return "In:%s" % super().__repr__()
 
 
 class OutPort(Port):
@@ -34,14 +54,23 @@ class OutPort(Port):
     def __str__(self):
         return "Out%s" % super().__str__()
 
+    def __repr__(self):
+        return "Out:%s" % super().__repr__()
+
 
 class ParamPort(Port):
     """Parametric port"""
     def __str__(self):
         return "Param%s" % super().__str__()
 
+    def __repr__(self):
+        return "Param:%s" % super().__repr__()
+
 
 class ErrorPort(Port):
     """Error Port"""
     def __str__(self):
         return "Error%s" % super().__str__()
+
+    def __repr__(self):
+        return "Error:%s" % super().__repr__()
