@@ -33,3 +33,6 @@ class IdentityArrow(PrimitiveArrow):
     def __init__(self) -> None:
         name = 'Identity'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+    def gen_constraints(self, input_expr: Dict[Int, Expr], output_expr: Dict[Int, Expr]) -> List[Expr]:
+        super().gen_constraints(input_expr, output_expr) 
