@@ -10,10 +10,10 @@ class Gather(PrimitiveArrow):
     Produces an output tensor with shape `indices.shape + params.shape[1:]`,
     where:
 
-    forall i in range(indices)
-    output[i] = array[indices[i]]
+    for i = 0...rank(indices)
+    output[i] = params[indices[i]]
 
-    
+
 
     ```python
         # Scalar indices
