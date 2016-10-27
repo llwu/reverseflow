@@ -1,7 +1,7 @@
 """These are arrows for control flow of input"""
 
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
-from typing import List
+from typing import List, Dict
 from sympy import Expr
 
 class DuplArrow(PrimitiveArrow):
