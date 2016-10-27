@@ -7,7 +7,6 @@ from reverseflow.arrows.primitive.math_arrows import (AddArrow,
     MulArrow, DivArrow)
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 
-
 from pqdict import pqdict
 import sympy
 from sympy import Expr
