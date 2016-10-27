@@ -1,67 +1,57 @@
-from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
-from reverseflow.util.mapping import Bimap
-from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
-from reverseflow.arrows.port import InPort, OutPort
 
 
 class AddArrow(PrimitiveArrow):
-    """Addition op"""
+    """Addition"""
 
     def __init__(self):
-        self.name = 'Add'
-        # FIXME, this seems redundant! all we need ot know is hte number of
-        # ports
-        self.in_ports = [InPort(self, 0), InPort(self, 1)]
-        self.out_ports = [OutPort(self, 0)]
-        # self.type = Type((ShapeType))
+        name = 'Add'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
 
 class SubArrow(PrimitiveArrow):
-    """Subtraction op. Out[1] = In[0] - In[1]"""
+    """Subtraction. Out[1] = In[0] - In[1]"""
 
     def __init__(self):
-        self.name = 'Sub'
-        self.in_ports = [InPort(self, 0), InPort(self, 1)]
-        self.out_ports = [OutPort(self, 0)]
-
-    def invert(self):
-        pass
+        name = 'Sub'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
 
 class MulArrow(PrimitiveArrow):
-    """Multiplication op"""
+    """Multiplication"""
 
     def __init__(self):
-        self.name = 'Mul'
-        self.in_ports = [InPort(self, 0), InPort(self, 1)]
-        self.out_ports = [OutPort(self, 0)]
+        name = 'Mul'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
-    def invert(self):
-        pass
 
-class NegArrow(PrimitiveArrow):
-    """Negation op"""
+class DivArrow(PrimitiveArrow):
+    """Division"""
 
     def __init__(self):
-        self.name = 'Neg'
-        self.in_ports = [InPort(self, 0)]
-        self.out_ports = [OutPort(self, 0)]
+        name = 'Div'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
 
 class ExpArrow(PrimitiveArrow):
-    """Exponentiaion op"""
+    """Exponentiaion"""
 
     def __init__(self):
-        self.name = 'Exp'
-        # the exponent is the second input
-        self.in_ports = [InPort(self, 0), InPort(self, 1)]
-        self.out_ports = [OutPort(self, 0)]
+        name = 'Exp'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
 
 class LogArrow(PrimitiveArrow):
-    """Logarithm op"""
+    """Logarithm"""
 
     def __init__(self):
-        self.name = 'Log'
-        # the base is the first input
-        self.in_ports = [InPort(self, 0), InPort(self, 1)]
-        self.out_ports = [OutPort(self, 0)]
+        name = 'Log'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+
+class NegArrow(PrimitiveArrow):
+    """Negation"""
+
+    def __init__(self):
+        name = 'Neg'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)

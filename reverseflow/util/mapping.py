@@ -1,6 +1,21 @@
-"""Mapping functions"""
+"""Mapping functions.
+Mapping functions are distinguished on (1) whether the relatiohip is:
+OneToMany, ManyToOne. ManyToMany, OneToOne, (2) Which directions we can compute
+in.
+
+
+BiBij
+BiRel
+BiDict
+
+For example a normal Dict is a ManyToOne mapping which can only be computed
+in the forward direction.
+"""
 from typing import (TypeVar, Generic, Tuple, Set, Dict, ItemsView,
                     ValuesView, KeysView)
+
+# TODO:
+# Bidirectional or not
 
 L = TypeVar('L')
 R = TypeVar('R')
@@ -59,8 +74,69 @@ class Bimap(Generic[L, R]):
         return self.left_to_right.__str__()
 
 
+class OneToMany(Generic[L, R]):
+    """One to many relations
+    Returns a set of values"""
+
+    def __init__(self) -> None:
+        self.left_to_right = {}  # type: Dict[L, Set[R]]
+
+    def add(self, left: L, right: R) -> None:
+        if left not in self.left_to_right:
+            self.left_to_right[left] = set([right])
+        else:
+            self.left_to_right[left].add(right)
+
+    def update(self, rel: 'OneToMany[L, R]') -> None:
+        for key, val in rel.left_to_right:
+            if key in self.left_to_right:
+                self.left_to_right.update(val)
+            else:
+                self.left_to_right[key] = val
+
+    def fwd(self, left: L) -> R:
+        return self.left_to_right[left]
+
+    def __getitem__(self, key: L) -> R:
+        return self.fwd(key)
+
+    def __setitem__(self, key: L, value: R) -> None:
+        self.add(key, value)
+
+
+class OneToManyList(Generic[L, R]):
+    """One to many relations
+    Returns a set of values"""
+
+    def __init__(self) -> None:
+        self.left_to_right = {}  # type: Dict[L, Set[R]]
+
+    def add(self, left: L, right: R) -> None:
+        if left not in self.left_to_right:
+            self.left_to_right[left] = list([right])
+        else:
+            self.left_to_right[left].append(right)
+
+    def update(self, rel: 'OneToMany[L, R]') -> None:
+        for key, val in rel.left_to_right:
+            if key in self.left_to_right:
+                self.left_to_right.update(val)
+            else:
+                self.left_to_right[key] = val
+
+    def fwd(self, left: L) -> R:
+        return self.left_to_right[left]
+
+    def __getitem__(self, key: L) -> R:
+        return self.fwd(key)
+
+    def __setitem__(self, key: L, value: R) -> None:
+        self.add(key, value)
+
+
+
 class ImageBimap(Generic[L, R]):
-    """Bidirectional map for non-injective function"""
+    """Bidirectional map for non-injective (many-to-one) function"""
 
     def __init__(self) -> None:
         self.left_to_right = {}  # type: Dict[L, R]

@@ -13,6 +13,9 @@ class CompositeArrow(Arrow):
     primtive arrows or themselves compositions.
     """
 
+    def is_composite(self) -> bool:
+        return True
+
     def get_sub_arrows(self) -> Set[Arrow]:
         """Return all the constituent arrows of composition"""
         arrows = set()
@@ -22,8 +25,12 @@ class CompositeArrow(Arrow):
 
         return arrows
 
-    def __init__(self, edges: EdgeMap, in_ports: List[InPort],
-                 out_ports: List[OutPort]) -> None:
+    def __init__(self,
+                 edges: EdgeMap,
+                 in_ports: List[InPort],
+                 out_ports: List[OutPort],
+                 name: str = None) -> None:
+        super().__init__(name=name)
         # TODO: Assertions
         assert len(in_ports) > 0, "Composite Arrow must have in ports"
         assert len(out_ports) > 0, "Composite Arrow must have in ports"
