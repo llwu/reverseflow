@@ -1,6 +1,9 @@
+"""Functions to generate the arrows for tests."""
+
 from reverseflow.arrows.primitive.math_arrows import MulArrow, AddArrow
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 from reverseflow.arrows.sourcearrow import SourceArrow
+from reverseflow.arrows.compose import compose_comb
 from reverseflow.util.mapping import Bimap
 from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 import tensorflow as tf
@@ -12,13 +15,9 @@ def test_xyplusx() -> None:
     mul = MulArrow()
     add = AddArrow()
     dupl = DuplArrow()
-    edges = Bimap()  # type: EdgeMap
-    edges.add(dupl.out_ports[0], mul.in_ports[0])  # dupl -> mul
-    edges.add(dupl.out_ports[1], add.in_ports[0])  # dupl -> add
-    edges.add(mul.out_ports[0], add.in_ports[1])  # mul -> add
-    d = CompositeArrow(in_ports=[dupl.in_ports[0], mul.in_ports[1]],
-                       out_ports=[add.out_ports[0]], edges=edges)
-    return d
+    dupl_mul = compose_comb(dupl, mul, {0: 0})
+    dupl_mul_add = compose_comb(dupl_mul, add, {0: 0, 1: 1})
+    return dupl_mul_add
 
 
 def test_twoxyplusx() -> None:
@@ -38,3 +37,8 @@ def test_twoxyplusx() -> None:
     return CompositeArrow(in_ports=[dupl.in_ports[0], mul1.in_ports[1]],
                           out_ports=[add.out_ports[0]],
                           edges=edges)
+
+
+def test_multicomb() -> None:
+    """f(a,b,c,d,e,f) = (a+b)(cd(e+f) + e + f)"""
+    pass

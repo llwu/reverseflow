@@ -1,3 +1,7 @@
+from typing import Dict, List
+
+from sympy import Expr
+
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
 
 
@@ -8,7 +12,7 @@ class AddArrow(PrimitiveArrow):
         name = 'Add'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
-    def gen_constraints(self, input_expr: Dict[Int, Expr], output_expr: Dict[Int, Expr]) -> List[Expr]:
+    def gen_constraints(self, input_expr: Dict[int, Expr], output_expr: Dict[int, Expr]) -> List[Expr]:
         super().gen_constraints(input_expr, output_expr)
 
 class SubArrow(PrimitiveArrow):
@@ -18,7 +22,7 @@ class SubArrow(PrimitiveArrow):
         name = 'Sub'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
-    def gen_constraints(self, input_expr: Dict[Int, Expr], output_expr: Dict[Int, Expr]) -> List[Expr]:
+    def gen_constraints(self, input_expr: Dict[int, Expr], output_expr: Dict[int, Expr]) -> List[Expr]:
         super().gen_constraints(input_expr, output_expr)
 
 class MulArrow(PrimitiveArrow):
@@ -28,7 +32,7 @@ class MulArrow(PrimitiveArrow):
         name = 'Mul'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
-    def gen_constraints(self, input_expr: Dict[Int, Expr], output_expr: Dict[Int, Expr]) -> List[Expr]:
+    def gen_constraints(self, input_expr: Dict[int, Expr], output_expr: Dict[int, Expr]) -> List[Expr]:
         super().gen_constraints(input_expr, output_expr)
 
 class DivArrow(PrimitiveArrow):
@@ -38,7 +42,7 @@ class DivArrow(PrimitiveArrow):
         name = 'Div'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
-    def gen_constraints(self, input_expr: Dict[Int, Expr], output_expr: Dict[Int, Expr]) -> List[Expr]:
+    def gen_constraints(self, input_expr: Dict[int, Expr], output_expr: Dict[int, Expr]) -> List[Expr]:
         super().gen_constraints(input_expr, output_expr)
 
 class ExpArrow(PrimitiveArrow):
@@ -48,7 +52,7 @@ class ExpArrow(PrimitiveArrow):
         name = 'Exp'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
-    def gen_constraints(self, input_expr: Dict[Int, Expr], output_expr: Dict[Int, Expr]) -> List[Expr]:
+    def gen_constraints(self, input_expr: Dict[int, Expr], output_expr: Dict[int, Expr]) -> List[Expr]:
         super().gen_constraints(input_expr, output_expr)
 
 class LogArrow(PrimitiveArrow):
@@ -58,7 +62,7 @@ class LogArrow(PrimitiveArrow):
         name = 'Log'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
-    def gen_constraints(self, input_expr: Dict[Int, Expr], output_expr: Dict[Int, Expr]) -> List[Expr]:
+    def gen_constraints(self, input_expr: Dict[int, Expr], output_expr: Dict[int, Expr]) -> List[Expr]:
         super().gen_constraints(input_expr, output_expr)
 
 class NegArrow(PrimitiveArrow):
@@ -68,5 +72,5 @@ class NegArrow(PrimitiveArrow):
         name = 'Neg'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
-    def gen_constraints(self, input_expr: Dict[Int, Expr], output_expr: Dict[Int, Expr]) -> List[Expr]:
+    def gen_constraints(self, input_expr: Dict[int, Expr], output_expr: Dict[int, Expr]) -> List[Expr]:
         super().gen_constraints(input_expr, output_expr)
