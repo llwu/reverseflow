@@ -46,9 +46,9 @@ def mark(arrow: Arrow, knowns: Set[InPort]) -> Tuple[Set[InPort], Set[OutPort]]:
         sub_arrow, priority = to_mark.popitem()
         assert priority >= 0, "knowns > num_in_ports?"
         if priority == 0:
-            for out_port in sub_arrow.out_ports:
-                add(out_port)
-        elif sub_arrow.is_composite:
+            for i in range(sub_arrow.num_out_ports()):
+                add(OutPort(sub_arrow, i))
+        elif sub_arrow.is_composite():
             sub_knowns = set()
             for i in range(sub_arrow.num_in_ports()):
                 if InPort(sub_arrow, i) in marked_inports:  # outer InPort

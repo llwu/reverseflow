@@ -1,5 +1,5 @@
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
-from typing import Dict, Int, List
+from typing import Dict, List
 from sympy import Expr, Rel, Gt
 
 

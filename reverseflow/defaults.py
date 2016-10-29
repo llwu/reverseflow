@@ -27,6 +27,6 @@
 #
 #
 #
-# List[Int]
+# List[int]
 #
 # mapping = Dict[ArrowClass]
