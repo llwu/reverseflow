@@ -2,22 +2,17 @@
 
 import tensorflow as tf
 
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.port import InPort, OutPort
+from reverseflow.arrows.arrow import PrimitiveArrow
 
 
-class TfArrow(Arrow):
+class TfArrow(PrimitiveArrow):
     """TensorFlow arrow. Can compile to any TensorFlow graph."""
 
     def is_tf(self) -> bool:
         return True
 
-    def __init__(self, graph: tf.Graph, name: str) -> None:
-        super().__init__(name=name)
-        self.n_in_ports = 1
-        self.n_out_ports = 1
-        self.in_ports = [InPort(self, 0)]
-        self.out_ports = [OutPort(self, 0)]
+    def __init__(self, n_in_ports: int, n_out_ports: int, graph: tf.Graph, name: str) -> None:
+        super().__init__(n_in_ports, n_out_ports, name)
         self.graph = graph
 
     def redefine_as(self, graph: tf.Graph) -> None:
