@@ -24,3 +24,6 @@ class Arrow:
 
     def is_approximate(self) -> bool:
         return False
+
+    def is_tf(self) -> bool:
+        return True
