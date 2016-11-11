@@ -20,7 +20,7 @@ def test_xyplusx() -> None:
     return dupl_mul_add
 
 
-def test_twoxyplusx() -> None:
+def test_twoxyplusx() -> CompositeArrow:
     """f(x,y) = 2 * x * y + x"""
     tf.reset_default_graph()
     two = SourceArrow(2)
