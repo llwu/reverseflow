@@ -8,7 +8,8 @@ from reverseflow.arrows.port import InPort, OutPort
 from reverseflow.arrows.arrow import Arrow
 
 
-def mark(arrow: Arrow, knowns: Set[InPort]) -> Tuple[Set[InPort], Set[OutPort]]:
+def mark(arrow: Arrow,
+         knowns: Set[InPort]) -> Tuple[Set[InPort], Set[OutPort]]:
     """Propagates knowns throughout the arrow.
     Won't propagate to outside of the arrow.
 
@@ -46,16 +47,16 @@ def mark(arrow: Arrow, knowns: Set[InPort]) -> Tuple[Set[InPort], Set[OutPort]]:
         sub_arrow, priority = to_mark.popitem()
         assert priority >= 0, "knowns > num_in_ports?"
         if priority == 0:
-            for out_port in sub_arrow.out_ports:
-                add(out_port)
-        elif sub_arrow.is_composite:
-            sub_knowns = set()
-            for i in range(sub_arrow.num_in_ports()):
-                if InPort(sub_arrow, i) in marked_inports:  # outer InPort
-                    sub_knowns.add(sub_arrow.in_ports[i])  # inner InPort
-            sub_marked_inports, sub_marked_outports = mark(sub_arrow, sub_knowns)
             for i in range(sub_arrow.num_out_ports()):
-                if sub_arrow.out_ports[i] in sub_marked_outports:  # inner OutPort
+                add(OutPort(sub_arrow, i))
+        elif sub_arrow.is_composite():
+            sub_knowns = set()
+            for i, in_port in enumerate(sub_arrow.in_ports):
+                if InPort(sub_arrow, i) in marked_inports:  # outer InPort
+                    sub_knowns.add(in_port)  # inner InPort
+            _, sub_marked_outports = mark(sub_arrow, sub_knowns)
+            for i, out_port in enumerate(sub_arrow.out_ports):
+                if out_port in sub_marked_outports:  # inner OutPort
                     add(OutPort(sub_arrow, i))  # outer OutPort
 
     return marked_inports, marked_outports

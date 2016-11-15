@@ -10,7 +10,6 @@ from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 # Typealias
 ArrowInvRel = ImageBimap[Arrow, Tuple(Arrow, Dict[int, int])]
 
-
 class InvAddArrow(ParametricArrow):
     """
     Parametric Inverse Addition
@@ -34,8 +33,16 @@ class InvAddArrow(ParametricArrow):
                          param_ports=param_ports,
                          name=name)
 
+    # If both ports are determined, then compute answer
+    # if one port is determiend then compute an
+
+
+
+
+
 InvAddArrowSet = OneToManyList()  # type: ArrowInvRel
-InvAddArrowSet.add(AddArrow, (InvAddArrow, {}))
+InvAddArrowSet.add((InvAddArrow, (1, 1)), (InvAddArrow, ()))
+InvAddArrowSet.add((AddArrow, (0), (InvAddArrow, {}))
 InvAddArrowSet.add(AddArrow, (SubArrow, {0: 1}))
 InvAddArrowSet.add(AddArrow, (SubArrow, {1: 1}))
 

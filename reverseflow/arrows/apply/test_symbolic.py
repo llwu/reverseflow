@@ -26,6 +26,4 @@ def test_symbolic_apply() -> None:
     print(constraints)
     # import pdb; pdb.set_trace()
 
-
-
 test_symbolic_apply()
