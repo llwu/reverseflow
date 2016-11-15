@@ -1,6 +1,6 @@
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.port import InPort, OutPort
-from typing import Dict, List
+from typing import Dict, List, MutableMapping
 from sympy import Expr, Rel
 
 class PrimitiveArrow(Arrow):
@@ -14,7 +14,7 @@ class PrimitiveArrow(Arrow):
     def num_out_ports(self):
         return self.n_out_ports
 
-    def gen_constraints(self, input_expr: Dict[int, Expr], output_expr: Dict[int, Expr]) -> List[Expr]:
+    def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
         return []
 
     def __init__(self, n_in_ports: int, n_out_ports: int, name: str) -> None:
