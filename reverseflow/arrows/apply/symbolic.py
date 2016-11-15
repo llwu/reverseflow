@@ -1,6 +1,6 @@
 """Symbolically Evaluate a Graph"""
 from collections import OrderedDict
-from typing import Dict, Sequence, MutableMapping, Any
+from typing import Dict, Sequence, MutableMapping, Tuple, List
 from reverseflow.arrows.port import InPort, OutPort
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.primitive.math_arrows import (AddArrow,
@@ -9,7 +9,7 @@ from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 
 from pqdict import pqdict
 import sympy
-from sympy import Expr
+from sympy import Expr, Rel
 from overloading import overload
 
 ExprList = Sequence[Expr]
@@ -45,7 +45,7 @@ def print_arrow_colors(arrow_colors):
 
 
 @overload
-def symbolic_apply(comp_arrow) -> Dict[Arrow, MutableMapping[int, Expr]]:
+def symbolic_apply(comp_arrow) -> Tuple[Dict[Arrow, MutableMapping[int, Expr]], List[Rel]]:
     """Convert an comp_arrow to a tensorflow graph"""
 
     # A priority queue for each sub_arrow
@@ -62,6 +62,7 @@ def symbolic_apply(comp_arrow) -> Dict[Arrow, MutableMapping[int, Expr]]:
     # Store a map from an arrow to its inputs
     # Use a dict because no guarantee we'll create input tensors in order
     arrow_exprs = dict()  # type: Dict[Arrow, MutableMapping[int, Expr]]
+    output_arrow_exprs = dict()  # type: Dict[Arrow, MutableMapping[int, Expr]]
 
     # create a tensor for each in_port to the composition
     # decrement priority for each arrow connected to inputs
@@ -88,6 +89,7 @@ def symbolic_apply(comp_arrow) -> Dict[Arrow, MutableMapping[int, Expr]]:
 
         for i, out_port in enumerate(sub_arrow.out_ports):
             # FIXME: this is linear search, encapsulate
+            default_add(output_arrow_exprs, sub_arrow, i, outputs[i])
             if out_port not in comp_arrow.out_ports:
                 neigh_port = comp_arrow.neigh_in_port(out_port)
                 neigh_arrow = neigh_port.arrow
@@ -97,4 +99,15 @@ def symbolic_apply(comp_arrow) -> Dict[Arrow, MutableMapping[int, Expr]]:
                     default_add(arrow_exprs, neigh_arrow, neigh_port.index,
                                 outputs[i])
 
-    return arrow_exprs
+    constraints = []  # type: List[Rel]
+    for sub_arrow in comp_arrow.get_sub_arrows():
+        input_expr = OrderedDict()
+        output_expr = OrderedDict()
+        if sub_arrow in arrow_exprs:
+            input_expr = arrow_exprs[sub_arrow]
+        if sub_arrow in output_arrow_exprs:
+            output_expr = output_arrow_exprs[sub_arrow]
+        new_constraints = sub_arrow.gen_constraints(input_expr, output_expr)
+        constraints.extend(new_constraints)
+
+    return (arrow_exprs, constraints)
