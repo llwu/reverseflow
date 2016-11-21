@@ -22,8 +22,8 @@ def test_xyplusx() -> CompositeArrow:
 
 def test_symbolic_apply() -> None:
     arrow = test_xyplusx()
-    symbolic_map = symbolic_apply(arrow)
+    (symbolic_map, constraints) = symbolic_apply(arrow)
+    print(constraints)
     # import pdb; pdb.set_trace()
-
 
 test_symbolic_apply()
