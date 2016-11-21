@@ -1,3 +1,4 @@
+
 """Defines mark()."""
 
 from typing import Set, Tuple
@@ -6,7 +7,6 @@ from pqdict import pqdict
 
 from reverseflow.arrows.port import InPort, OutPort
 from reverseflow.arrows.arrow import Arrow
-
 
 def mark(arrow: Arrow,
          knowns: Set[InPort]) -> Tuple[Set[InPort], Set[OutPort]]:
@@ -60,3 +60,15 @@ def mark(arrow: Arrow,
                     add(OutPort(sub_arrow, i))  # outer OutPort
 
     return marked_inports, marked_outports
+
+
+def mark_source(arrow:Arrow):
+    """Propagates constants frmo source arrows throughout arrow"""
+    # FIXME: Assumes arrow is flat
+    knowns = set()  # type: Set[InPort]
+    for sub_arrow in arrow.get_sub_arrows():
+        if sub_arrow.is_source():
+            in_port = arrow.edges.fwd(sub_arrow.out_port[0])
+            const_in_ports.add(in_port)
+
+    return mark(arrow, knowns)

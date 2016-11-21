@@ -12,3 +12,6 @@ class SourceArrow(Arrow):
         self.in_ports = []  # type: List[InPort]
         self.out_ports = [OutPort(self, 0)]
         self.value = value
+
+    def is_source(self):
+        return True
