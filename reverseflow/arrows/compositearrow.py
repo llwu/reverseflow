@@ -51,8 +51,10 @@ class CompositeArrow(Arrow):
         # TODO: Assert There must be no cycles
         # TODO: Assert Every inport must be on end of edge or be in in_ports
         # TODO: Assert Every outport must be on start of edge or in out_ports
-        self.in_ports = in_ports  # type: List[InPort]
-        self.out_ports = out_ports  # type: List[OutPort]
+        self.in_ports = [InPort(self, i) for i in range(len(in_ports))]
+        self.out_ports = [OutPort(self, i) for i in range(len(out_ports))]
+        self.inner_in_ports = in_ports  # type: List[InPort]
+        self.inner_out_ports = out_ports  # type: List[OutPort]
 
     def neigh_in_port(self, out_port: OutPort) -> InPort:
         return self.edges.fwd(out_port)

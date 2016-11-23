@@ -9,6 +9,20 @@ from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 import tensorflow as tf
 
 
+def test_xyplusx_flat() -> CompositeArrow:
+    """f(x,y) = x * y + x"""
+    mul = MulArrow()
+    add = AddArrow()
+    dupl = DuplArrow()
+    edges = Bimap()  # type: EdgeMap
+    edges.add(dupl.out_ports[0], mul.in_ports[0])  # dupl -> mul
+    edges.add(dupl.out_ports[1], add.in_ports[0])  # dupl -> add
+    edges.add(mul.out_ports[0], add.in_ports[1])  # mul -> add
+    d = CompositeArrow(in_ports=[dupl.in_ports[0], mul.in_ports[1]],
+                       out_ports=[add.out_ports[0]], edges=edges)
+    return d
+
+
 def test_xyplusx() -> CompositeArrow:
     """f(x,y) = x * y + x"""
     tf.reset_default_graph()

@@ -70,12 +70,14 @@ def arrow_to_graph(comp_arrow: CompositeArrow) -> Graph:
 
         # create a tensor for each in_port to the composition
         # decrement priority for each arrow connected to inputs
-        for in_port in comp_arrow.in_ports:
+        for in_port in comp_arrow.inner_in_ports:
             sub_arrow = in_port.arrow
             assert sub_arrow in arrow_colors
             arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
             input_tensor = tf.placeholder(dtype='float32')  # FIXME: Generalize
             default_add(arrow_tensors, sub_arrow, in_port.index, input_tensor)
+
+        
 
         while len(arrow_colors) > 0:
             print_arrow_colors(arrow_colors)
@@ -93,7 +95,7 @@ def arrow_to_graph(comp_arrow: CompositeArrow) -> Graph:
 
             for i, out_port in enumerate(sub_arrow.out_ports):
                 # FIXME: this is linear search, encapsulate
-                if out_port not in comp_arrow.out_ports:
+                if out_port not in comp_arrow.inner_out_ports:
                     neigh_port = comp_arrow.neigh_in_port(out_port)
                     neigh_arrow = neigh_port.arrow
                     if neigh_arrow is not comp_arrow:
