@@ -9,7 +9,7 @@ from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 import tensorflow as tf
 
 
-def test_xyplusx() -> None:
+def test_xyplusx() -> CompositeArrow:
     """f(x,y) = x * y + x"""
     tf.reset_default_graph()
     mul = MulArrow()
@@ -39,7 +39,7 @@ def test_twoxyplusx() -> CompositeArrow:
                           edges=edges)
 
 
-def test_multicomb() -> None:
+def test_multicomb() -> CompositeArrow:
     """f(a,b,c,d,e,f) = (a+b)(cd(e+f) + e + f)"""
     add1, add2 = AddArrow(), AddArrow()
     mul1, mul2 = MulArrow(), MulArrow()

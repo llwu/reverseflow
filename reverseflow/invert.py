@@ -71,6 +71,9 @@ def invert_const(arrow: CompositeArrow,
         assert isinstance(out_port, OutPort)
         inv_out_ports.append(out_port)
 
+    import pdb; pdb.set_trace()
+    
+
     inv_name = "%s_inv" % arrow.name
     return CompositeArrow(edges=edges,
                           in_ports=inv_in_ports,
