@@ -54,8 +54,14 @@ def invert_const(arrow: CompositeArrow,
                                                       const_out_ports,
                                                       dispatch,
                                                       arrow_to_inv)
-            import pdb; pdb.set_trace()
-            edges.add(out_port_map[out_port], in_port_map[in_port])
+            # import pdb; pdb.set_trace()
+            inv_in_port = out_port_map[out_port]
+            assert isinstance(inv_in_port, InPort)
+
+            inv_out_port = in_port_map[in_port]
+            assert isinstance(inv_out_port, OutPort)
+
+            edges.add(inv_out_port, inv_in_port)
 
     # Every inport is an outport
     inv_in_ports = []
