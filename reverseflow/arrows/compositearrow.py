@@ -37,11 +37,11 @@ class CompositeArrow(Arrow):
         self.edges = edges
         arrows = self.get_sub_arrows()
         for in_port in in_ports:
-            assert in_port.arrow in arrows, "Designated in_port not in edges"
-            assert in_port not in edges.values(), "in_port must be unconnected"
+            assert in_port not in edges.values(), "in_port must be unconnected"  % in_port.arrow
+            assert in_port.arrow in arrows, "InPort arrow (%s) not in composition" % in_port.arrow
 
         for out_port in out_ports:
-            assert out_port.arrow in arrows, "Designated in_port not in edges"
+            assert out_port.arrow in arrows, "OutPort arrow (%s) not in composition" % out_port.arrow
             assert out_port not in edges.keys(), "out_port must be unconnected"
 
         # TODO: Assert There must be no cycles

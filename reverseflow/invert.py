@@ -44,24 +44,38 @@ def invert_const(arrow: CompositeArrow,
             new_in_port = port_map[in_port]
             edges.add(OutPort, new_in_port)
         else:
-            inverse_in_arrow, port_map = get_inverse(in_port.arrow,
+            inverse_in_arrow, in_port_map = get_inverse(in_port.arrow,
                                                      const_in_ports,
                                                      const_out_ports,
                                                      dispatch,
                                                      arrow_to_inv)
-            inverse_out_arrow, port_map = get_inverse(out_port.arrow,
+            inverse_out_arrow, out_port_map = get_inverse(out_port.arrow,
                                                       const_in_ports,
                                                       const_out_ports,
                                                       dispatch,
                                                       arrow_to_inv)
-            edges.add(port_map[out_port], port_map[in_port])
+            edges.add(out_port_map[out_port], in_port_map[in_port])
 
     # Every inport is an outport
-    in_ports = [InPort(arrow_to_inv[out_port.arrow]) for out_port in arrow.out_ports]
-    out_ports = [InPort(arrow_to_inv[out_port.arrow]) for out_port in arrow.out_ports]
-    name = "%s_inv" % arrow.name
-    return CompositeArrow(edges=edges, in_ports=in_ports, out_ports=out_ports,
-                          name=name)
+    inv_in_ports = []
+    inv_out_ports = []
+    for out_port in arrow.out_ports:
+        inv_arrow, port_map = arrow_to_inv[out_port.arrow]
+        in_port = port_map[out_port]
+        assert isinstance(in_port, InPort)
+        inv_in_ports.append(in_port)
+
+    for in_port in arrow.in_ports:
+        inv_arrow, port_map = arrow_to_inv[in_port.arrow]
+        out_port = port_map[in_port]
+        assert isinstance(out_port, OutPort)
+        inv_out_ports.append(out_port)
+
+    inv_name = "%s_inv" % arrow.name
+    return CompositeArrow(edges=edges,
+                          in_ports=inv_in_ports,
+                          out_ports=inv_out_ports,
+                          name=inv_name)
 
 
 def invert(arrow: CompositeArrow,
