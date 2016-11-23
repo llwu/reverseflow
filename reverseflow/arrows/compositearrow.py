@@ -37,7 +37,7 @@ class CompositeArrow(Arrow):
         self.edges = edges
         for out_port, in_port in edges.items():
             assert isinstance(out_port, OutPort), "Expected OutPort got %s" % out_port
-            assert isinstance(out_port, InPort), "Expected InPort got %s" % in_port
+            assert isinstance(in_port, InPort), "Expected InPort got %s" % in_port
 
         arrows = self.get_sub_arrows()
         for in_port in in_ports:

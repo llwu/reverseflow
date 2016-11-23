@@ -54,6 +54,7 @@ def invert_const(arrow: CompositeArrow,
                                                       const_out_ports,
                                                       dispatch,
                                                       arrow_to_inv)
+            import pdb; pdb.set_trace()
             edges.add(out_port_map[out_port], in_port_map[in_port])
 
     # Every inport is an outport
@@ -72,7 +73,7 @@ def invert_const(arrow: CompositeArrow,
         inv_out_ports.append(out_port)
 
     import pdb; pdb.set_trace()
-    
+
 
     inv_name = "%s_inv" % arrow.name
     return CompositeArrow(edges=edges,
