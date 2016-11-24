@@ -1,12 +1,19 @@
 """Functions to generate the arrows for tests."""
 
+from random import randint, sample
+import inspect
+
+import tensorflow as tf
+
+import reverseflow.arrows.primitive.math_arrows
+from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.primitive.math_arrows import MulArrow, AddArrow
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
+from reverseflow.arrows.primitivearrow import PrimitiveArrow
 from reverseflow.arrows.sourcearrow import SourceArrow
 from reverseflow.arrows.compose import compose_comb_modular, compose_comb
 from reverseflow.util.mapping import Bimap
-from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
-import tensorflow as tf
+from reverseflow.arrows.compositearrow import CompositeArrow
 
 
 def test_xyplusx_flat() -> CompositeArrow:
@@ -63,3 +70,47 @@ def test_multicomb() -> CompositeArrow:
     add_mul = compose_comb(add2, mul2, {0: 0})
     multicomb = compose_comb(mul_add_comp, add_mul, {0: 2})
     return multicomb
+
+
+def test_random_math() -> PrimitiveArrow:
+    """Generates a random math arrow."""
+    maths = [m[1] for m in inspect.getmembers(reverseflow.arrows.primitive.math_arrows,
+            inspect.isclass) if m[1].__module__ == 'reverseflow.arrows.primitive.math_arrows']
+    return maths[randint(0, len(maths) - 1)]()
+
+
+def test_random_input() -> Arrow:
+    """Generates a random math or source arrow."""
+    odds = 5
+    if randint(0, odds) == 0:
+        return SourceArrow(randint(0, 0xBADA55))
+    else:
+        return test_random_math()
+
+
+def test_random_composite() -> CompositeArrow:
+    """Generates a random arrow."""
+    min_size = 10
+    max_size = 50
+    arrow = test_random_math()
+    size = randint(min_size, max_size)
+    for _ in range(size):
+        if arrow.num_in_ports() > 1:
+            odds = 5
+            if randint(0, odds) == 0:
+                ports = sample(range(arrow.num_in_ports()), 2)
+                arrow = compose_comb(
+                    DuplArrow(),
+                    arrow,
+                    {0: ports[0], 1: ports[1]})
+            else:
+                arrow = compose_comb(
+                    test_random_input(),
+                    arrow,
+                    {0: randint(0, arrow.num_in_ports() - 1)})
+        else:
+            arrow = compose_comb(
+                test_random_math(),
+                arrow,
+                {0: randint(0, arrow.num_in_ports() - 1)})
+    return arrow

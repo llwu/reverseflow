@@ -29,4 +29,4 @@ class Arrow:
         return False
 
     def is_tf(self) -> bool:
-        return True
+        return False

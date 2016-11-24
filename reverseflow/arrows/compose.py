@@ -10,34 +10,22 @@ from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 from reverseflow.util.mapping import Bimap
 
 
-# llwu: this is probably broken
-def compose(l: Arrow, r: Arrow) -> CompositeArrow:
-    """Connect outputs of arrow l into inputs of arrow r"""
-    assert len(l.out_ports) == len(r.in_ports), \
-        "Can't compose %s outports into %s in_ports" % \
-        (len(l.out_ports), len(r.in_ports))
-
-    n_ports_compose = len(l.out_ports)
-    edges = Bimap()  # type: EdgeMap
-    for i in range(n_ports_compose):
-        edges.add(l.out_ports[i], r.in_ports[i])
-    edges.update(l.edges)
-    edges.update(r.edges)
-    return CompositeArrow(edges=edges, in_ports=l.in_ports, out_ports=r.out_ports)
-
-
-@overload
-def edges(a: CompositeArrow) -> EdgeMap:
-    return a.edges
-
-
-@overload
-def edges(a: PrimitiveArrow) -> EdgeMap:
-    return Bimap()
+def edges(a: Arrow) -> EdgeMap:
+    if a.is_composite():
+        return a.edges
+    else:
+        return Bimap()
 
 
 def compose_comb(l: Arrow, r: Arrow, out_to_in: Dict[int, int]) -> CompositeArrow:
-    """Wires the ports of the primitive arrows on the boundaries."""
+    """
+    Wires the ports of the primitive arrows on the boundaries.
+
+    The dangling ports become the ports of the composite arrow.
+
+    The ports of the composite arrow may reference l, r,
+    or a subarrow of l or r.
+    """
     in_ports = copy(l.in_ports)
     out_ports = copy(r.out_ports)
 
@@ -62,7 +50,14 @@ def compose_comb(l: Arrow, r: Arrow, out_to_in: Dict[int, int]) -> CompositeArro
 
 
 def compose_comb_modular(l: Arrow, r: Arrow, out_to_in: Dict[int, int]) -> CompositeArrow:
-    """Wires the ports of the composite arrows."""
+    """
+    Wires the ports of the composite arrows.
+
+    For each dangling port, an InPort or OutPort is initialized
+    referencing l or r.
+
+    The ports of the composite arrow all reference l or r.
+    """
     in_ports = [InPort(l, i) for i in range(len(l.in_ports))]
     out_ports = [OutPort(r, i) for i in range(len(r.out_ports))]
 
