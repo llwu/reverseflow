@@ -8,7 +8,7 @@ def invert_test() -> None:
     arrow = test_xyplusx_flat()
     invert(arrow)
 
-    rand_arrow = test_random_composite()
-    invert(rand_arrow)
+    # rand_arrow = test_random_composite()
+    # invert(rand_arrow)
 
 invert_test()
