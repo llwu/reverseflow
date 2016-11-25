@@ -81,7 +81,7 @@ def test_random_math() -> PrimitiveArrow:
 
 def test_random_input() -> Arrow:
     """Generates a random math or source arrow."""
-    odds = 5
+    odds = 50000000
     if randint(0, odds) == 0:
         return SourceArrow(randint(0, 0xBADA55))
     else:

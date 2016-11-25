@@ -52,7 +52,9 @@ class CompositeArrow(Arrow):
         # TODO: Assert Every inport must be on end of edge or be in in_ports
         # TODO: Assert Every outport must be on start of edge or in out_ports
         self.in_ports = [InPort(self, i) for i in range(len(in_ports))]
+        self.n_in_ports = len(self.in_ports)
         self.out_ports = [OutPort(self, i) for i in range(len(out_ports))]
+        self.n_out_ports = len(self.out_ports)
         self.inner_in_ports = in_ports  # type: List[InPort]
         self.inner_out_ports = out_ports  # type: List[OutPort]
 
