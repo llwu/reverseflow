@@ -1,7 +1,7 @@
 """Inverse Dispatches for Inverses"""
 from reverseflow.arrows.primitive.math_arrows import AddArrow, SubArrow
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
-from reverseflow.inv_primitives.inv_math_arrows import InvAddArrow
+from reverseflow.inv_primitives.inv_math_arrows import InvAddArrow, InvMulArrow
 from reverseflow.inv_primitives.inv_control_flow_arrows import InvDuplArrow
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.port import Port, InPort
@@ -41,6 +41,33 @@ def inv_add(arrow: AddArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMa
                     arrow.in_ports[0]:inv_arrow.out_ports[0],
                     arrow.out_ports[0]:inv_arrow.in_ports[0]}
     return inv_arrow, port_map
+
+def inv_mul(arrow: AddArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
+    port_0_const = arrow.in_ports[0] in const_in_ports
+    port_1_const = arrow.in_ports[1] in const_in_ports
+
+    assert not(port_0_const and port_1_const), "Both inputs are constant, cannot invert"
+    if not(port_0_const or port_1_const):
+        inv_arrow = InvMulArrow()
+        port_map  = {arrow.in_ports[0]:inv_arrow.out_ports[0],
+                     arrow.in_ports[1]:inv_arrow.out_ports[1],
+                     arrow.out_ports[0]:inv_arrow.in_ports[0]}
+
+    elif port_0_const:
+        assert False, "Unimplemented"
+        inv_arrow = SubArrow()
+        port_map = {arrow.in_ports[0]:inv_arrow.in_ports[1],
+                    arrow.in_ports[1]:inv_arrow.out_ports[0],
+                    arrow.out_ports[0]:inv_arrow.in_ports[0]}
+    else:
+        assert False, "Unimplemented"
+        assert port_1_const
+        inv_arrow = SubArrow()
+        port_map = {arrow.in_ports[1]:inv_arrow.in_ports[1],
+                    arrow.in_ports[0]:inv_arrow.out_ports[0],
+                    arrow.out_ports[0]:inv_arrow.in_ports[0]}
+    return inv_arrow, port_map
+
 
 def inv_dupl(arrow: DuplArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
     assert arrow.in_ports[0] not in const_in_ports, "Dupl is constant"
