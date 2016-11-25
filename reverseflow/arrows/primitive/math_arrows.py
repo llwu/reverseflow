@@ -1,6 +1,6 @@
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
 from typing import Dict, List, MutableMapping
-from sympy import Expr, Rel, Gt
+from sympy import Expr, Rel, Gt, Ne
 
 
 class AddArrow(PrimitiveArrow):
