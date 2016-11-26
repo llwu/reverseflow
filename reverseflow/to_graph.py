@@ -15,12 +15,6 @@ def print_arrow_colors(arrow_colors):
         print(arr.name, ": ", pr)
 
 
-def valid(sub_arrow, arrow_tensors):
-    input_tensors = arrow_tensors[sub_arrow]
-    # TODO: Check that the number of inputs created is same as num inputs to
-    # arrow
-    return True
-
 def default_add(arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
                 sub_arrow: Arrow, index: int, input_tensor: Tensor) -> None:
     if sub_arrow in arrow_tensors:
@@ -71,78 +65,62 @@ def conv(a: DuplArrow, args: List[Tensor]) -> List[Tensor]:
 def conv(a: CompositeArrow, args: List[Tensor]) -> List[Tensor]:
     graph = tf.get_default_graph()
     assert len(args) == a.n_in_ports
-
-    input_tensors = args
-    arrow_colors = pqdict()
-    arrow_tensors = dict()  # type: Dict[Arrow, MutableMapping[int, tf.Tensor]]
-
-    for sub_arrow in a.get_sub_arrows():
-        arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
-
-    for i, input_tensor in enumerate(args):
-        in_port = a.inner_in_ports[i]
-        sub_arrow = in_port.arrow
-        arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
-        default_add(arrow_tensors, sub_arrow, in_port.index, input_tensor)
-
-    # import pdb; pdb.set_trace()
-
+    arrow_colors, arrow_tensors = okok(a, args)
     new_graph, input_tensors, output_tensors = arrow_to_graph(a,
-                                                              input_tensors,
+                                                              args,
                                                               arrow_colors,
                                                               arrow_tensors,
                                                               graph)
-    # import pdb; pdb.set_trace()
-
     return output_tensors
 
 
-def arrow_to_new_graph(comp_arrow: CompositeArrow) -> Graph:
-    """Create new graph and convert comp_arrow into it"""
-    graph = tf.Graph()
+def okok(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
+    # A priority queue for each sub_arrow
+    # priority is the number of inputs it has which have already been seen
+    # seen inputs are inputs to the composition, or outputs of arrows that
+    # have already been converted into
     # create a tensor for each in_port to the composition
     # decrement priority for each arrow connected to inputs
-
-    arrow_colors = pqdict()
-
-    for sub_arrow in comp_arrow.get_sub_arrows():
-        arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
+    arrow_colors = pqdict()  # type: MutableMapping[Arrow, int]
 
     # Store a map from an arrow to its inputs
     # Use a dict because no guarantee we'll create input tensors in order
     arrow_tensors = dict()  # type: Dict[Arrow, MutableMapping[int, tf.Tensor]]
 
-    input_tensors = []
-    for in_port in comp_arrow.inner_in_ports:
+    for sub_arrow in comp_arrow.get_sub_arrows():
+        arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
+
+    for i, input_tensor in enumerate(input_tensors):
+        in_port = comp_arrow.inner_in_ports[i]
         sub_arrow = in_port.arrow
-        assert sub_arrow in arrow_colors
         arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
-        input_tensor = tf.placeholder(dtype='float32')  # FIXME: Generalize
-        input_tensors.append(input_tensor)
         default_add(arrow_tensors, sub_arrow, in_port.index, input_tensor)
 
+    return arrow_colors, arrow_tensors
+
+
+def arrow_to_new_graph(comp_arrow: CompositeArrow) -> Graph:
+    """Create new graph and convert comp_arrow into it"""
+    graph = tf.Graph()
+    input_tensors = [tf.placeholder(dtype='float32') for i in range(comp_arrow.n_in_ports)]
+    arrow_colors, arrow_tensors = okok(comp_arrow, input_tensors)
     return arrow_to_graph(comp_arrow, input_tensors, arrow_colors, arrow_tensors, graph)
 
 
 def arrow_to_graph(comp_arrow: CompositeArrow,
                    input_tensors: List[Tensor],
-                   arrow_colors,
-                   arrow_tensors,
+                   arrow_colors: MutableMapping[Arrow, int],
+                   arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
                    graph: Graph) -> Tuple[Graph, List[Tensor], List[Tensor]]:
     """Convert an comp_arrow to a tensorflow graph and add to graph"""
     with graph.as_default():
-        # A priority queue for each sub_arrow
-        # priority is the number of inputs it has which have already been seen
-        # seen inputs are inputs to the composition, or outputs of arrows that
-        # have already been converted into
+
         while len(arrow_colors) > 0:
             print_arrow_colors(arrow_colors)
             sub_arrow, priority = arrow_colors.popitem()
             print("Converting ", sub_arrow.name)
             assert priority == 0, "Must resolve all inputs to sub_arrow first"
-            # If its a composite we still want to wait until all its inputs are ready
-            # Then we should call this function with the same arguments
-            assert valid(sub_arrow, arrow_tensors)
+            # TODO: Check that the number of inputs created is same as num inputs to
 
             inputs = list(arrow_tensors[sub_arrow].values())
             # import pdb; pdb.set_trace()
