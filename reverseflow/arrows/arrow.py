@@ -32,13 +32,7 @@ class Arrow:
         return False
 
     def inner_in_ports(self):
-        if self.is_composite():
-            return self._inner_in_ports
-        else:
-            return self.in_ports
+        return self.in_ports
 
     def inner_out_ports(self):
-        if self.is_composite():
-            return self._inner_out_ports
-        else:
-            return self.out_ports
+        return self.out_ports

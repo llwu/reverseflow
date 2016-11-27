@@ -63,3 +63,9 @@ class CompositeArrow(Arrow):
 
     def neigh_out_port(self, in_port: InPort) -> OutPort:
         return self.edges.inv(in_port)
+
+    def inner_in_ports(self):
+        return self._inner_in_ports
+
+    def inner_out_ports(self):
+        return self._inner_out_ports
