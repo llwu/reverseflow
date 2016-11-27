@@ -8,12 +8,6 @@ class PrimitiveArrow(Arrow):
     def is_primitive(self) -> bool:
         return True
 
-    def num_in_ports(self):
-        return self.n_in_ports
-
-    def num_out_ports(self):
-        return self.n_out_ports
-
     def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
         return []
 

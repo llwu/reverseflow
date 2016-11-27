@@ -56,7 +56,7 @@ def symbolic_apply(comp_arrow) -> Tuple[Dict[Arrow, MutableMapping[int, Expr]], 
     arrow_colors = pqdict()
     # import pdb; pdb.set_trace()
     for sub_arrow in comp_arrow.get_sub_arrows():
-        arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
+        arrow_colors[sub_arrow] = sub_arrow.n_in_ports
 
     print_arrow_colors(arrow_colors)
 

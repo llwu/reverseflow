@@ -1,10 +1,9 @@
 import tensorflow as tf
 from reverseflow.to_arrow import graph_to_arrow
+from test_graphs import test_xyplusx_graph
 
 
 def test_xyplusx() -> None:
     """f(x,y) = x * y + x"""
-    x = tf.placeholder('float32')
-    y = tf.placeholder('float32')
-    z = x * y + x
-    graph_to_arrow([z])
+    graph, inputs, outputs = test_xyplusx_graph()
+    graph_to_arrow(outputs)
