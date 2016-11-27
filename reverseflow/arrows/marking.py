@@ -34,6 +34,8 @@ def mark(arrow: Arrow,
     def add(out_port):
         """Marks out_port and (if it exists) the neighboring in port."""
         marked_outports.add(out_port)
+        if not arrow.is_composite():
+            return
         if out_port in arrow.edges.keys():
             in_port = arrow.neigh_in_port(out_port)
             marked_inports.add(in_port)
@@ -47,17 +49,17 @@ def mark(arrow: Arrow,
         sub_arrow, priority = to_mark.popitem()
         assert priority >= 0, "knowns > num_in_ports?"
         if priority == 0:
-            for i in range(sub_arrow.num_out_ports()):
-                add(OutPort(sub_arrow, i))
+            for out_port in sub_arrow.out_ports:
+                add(out_port)
         elif sub_arrow.is_composite():
             sub_knowns = set()
-            for i, in_port in enumerate(sub_arrow.in_ports):
-                if InPort(sub_arrow, i) in marked_inports:  # outer InPort
+            for i, in_port in enumerate(sub_arrow.inner_in_ports()):
+                if sub_arrow.in_ports[i] in marked_inports:  # outer InPort
                     sub_knowns.add(in_port)  # inner InPort
             _, sub_marked_outports = mark(sub_arrow, sub_knowns)
-            for i, out_port in enumerate(sub_arrow.out_ports):
+            for i, out_port in enumerate(sub_arrow.inner_out_ports()):
                 if out_port in sub_marked_outports:  # inner OutPort
-                    add(OutPort(sub_arrow, i))  # outer OutPort
+                    add(sub_arrow.out_ports[i])  # outer OutPort
 
     return marked_inports, marked_outports
 
