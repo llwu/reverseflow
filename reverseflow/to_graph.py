@@ -53,18 +53,18 @@ def conv(a: MulArrow, args: List[Tensor]) -> List[Tensor]:
 
 @overload
 def conv(a: DivArrow, args: List[Tensor]) -> List[Tensor]:
-    return [tf.mul(*args)]
+    return [tf.div(*args)]
 
 @overload
 def conv(a: DuplArrow, args: List[Tensor]) -> List[Tensor]:
     # TODO: Genralize to n outputs
-    return [args[0] for i in range(a.n_out_ports)]
+    return [args[0] for i in range(a.num_out_ports())]
 
 
 @overload
 def conv(a: CompositeArrow, args: List[Tensor]) -> List[Tensor]:
     graph = tf.get_default_graph()
-    assert len(args) == a.n_in_ports
+    assert len(args) == a.num_in_ports()
     arrow_colors, arrow_tensors = okok(a, args)
     new_graph, input_tensors, output_tensors = arrow_to_graph(a,
                                                               args,
@@ -102,7 +102,7 @@ def okok(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
 def arrow_to_new_graph(comp_arrow: CompositeArrow) -> Graph:
     """Create new graph and convert comp_arrow into it"""
     graph = tf.Graph()
-    input_tensors = [tf.placeholder(dtype='float32') for i in range(comp_arrow.n_in_ports)]
+    input_tensors = [tf.placeholder(dtype='float32') for i in range(comp_arrow.num_in_ports())]
     arrow_colors, arrow_tensors = okok(comp_arrow, input_tensors)
     return arrow_to_graph(comp_arrow, input_tensors, arrow_colors, arrow_tensors, graph)
 

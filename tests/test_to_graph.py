@@ -14,13 +14,6 @@ def test_arrow_to_graph() -> None:
     tf.reset_default_graph()
     arrow_to_new_graph(arrow)
 
-    TENSORBOARD_LOGDIR = "tensorboard_logdir"
-    writer = tf.train.SummaryWriter(TENSORBOARD_LOGDIR, tf.Session().graph)
-    writer.flush()
-    print("For graph visualization, invoke")
-    print("$ tensorboard --logdir " + TENSORBOARD_LOGDIR)
-    print("and click on the GRAPHS tab.")
-
 
 def reset_and_conv(arrow: Arrow) -> None:
     tf.reset_default_graph()
