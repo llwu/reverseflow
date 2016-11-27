@@ -4,7 +4,7 @@ from reverseflow.arrows.parametricarrow import ParametricArrow
 from reverseflow.arrows.port import InPort, OutPort, ParamPort
 from reverseflow.util.mapping import Bimap, ImageBimap, OneToMany, OneToManyList
 from reverseflow.arrows.primitive.math_arrows import (AddArrow, SubArrow,
-    MulArrow, DivArrow, ExpArrow, NegArrow, LogArrow)
+    MulArrow, DivArrow, NegArrow)
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 
 
@@ -86,7 +86,7 @@ class InvDivArrow(ParametricArrow):
                          param_ports=param_ports,
                          name=name)
 
-
+"""
 class InvExpArrow(ParametricArrow):
     def __init__(self) -> None:
         name = 'InvExp'
@@ -104,3 +104,4 @@ class InvExpArrow(ParametricArrow):
                          out_ports=out_ports,
                          param_ports=param_ports,
                          name=name)
+"""

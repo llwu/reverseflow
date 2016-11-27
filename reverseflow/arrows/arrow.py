@@ -36,3 +36,6 @@ class Arrow:
 
     def inner_out_ports(self):
         return self.out_ports
+
+    def get_sub_arrows(self):
+        return []

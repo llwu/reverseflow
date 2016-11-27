@@ -71,7 +71,7 @@ class Bimap(Generic[L, R]):
         return self.left_to_right.__str__()
 
     def __repr__(self):
-        return self.left_to_right.__str__()
+        return self.left_to_right.__repr__()
 
 
 class OneToMany(Generic[L, R]):

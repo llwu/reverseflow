@@ -69,13 +69,13 @@ def invert_const(arrow: CompositeArrow,
     inv_in_ports = []
     inv_out_ports = []
 
-    for out_port in arrow.inner_out_ports:
+    for out_port in arrow.inner_out_ports():
         inv_arrow, port_map = arrow_to_inv[out_port.arrow]
         in_port = port_map[out_port]
         assert isinstance(in_port, InPort)
         inv_in_ports.append(in_port)
 
-    for in_port in arrow.inner_in_ports:
+    for in_port in arrow.inner_in_ports():
         inv_arrow, port_map = arrow_to_inv[in_port.arrow]
         out_port = port_map[in_port]
         assert isinstance(out_port, OutPort)
