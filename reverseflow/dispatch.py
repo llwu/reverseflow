@@ -1,7 +1,7 @@
 """Inverse Dispatches for Inverses"""
 from reverseflow.arrows.primitive.math_arrows import AddArrow, SubArrow, MulArrow, DivArrow
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
-from reverseflow.inv_primitives.inv_math_arrows import InvAddArrow, InvMulArrow, InvSubArrow, InvDivArrow, InvExpArrow
+from reverseflow.inv_primitives.inv_math_arrows import InvAddArrow, InvMulArrow, InvSubArrow, InvDivArrow
 from reverseflow.inv_primitives.inv_control_flow_arrows import InvDuplArrow
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.port import Port, InPort

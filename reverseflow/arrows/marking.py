@@ -38,7 +38,7 @@ def mark(arrow: Arrow,
         marked_outports.add(out_port)
         if not arrow.is_composite():
             return
-        if out_port in arrow.edges.keys():
+        if out_port in arrow.edges:
             in_port = arrow.neigh_in_port(out_port)
             marked_inports.add(in_port)
             dec(in_port.arrow)
@@ -72,7 +72,7 @@ def mark_source(arrow: Arrow):
     # FIXME: Assumes arrow is flat
     knowns = set()  # type: Set[InPort]
     for sub_arrow in arrow.get_sub_arrows():
-        if sub_arrow.is_source():
+        if sub_arrow.is_source() and (sub_arrow.out_ports[0] in arrow.edges):
             in_port = arrow.edges.fwd(sub_arrow.out_ports[0])
             knowns.add(in_port)
 

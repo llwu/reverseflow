@@ -4,7 +4,7 @@ from reverseflow.arrows.compositearrow import CompositeArrow
 from reverseflow.arrows.port import InPort, OutPort, ParamPort
 from reverseflow.util.mapping import Bimap, ImageBimap, OneToMany, OneToManyList
 from reverseflow.arrows.primitive.math_arrows import (AddArrow, SubArrow,
-    MulArrow, DivArrow, ExpArrow, NegArrow, LogArrow)
+    MulArrow, DivArrow, NegArrow)
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 
 
@@ -87,20 +87,20 @@ class InvDivArrow(CompositeArrow):
                          name=name)
 
 
-class InvExpArrow(CompositeArrow):
-    def __init__(self) -> None:
-        name = 'InvExp'
-        # consider having theta be something other than an InPort
-        edges = Bimap()  # type: EdgeMap
-        dupl_theta = DuplArrow()
-        log = LogArrow()
-
-        in_ports = [log.in_ports[1]]
-        out_ports = [dupl_theta.out_ports[1], log.out_ports[0]]
-        param_ports = [dupl_theta.in_ports[0]]
-        edges.add(dupl_theta.out_ports[0], log.in_ports[0])
-        super().__init__(edges=edges,
-                         in_ports=in_ports,
-                         out_ports=out_ports,
-                         param_ports=param_ports,
-                         name=name)
+# class InvExpArrow(CompositeArrow):
+#     def __init__(self) -> None:
+#         name = 'InvExp'
+#         # consider having theta be something other than an InPort
+#         edges = Bimap()  # type: EdgeMap
+#         dupl_theta = DuplArrow()
+#         log = LogArrow()
+#
+#         in_ports = [log.in_ports[1]]
+#         out_ports = [dupl_theta.out_ports[1], log.out_ports[0]]
+#         param_ports = [dupl_theta.in_ports[0]]
+#         edges.add(dupl_theta.out_ports[0], log.in_ports[0])
+#         super().__init__(edges=edges,
+#                          in_ports=in_ports,
+#                          out_ports=out_ports,
+#                          param_ports=param_ports,
+#                          name=name)
