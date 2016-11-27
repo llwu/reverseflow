@@ -1,8 +1,9 @@
-from reverseflow.arrows.approximatate_arrow import ApproximateArrow
+from reverseflow.arrows.compositearrow import CompositeArrow
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
+from reverseflow.util.mapping import Bimap
 
 
-class ApproxIdentity(ApproximateArrow):
+class ApproxIdentity(CompositeArrow):
     """Approximate Identity Arrow
     f(x_1,..,x_n) = mean(x_1,,,,.x_n), var(x_1, ..., x_n)
     """
@@ -10,8 +11,8 @@ class ApproxIdentity(ApproximateArrow):
     def __init__(self, n_inputs: int):
         name = "ApproxIdentity"
         edges = Bimap()  # type: EdgeMap
-        mean = MeanArrow()
-        var = VarArrow()
+        mean = MeanArrow()  # TODO: Add this arrow
+        var = VarArrow()  # TODO Add this arrow
         dupls = [DuplArrow() for i in range(n_inputs)]
         for i in range(n_inputs):
             edges.add(dupls[i].out_ports[0], mean.in_ports[i])
@@ -23,6 +24,6 @@ class ApproxIdentity(ApproximateArrow):
         error_ports = var.out_ports
         super().__init__(edges=edges,
                          in_ports=in_ports,
-                         out_ports=out_ports
+                         out_ports=out_ports,
                          error_ports=error_ports,
                          name=name)

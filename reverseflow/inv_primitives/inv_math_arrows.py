@@ -1,6 +1,6 @@
 from typing import Tuple, Dict
 from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.parametricarrow import ParametricArrow
+from reverseflow.arrows.compositearrow import CompositeArrow
 from reverseflow.arrows.port import InPort, OutPort, ParamPort
 from reverseflow.util.mapping import Bimap, ImageBimap, OneToMany, OneToManyList
 from reverseflow.arrows.primitive.math_arrows import (AddArrow, SubArrow,
@@ -8,7 +8,7 @@ from reverseflow.arrows.primitive.math_arrows import (AddArrow, SubArrow,
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 
 
-class InvAddArrow(ParametricArrow):
+class InvAddArrow(CompositeArrow):
     """
     Parametric Inverse Addition
     add-1(z; theta) = (z-theta, theta)
@@ -32,7 +32,7 @@ class InvAddArrow(ParametricArrow):
                          name=name)
 
 
-class InvSubArrow(ParametricArrow):
+class InvSubArrow(CompositeArrow):
     """
     Parametric Inverse Subtraction
     sub-1(z; theta) = (z+theta, theta)
@@ -50,7 +50,7 @@ class InvSubArrow(ParametricArrow):
                          out_ports=out_ports, param_ports=param_ports,
                          name=name)
 
-class InvMulArrow(ParametricArrow):
+class InvMulArrow(CompositeArrow):
 
     def __init__(self):
         name = "InvMulAdd"
@@ -68,7 +68,7 @@ class InvMulArrow(ParametricArrow):
                          param_ports=param_ports,
                          name=name)
 
-class InvDivArrow(ParametricArrow):
+class InvDivArrow(CompositeArrow):
 
     def __init__(self):
         name = "InvDivAdd"
@@ -87,7 +87,7 @@ class InvDivArrow(ParametricArrow):
                          name=name)
 
 
-class InvExpArrow(ParametricArrow):
+class InvExpArrow(CompositeArrow):
     def __init__(self) -> None:
         name = 'InvExp'
         # consider having theta be something other than an InPort

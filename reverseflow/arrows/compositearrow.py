@@ -1,7 +1,7 @@
 from typing import Set, List
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.util.mapping import Bimap
-from reverseflow.arrows.port import InPort, OutPort
+from reverseflow.arrows.port import InPort, OutPort, ErrorPort, ParamPort
 
 EdgeMap = Bimap[OutPort, InPort]
 
@@ -16,6 +16,12 @@ class CompositeArrow(Arrow):
     def is_composite(self) -> bool:
         return True
 
+    def is_parametric(self) -> bool:
+        return len(self.param_ports) > 0
+
+    def is_approximate(self) -> bool:
+        return len(self.error_ports) > 0
+
     def get_sub_arrows(self) -> Set[Arrow]:
         """Return all the constituent arrows of composition"""
         arrows = set()
@@ -29,6 +35,8 @@ class CompositeArrow(Arrow):
                  edges: EdgeMap,
                  in_ports: List[InPort],
                  out_ports: List[OutPort],
+                 param_ports: List[ParamPort] = [],
+                 error_ports: List[ErrorPort] = [],
                  name: str=None) -> None:
         super().__init__(name=name)
         assert len(in_ports) > 0, "Composite Arrow must have in ports"
@@ -50,6 +58,8 @@ class CompositeArrow(Arrow):
         # TODO: Assert There must be no cycles
         # TODO: Assert Every inport must be on end of edge or be in in_ports
         # TODO: Assert Every outport must be on start of edge or in out_ports
+        self.param_ports = param_ports
+        self.error_ports = error_ports
         self.in_ports = [InPort(self, i) for i in range(len(in_ports))]
         self.n_in_ports = len(self.in_ports)
         self.out_ports = [OutPort(self, i) for i in range(len(out_ports))]

@@ -1,10 +1,18 @@
-from reverseflow.arrows.parametricarrow import ParametricArrow
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.to_graph import arrow_to_graph
 
 from typing import List
 from tensorflow import Graph, Tensor
+
+# When to add c function in inversion or otherwise
+# - Ideally not at all, then when all other methods fail then add
+# For now assume its added
+
+# How to get tensors corresponding to error out_ports
+# - Update to_graph to expect both parametric inputs and error outputs
+# should return parameter_tensors and error output tensors
+
 
 
 def train_y_tf(outputs: List[Tensor]) -> Graph:
@@ -26,7 +34,7 @@ def reduce_approx_error(approx_arrow: Arrow) -> Arrow:
     reduce to single scalar error
     """
 
-def train_y_parr(p_arrow: ParametricArrow, dataset: List) -> ParametricArrow:
+def train_y_parr(p_arrow: CompositeArrow, dataset: List) -> ParametricArrow:
     """
     Given parametric arrow p_arrow : X -> Y
     and dataset Y

@@ -114,8 +114,13 @@ def inv_div(arrow: DivArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMa
 
 def inv_dupl(arrow: DuplArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
     assert arrow.in_ports[0] not in const_in_ports, "Dupl is constant"
-    inv_arrow = InvDuplArrow()
+    inv_arrow = InvDuplArrow(n_duplications=arrow.n_out_ports)
     port_map = {arrow.in_ports[0]: inv_arrow.out_ports[0],
                 arrow.out_ports[0]: inv_arrow.in_ports[0],
                 arrow.out_ports[1]: inv_arrow.in_ports[1]}
+    return inv_arrow, port_map
+
+def inv_dup_approxl(arrow: DuplArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
+    assert arrow.in_ports[0] not in const_in_ports, "Dupl is constant"
+    # TODO: Compose N ApproxIdentity with N Duplications
     return inv_arrow, port_map
