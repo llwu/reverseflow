@@ -29,11 +29,10 @@ class CompositeArrow(Arrow):
                  edges: EdgeMap,
                  in_ports: List[InPort],
                  out_ports: List[OutPort],
-                 name: str = None) -> None:
+                 name: str=None) -> None:
         super().__init__(name=name)
-        # TODO: Assertions
         assert len(in_ports) > 0, "Composite Arrow must have in ports"
-        assert len(out_ports) > 0, "Composite Arrow must have in ports"
+        assert len(out_ports) > 0, "Composite Arrow must have out ports"
         self.edges = edges
         for out_port, in_port in edges.items():
             assert isinstance(out_port, OutPort), "Expected OutPort got %s" % out_port
@@ -64,8 +63,8 @@ class CompositeArrow(Arrow):
     def neigh_out_port(self, in_port: InPort) -> OutPort:
         return self.edges.inv(in_port)
 
-    def inner_in_ports(self):
+    def inner_in_ports(self) -> List[InPort]:
         return self._inner_in_ports
 
-    def inner_out_ports(self):
+    def inner_out_ports(self) -> List[OutPort]:
         return self._inner_out_ports
