@@ -55,8 +55,8 @@ class CompositeArrow(Arrow):
         self.n_in_ports = len(self.in_ports)
         self.out_ports = [OutPort(self, i) for i in range(len(out_ports))]
         self.n_out_ports = len(self.out_ports)
-        self.inner_in_ports = in_ports  # type: List[InPort]
-        self.inner_out_ports = out_ports  # type: List[OutPort]
+        self._inner_in_ports = in_ports  # type: List[InPort]
+        self._inner_out_ports = out_ports  # type: List[OutPort]
 
     def neigh_in_port(self, out_port: OutPort) -> InPort:
         return self.edges.fwd(out_port)
