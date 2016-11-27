@@ -36,7 +36,7 @@ def invert_const(arrow: CompositeArrow,
     edges = Bimap()  # type: EdgeMap
     for out_port, in_port in arrow.edges.items():
         # Edge is constant
-        if out_port in const_out_ports:
+        if in_port in const_in_ports:
             inverse_in_arrow, port_map = get_inverse(in_port.arrow,
                                                      const_in_ports,
                                                      const_out_ports,
