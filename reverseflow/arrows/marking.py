@@ -12,13 +12,15 @@ def mark(arrow: Arrow,
          knowns: Set[InPort]) -> Tuple[Set[InPort], Set[OutPort]]:
     """Propagates knowns throughout the arrow.
     Won't propagate to outside of the arrow.
+    Won't return knowns within composite subarrows.
 
     Args:
         arrow (Arrow): The arrow to propagate throughout.
         knowns (Set[InPort]): The in ports which we know to be known.
+            Generally wants to be a subset of arrow.inner_in_ports()
 
     Returns:
-        Set[InPort]: The in ports which are known as a result.
+        Set[InPort]: The ports which are known as a result.
     """
     to_mark = pqdict()
     marked_inports = set()
@@ -56,6 +58,7 @@ def mark(arrow: Arrow,
             for i, in_port in enumerate(sub_arrow.inner_in_ports()):
                 if sub_arrow.in_ports[i] in marked_inports:  # outer InPort
                     sub_knowns.add(in_port)  # inner InPort
+            # perhaps it is worth appending these?
             _, sub_marked_outports = mark(sub_arrow, sub_knowns)
             for i, out_port in enumerate(sub_arrow.inner_out_ports()):
                 if out_port in sub_marked_outports:  # inner OutPort
