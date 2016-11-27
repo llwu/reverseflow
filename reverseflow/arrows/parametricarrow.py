@@ -4,7 +4,8 @@ from reverseflow.arrows.port import InPort, OutPort, ParamPort
 
 
 class ParametricArrow(CompositeArrow):
-    """Parametric arrow"""
+    """Parametric arrow
+    Has additional parametric in_ports"""
 
     def is_parametric(self) -> bool:
         return True

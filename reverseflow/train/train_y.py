@@ -20,13 +20,31 @@ def train_y_arr(arrow: Arrow, dataset: List):
     train_y_parr(inv_arrow, dataset)
     # if necessary append tensorflow arrow
 
+def reduce_approx_error(approx_arrow: Arrow) -> Arrow:
+    """
+    From approximate arrow with n error symbols of arbitrary shape
+    reduce to single scalar error
+    """
 
 def train_y_parr(p_arrow: ParametricArrow, dataset: List) -> ParametricArrow:
     """
     Given parametric arrow p_arrow : X -> Y
     and dataset Y
     """
+    reduced_arrow, cost_out_port = reduce_approx_error(p_arrow)
+    graph, input_tensors, output_tensors = to_graph(tensorflow)
+    loss_tensors = ...
+    loss_tensor = ...some reduction
+
+    optimizer = tf.train.MomentumOptimizer(learning_rate=options['learning_rate'],
+                                               momentum=options['momentum'])
+    update_step = optimizer.minimize(loss)
+    train_loop(num_iterations)
     # add loss function
     convert to tensorflow graph
     # train
     # convert back to arrow
+
+def train_loop(num_iterations:int):
+    for i in range(num_iterations):
+        ...
