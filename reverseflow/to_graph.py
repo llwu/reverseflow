@@ -22,6 +22,9 @@ def default_add(arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
     else:
         arrow_tensors[sub_arrow] = OrderedDict({index: input_tensor})
 
+@overload
+def conv(a: Arrow, args: List[Tensor]) -> List[Tensor]:
+    assert False, "Error, no conversion for %s implemented" % a.name
 
 @overload
 def conv(a: AddArrow, args: List[Tensor]) -> List[Tensor]:
@@ -34,6 +37,25 @@ def conv(a: SubArrow, args: List[Tensor]) -> List[Tensor]:
 @overload
 def conv(a: NegArrow, args: List[Tensor]) -> List[Tensor]:
     return [tf.neg(*args)]
+
+@overload
+def conv(a: PowArrow, args: List[Tensor]) -> List[Tensor]:
+    return [tf.pow(*args)]
+
+@overload
+def conv(a: ExpArrow, args: List[Tensor]) -> List[Tensor]:
+    return [tf.exp(*args)]
+
+@overload
+def conv(a: LogArrow, args: List[Tensor]) -> List[Tensor]:
+    return [tf.log(*args)]
+
+@overload
+def conv(a: LogBaseArrow, args: List[Tensor]) -> List[Tensor]:
+    # Tensorflow has no log of arbitrary base
+    # use \log _{b}(x)=log _{k}(x)}/log _{k}(b)
+    return [tf.log(args[1]) / tf.log(args[0])]
+
 
 # @overload
 # def conv(a: ExpArrow, args: List[Tensor]) -> List[Tensor]:
@@ -147,8 +169,14 @@ def arrow_to_graph(comp_arrow: CompositeArrow,
                 output_tensor = arrow_tensors[out_port.arrow][out_port.index]
                 output_tensors.append(output_tensors)
 
+            error_tensors = []
+            for error_port in comp_arrow.inner_error_ports():
+                error_tensor = arrow_tensors[error_port.arrow][error_port.index]
+                error_tensors.append(error_tensor)
+
+
             return {'graph': graph,
                     'input_tensors': input_tensors,
                     'output_tensors': output_tensors,
                     'param_tensors': [],
-                    'error_tensors': []}
+                    'error_tensors': error_tensors}

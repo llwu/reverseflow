@@ -40,37 +40,54 @@ class DivArrow(PrimitiveArrow):
             constraints.append(Ne(input_expr[1], 0))
         return constraints
 
-#
-# class ExpArrow(PrimitiveArrow):
-#     """Exponentiaion"""
-#
-#     def __init__(self):
-#         name = 'Exp'
-#         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
-#
-#     def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
-#         constraints = []
-#         if 0 in input_expr:
-#             constraints.append(Gt(input_expr[0], 0))
-#         if 0 in output_expr:
-#             constraints.append(Gt(output_expr[0], 0))
-#         return constraints
-#
-#
-# class LogArrow(PrimitiveArrow):
-#     """Logarithm"""
-#
-#     def __init__(self):
-#         name = 'Log'
-#         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
-#
-#     def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
-#         constraints = []
-#         if 0 in input_expr:
-#             constraints.append(Gt(input_expr[0], 0))
-#         if 1 in input_expr:
-#             constraints.append(Gt(input_expr[1], 0))
-#         return constraints
+
+class PowArrow(PrimitiveArrow):
+    """Computes the power of one value to another.
+
+    Given a tensor `x` and a tensor `y`, this operation computes \\(x^y\\) for
+    corresponding elements in `x` and `y`. For example"""
+
+    def __init__(self):
+        name = 'Pow'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+    def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
+        constraints = []
+        if 0 in input_expr:
+            constraints.append(Gt(input_expr[0], 0))
+        if 0 in output_expr:
+            constraints.append(Gt(output_expr[0], 0))
+        return constraints
+
+class ExpArrow(PrimitiveArrow):
+    """Exponential e^x"""
+
+    def __init__(self):
+        name = 'Exp'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+
+class LogArrow(PrimitiveArrow):
+    """Log_e(x)"""
+
+    def __init__(self):
+        name = 'Log'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+class LogBaseArrow(PrimitiveArrow):
+    """Log_y(x)"""
+
+    def __init__(self):
+        name = 'LogBase'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+    def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
+        constraints = []
+        if 0 in input_expr:
+            constraints.append(Gt(input_expr[0], 0))
+        if 1 in input_expr:
+            constraints.append(Gt(input_expr[1], 0))
+        return constraints
 
 
 class NegArrow(PrimitiveArrow):
