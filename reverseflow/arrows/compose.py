@@ -17,7 +17,7 @@ def edges(a: Arrow) -> EdgeMap:
         return Bimap()
 
 
-def compose_comb(l: Arrow, r: Arrow, out_to_in: Dict[int, int]) -> CompositeArrow:
+def compose_comb(l: Arrow, r: Arrow, out_to_in: Dict[int, int], name: str=None) -> CompositeArrow:
     """
     Wires the ports of the primitive arrows on the boundaries.
 
@@ -43,10 +43,16 @@ def compose_comb(l: Arrow, r: Arrow, out_to_in: Dict[int, int]) -> CompositeArro
 
     new_edges.update(edges(l))
     new_edges.update(edges(r))
-    return CompositeArrow(edges=new_edges, in_ports=in_ports, out_ports=out_ports)
+    return CompositeArrow(edges=new_edges,
+                          in_ports=in_ports,
+                          out_ports=out_ports,
+                          name=name)
 
 
-def compose_comb_modular(l: Arrow, r: Arrow, out_to_in: Dict[int, int]) -> CompositeArrow:
+def compose_comb_modular(l: Arrow,
+                         r: Arrow,
+                         out_to_in: Dict[int, int],
+                         name=None) -> CompositeArrow:
     """
     Wires the ports of the composite arrows.
 
@@ -68,4 +74,7 @@ def compose_comb_modular(l: Arrow, r: Arrow, out_to_in: Dict[int, int]) -> Compo
         if not r_in_connect[i]:
             in_ports.append(r.in_ports[i])
 
-    return CompositeArrow(edges=edges, in_ports=in_ports, out_ports=out_ports)
+    return CompositeArrow(edges=edges,
+                          in_ports=in_ports,
+                          out_ports=out_ports,
+                          name=name)

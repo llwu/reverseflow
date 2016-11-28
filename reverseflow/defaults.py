@@ -7,4 +7,4 @@ default_dispatch = {AddArrow: inv_add,
                     SubArrow: inv_sub,
                     MulArrow: inv_mul,
                     DivArrow: inv_div,
-                    DuplArrow: inv_dupl}
+                    DuplArrow: inv_dupl_approx}

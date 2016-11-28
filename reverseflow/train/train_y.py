@@ -34,12 +34,20 @@ def reduce_approx_error(approx_arrow: Arrow) -> Arrow:
     reduce to single scalar error
     """
 
-def train_y_parr(p_arrow: CompositeArrow, dataset: List) -> ParametricArrow:
+def train_y_arr(param_arrow: CompositeArrow, dataset: List) -> ParametricArrow:
     """
-    Given parametric arrow p_arrow : X -> Y
-    and dataset Y
+    Given:
+
+    param_arrow : Y x Theta -> X
+    dataset : [Y]
+
+    Find Theta such that
+
     """
-    reduced_arrow, cost_out_port = reduce_approx_error(p_arrow)
+    # Convert to tensorflow
+    # Find which tensors correspond to costs
+    # in tensorflow reduce and minimize these to a single scalar
+    # Need to find correspondance of parameters to parametric inputs
     graph, input_tensors, output_tensors = to_graph(tensorflow)
     loss_tensors = ...
     loss_tensor = ...some reduction

@@ -1,4 +1,4 @@
-"""Decode an arrow into a tensoflow graph"""
+r"""Decode an arrow into a tensoflow graph"""
 import tensorflow as tf
 from tensorflow import Tensor, Graph
 from pqdict import pqdict
@@ -53,18 +53,18 @@ def conv(a: MulArrow, args: List[Tensor]) -> List[Tensor]:
 
 @overload
 def conv(a: DivArrow, args: List[Tensor]) -> List[Tensor]:
-    return [tf.div(*args)]
+    return [tf.mul(*args)]
 
 @overload
 def conv(a: DuplArrow, args: List[Tensor]) -> List[Tensor]:
     # TODO: Genralize to n outputs
-    return [args[0] for i in range(a.num_out_ports())]
+    return [args[0] for i in range(a.n_out_ports)]
 
 
 @overload
 def conv(a: CompositeArrow, args: List[Tensor]) -> List[Tensor]:
     graph = tf.get_default_graph()
-    assert len(args) == a.num_in_ports()
+    assert len(args) == a.n_in_ports
     arrow_colors, arrow_tensors = okok(a, args)
     new_graph, input_tensors, output_tensors = arrow_to_graph(a,
                                                               args,
@@ -91,7 +91,7 @@ def okok(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
         arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
 
     for i, input_tensor in enumerate(input_tensors):
-        in_port = comp_arrow.inner_in_ports()[i]
+        in_port = comp_arrow.inner_in_ports[i]
         sub_arrow = in_port.arrow
         arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
         default_add(arrow_tensors, sub_arrow, in_port.index, input_tensor)
@@ -102,7 +102,7 @@ def okok(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
 def arrow_to_new_graph(comp_arrow: CompositeArrow) -> Graph:
     """Create new graph and convert comp_arrow into it"""
     graph = tf.Graph()
-    input_tensors = [tf.placeholder(dtype='float32') for i in range(comp_arrow.num_in_ports())]
+    input_tensors = [tf.placeholder(dtype='float32') for i in range(comp_arrow.n_in_ports)]
     arrow_colors, arrow_tensors = okok(comp_arrow, input_tensors)
     return arrow_to_graph(comp_arrow, input_tensors, arrow_colors, arrow_tensors, graph)
 
@@ -114,37 +114,37 @@ def arrow_to_graph(comp_arrow: CompositeArrow,
                    graph: Graph) -> Tuple[Graph, List[Tensor], List[Tensor]]:
     """Convert an comp_arrow to a tensorflow graph and add to graph"""
     with graph.as_default():
+        with tf.name_scope(comp_arrow.name):
+            while len(arrow_colors) > 0:
+                print_arrow_colors(arrow_colors)
+                sub_arrow, priority = arrow_colors.popitem()
+                print("Converting ", sub_arrow.name)
+                assert priority == 0, "Must resolve all inputs to sub_arrow first"
+                # TODO: Check that the number of inputs created is same as num inputs to
 
-        while len(arrow_colors) > 0:
-            print_arrow_colors(arrow_colors)
-            sub_arrow, priority = arrow_colors.popitem()
-            print("Converting ", sub_arrow.name)
-            assert priority == 0, "Must resolve all inputs to sub_arrow first"
-            # TODO: Check that the number of inputs created is same as num inputs to
+                inputs = list(arrow_tensors[sub_arrow].values())
+                # import pdb; pdb.set_trace()
+                print(type(sub_arrow), type(inputs))
+                outputs = conv(sub_arrow, inputs)
+                assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
 
-            inputs = list(arrow_tensors[sub_arrow].values())
-            # import pdb; pdb.set_trace()
-            print(type(sub_arrow), type(inputs))
-            outputs = conv(sub_arrow, inputs)
-            assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
+                # Decrement the priority of each subarrow connected to this arrow
+                # Unless of course it is connected to the outside word
+                for i, out_port in enumerate(sub_arrow.out_ports):
+                    # FIXME: this is linear search, encapsulate
+                    if out_port not in comp_arrow.inner_out_ports:
+                        neigh_port = comp_arrow.neigh_in_port(out_port)
+                        neigh_arrow = neigh_port.arrow
+                        if neigh_arrow is not comp_arrow:
+                            assert neigh_arrow in arrow_colors
+                            arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
+                            default_add(arrow_tensors, neigh_arrow, neigh_port.index,
+                                        outputs[i])
 
-            # Decrement the priority of each subarrow connected to this arrow
-            # Unless of course it is connected to the outside word
-            for i, out_port in enumerate(sub_arrow.out_ports):
-                # FIXME: this is linear search, encapsulate
-                if out_port not in comp_arrow.inner_out_ports():
-                    neigh_port = comp_arrow.neigh_in_port(out_port)
-                    neigh_arrow = neigh_port.arrow
-                    if neigh_arrow is not comp_arrow:
-                        assert neigh_arrow in arrow_colors
-                        arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
-                        default_add(arrow_tensors, neigh_arrow, neigh_port.index,
-                                    outputs[i])
+            # The output tensors are
+            output_tensors = []
+            for out_port in comp_arrow.inner_out_ports:
+                output_tensor = arrow_tensors[out_port.arrow][out_port.index]
+                output_tensors.append(output_tensors)
 
-        # The output tensors are
-        output_tensors = []
-        for out_port in comp_arrow.inner_out_ports():
-            output_tensor = arrow_tensors[out_port.arrow][out_port.index]
-            output_tensors.append(output_tensors)
-
-        return graph, input_tensors, output_tensors
+            return graph, input_tensors, output_tensors

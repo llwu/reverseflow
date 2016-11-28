@@ -40,7 +40,7 @@ class DivArrow(PrimitiveArrow):
             constraints.append(Ne(input_expr[1], 0))
         return constraints
 
-# 
+#
 # class ExpArrow(PrimitiveArrow):
 #     """Exponentiaion"""
 #
@@ -79,3 +79,11 @@ class NegArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Neg'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+
+class AddNArrow(PrimitiveArrow):
+    """Element wise sum of n tensors"""
+
+    def __init__(self, n: int):
+        name = 'AddN'
+        super().__init__(n_in_ports=n, n_out_ports=1, name=name)
