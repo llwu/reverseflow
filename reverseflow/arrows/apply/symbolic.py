@@ -1,11 +1,14 @@
 """Symbolically Evaluate a Graph"""
 from collections import OrderedDict
-from typing import Dict, Sequence, MutableMapping, Tuple, List
+from typing import Dict, Sequence, MutableMapping, Tuple, List, Set
 from reverseflow.arrows.port import InPort, OutPort
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.primitive.math_arrows import (AddArrow,
-    MulArrow, DivArrow)
+    MulArrow)
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
+from reverseflow.inv_primitives.inv_math_arrows import (InvAddArrow,
+    InvMulArrow)
+from reverseflow.inv_primitives.inv_control_flow_arrows import InvDuplArrow
 
 
 from pqdict import pqdict
@@ -20,16 +23,28 @@ def conv(add: AddArrow, args: ExprList) -> ExprList:
     assert len(args) == 2
     return [args[0] + args[1]]
 
-
 @overload
-def conv(a: MulArrow, args: ExprList) -> ExprList:
+def conv(mul: MulArrow, args: ExprList) -> ExprList:
     assert len(args) == 2
     return [args[0] * args[1]]
-
 
 @overload
 def conv(dupl: DuplArrow, args: ExprList) -> ExprList:
     return [args[0] for i in range(dupl.n_out_ports)]
+
+@overload
+def conv(inv_add: InvAddArrow, args: ExprList) -> ExprList:
+    assert len(args) == 2
+    return [args[0] - args[1], args[1]]
+
+@overload
+def conv(inv_mul: InvMulArrow, args: ExprList) -> ExprList:
+    assert len(args) == 2
+    return [args[0] / args[1], args[1]]
+
+@overload
+def conv(inv_dupl: InvDuplArrow, args: ExprList) -> ExprList:
+    return [args[0]]
 
 
 def default_add(arrow_exprs: Dict[Arrow, MutableMapping[int, Expr]],
@@ -44,6 +59,16 @@ def print_arrow_colors(arrow_colors):
     for (arr, pr) in arrow_colors.items():
         print(arr.name, ": ", pr)
 
+def primitive_subarrows(comp_arrow):
+    subarrows = set()
+    for sub in comp_arrow.get_sub_arrows():
+        if sub.is_primitive() == True:
+            subarrows.add(sub)
+        else:
+            primitives = primitive_subarrows(sub)
+            subarrows = subarrows.union(primitives)
+    return subarrows
+
 
 @overload
 def symbolic_apply(comp_arrow) -> Tuple[Dict[Arrow, MutableMapping[int, Expr]], List[Rel]]:
@@ -55,7 +80,8 @@ def symbolic_apply(comp_arrow) -> Tuple[Dict[Arrow, MutableMapping[int, Expr]], 
     # have already been converted into tensorfow
     arrow_colors = pqdict()
     # import pdb; pdb.set_trace()
-    for sub_arrow in comp_arrow.get_sub_arrows():
+    prim_subarrows = primitive_subarrows(comp_arrow)
+    for sub_arrow in prim_subarrows:
         arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
 
     print_arrow_colors(arrow_colors)
@@ -67,8 +93,13 @@ def symbolic_apply(comp_arrow) -> Tuple[Dict[Arrow, MutableMapping[int, Expr]], 
 
     # create a tensor for each in_port to the composition
     # decrement priority for each arrow connected to inputs
-    for i, in_port in enumerate(comp_arrow.in_ports):
+    print(comp_arrow.inner_in_ports)
+    if comp_arrow.is_parametric():
+        print(comp_arrow.param_ports)
+    for i, in_port in enumerate(comp_arrow.inner_in_ports):
+        print(in_port)
         sub_arrow = in_port.arrow
+        print(sub_arrow)
         assert sub_arrow in arrow_colors
         arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
         input_expr = sympy.var('inp_%s' % i)
@@ -91,7 +122,7 @@ def symbolic_apply(comp_arrow) -> Tuple[Dict[Arrow, MutableMapping[int, Expr]], 
         for i, out_port in enumerate(sub_arrow.out_ports):
             # FIXME: this is linear search, encapsulate
             default_add(output_arrow_exprs, sub_arrow, i, outputs[i])
-            if out_port not in comp_arrow.out_ports:
+            if out_port not in comp_arrow.inner_out_ports:
                 neigh_port = comp_arrow.neigh_in_port(out_port)
                 neigh_arrow = neigh_port.arrow
                 if neigh_arrow is not comp_arrow:
@@ -101,7 +132,7 @@ def symbolic_apply(comp_arrow) -> Tuple[Dict[Arrow, MutableMapping[int, Expr]], 
                                 outputs[i])
 
     constraints = []  # type: List[Rel]
-    for sub_arrow in comp_arrow.get_sub_arrows():
+    for sub_arrow in prim_subarrows:
         input_expr = OrderedDict()
         output_expr = OrderedDict()
         if sub_arrow in arrow_exprs:

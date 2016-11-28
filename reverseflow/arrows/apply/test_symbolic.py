@@ -4,26 +4,18 @@ from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 from reverseflow.util.mapping import Bimap
 from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 from reverseflow.arrows.apply.symbolic import symbolic_apply
-
-
-def test_xyplusx() -> CompositeArrow:
-    """f(x,y) = x * y + x"""
-    mul = MulArrow()
-    add = AddArrow()
-    dupl = DuplArrow()
-    edges = Bimap()  # type: EdgeMap
-    edges.add(dupl.out_ports[0], mul.in_ports[0])  # dupl -> mul
-    edges.add(dupl.out_ports[1], add.in_ports[0])  # dupl -> add
-    edges.add(mul.out_ports[0], add.in_ports[1])  # mul -> add
-    d = CompositeArrow(in_ports=[dupl.in_ports[0], mul.in_ports[1]],
-                       out_ports=[add.out_ports[0]], edges=edges)
-    return d
+from tests.test_arrows import test_xyplusx_flat
+from reverseflow.invert import invert
 
 
 def test_symbolic_apply() -> None:
-    arrow = test_xyplusx()
-    (symbolic_map, constraints) = symbolic_apply(arrow)
+    """inverse of f(x, y) = x * y + x"""
+    arrow = test_xyplusx_flat()
+    inv_arrow = invert(arrow)
+    print(inv_arrow.is_parametric())
+    (symbolic_map, constraints) = symbolic_apply(inv_arrow)
     print(constraints)
+    print(symbolic_map)
     # import pdb; pdb.set_trace()
 
 test_symbolic_apply()

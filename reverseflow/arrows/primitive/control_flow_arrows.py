@@ -1,6 +1,6 @@
 """These are arrows for control flow of input"""
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
-from typing import List, Dict, MutableMapping
+from typing import List, MutableMapping
 from sympy import Expr, Eq, Rel
 
 
@@ -16,8 +16,9 @@ class DuplArrow(PrimitiveArrow):
 
     def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
         constraints = []
-        if 0 in output_expr and 1 in output_expr:
-            constraints.append(Eq(output_expr[0], output_expr[1]))
+        for i in range(len(output_expr.keys())-1):
+            for j in range(i+1, len(output_expr.keys())):
+                constraints.append(Eq(output_expr[i], output_expr[j]))
         return constraints
 
 
