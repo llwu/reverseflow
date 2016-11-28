@@ -66,12 +66,12 @@ def conv(a: CompositeArrow, args: List[Tensor]) -> List[Tensor]:
     graph = tf.get_default_graph()
     assert len(args) == a.n_in_ports
     arrow_colors, arrow_tensors = okok(a, args)
-    new_graph, input_tensors, output_tensors = arrow_to_graph(a,
-                                                              args,
-                                                              arrow_colors,
-                                                              arrow_tensors,
-                                                              graph)
-    return output_tensors
+    result = arrow_to_graph(a,
+                            args,
+                            arrow_colors,
+                            arrow_tensors,
+                            graph)
+    return result['output_tensors']
 
 
 def okok(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
@@ -91,7 +91,7 @@ def okok(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
         arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
 
     for i, input_tensor in enumerate(input_tensors):
-        in_port = comp_arrow.inner_in_ports[i]
+        in_port = comp_arrow.inner_in_ports()[i]
         sub_arrow = in_port.arrow
         arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
         default_add(arrow_tensors, sub_arrow, in_port.index, input_tensor)
@@ -132,7 +132,7 @@ def arrow_to_graph(comp_arrow: CompositeArrow,
                 # Unless of course it is connected to the outside word
                 for i, out_port in enumerate(sub_arrow.out_ports):
                     # FIXME: this is linear search, encapsulate
-                    if out_port not in comp_arrow.inner_out_ports:
+                    if out_port not in comp_arrow.inner_out_ports():
                         neigh_port = comp_arrow.neigh_in_port(out_port)
                         neigh_arrow = neigh_port.arrow
                         if neigh_arrow is not comp_arrow:
@@ -143,8 +143,12 @@ def arrow_to_graph(comp_arrow: CompositeArrow,
 
             # The output tensors are
             output_tensors = []
-            for out_port in comp_arrow.inner_out_ports:
+            for out_port in comp_arrow.inner_out_ports():
                 output_tensor = arrow_tensors[out_port.arrow][out_port.index]
                 output_tensors.append(output_tensors)
 
-            return graph, input_tensors, output_tensors
+            return {'graph': graph,
+                    'input_tensors': input_tensors,
+                    'output_tensors': output_tensors,
+                    'param_tensors': [],
+                    'error_tensors': []}
