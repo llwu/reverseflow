@@ -8,7 +8,7 @@ arr = test_xyplusx_flat()
 print(apply(arr, [3.0, 4.0]))
 
 mean = MeanArrow(2)
-array1 = np.ndarray([1.0, 2.0, 3.0])
-array2 = np.ndarray([1.0, 3.0, 5.0])
+array1 = np.array([1.0, 2.0, 3.0])
+array2 = np.array([1.0, 3.0, 5.0])
 
-apply(mean, [array1, array2])
+print(apply(mean, [array1, array2]))

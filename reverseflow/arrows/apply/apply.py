@@ -13,11 +13,13 @@ def apply(arrow: Arrow, inputs: List[ndarray], params: List[ndarray] = []) -> Li
     with graph.as_default():
         input_tensors = [tf.placeholder(dtype='float32') for i in range(len(inputs))]
         param_tensors = [tf.placeholder(dtype='float32') for i in range(len(params))]
+        graph_etc = arrow_to_new_graph(arrow, input_tensors, param_tensors, graph)
 
-    graph_etc = arrow_to_new_graph(arrow, input_tensors, param_tensors, graph)
-    feed_dict = dict(zip(input_tensors + param_tensors, inputs + params))
+        feed_dict = dict(zip(input_tensors + param_tensors, inputs + params))
+        init = tf.initialize_all_variables()
+        sess.run(init)
 
-    outputs = sess.run(fetches=graph_etc['output_tensors'],
-                       feed_dict=feed_dict)
+        outputs = sess.run(fetches=graph_etc['output_tensors'],
+                           feed_dict=feed_dict)
     sess.close()
     return outputs

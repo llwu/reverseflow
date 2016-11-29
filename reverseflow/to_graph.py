@@ -1,14 +1,17 @@
 """Decode an arrow into a tensoflow graph"""
 import tensorflow as tf
-from tensorflow import Tensor, Graph
+from tensorflow import Tensor, Graph, Variable
 from pqdict import pqdict
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 from reverseflow.arrows.primitive.math_arrows import *
 from reverseflow.arrows.primitive.control_flow_arrows import *
-from typing import Tuple, List, Dict, MutableMapping
+from reverseflow.arrows.primitive.cast_arrows import *
+from typing import Tuple, List, Dict, MutableMapping, Union
 from collections import OrderedDict
 from overloading import overload
+
+TensorVarList = Union[List[Tensor], List[Variable]]
 
 def print_arrow_colors(arrow_colors):
     for (arr, pr) in arrow_colors.items():
@@ -24,17 +27,17 @@ def default_add(arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
 
 
 @overload
-def conv(a: Arrow, args: List[Tensor]) -> List[Tensor]:
+def conv(a: Arrow, args: TensorVarList) -> List[Tensor]:
     assert False, "Error, no conversion for %s implemented" % a.name
 
 
 @overload
-def conv(a: AddArrow, args: List[Tensor]) -> List[Tensor]:
+def conv(a: AddArrow, args: TensorVarList) -> List[Tensor]:
     return [tf.add(*args)]
 
 
 @overload
-def conv(a: SubArrow, args: List[Tensor]) -> List[Tensor]:
+def conv(a: SubArrow, args: TensorVarList) -> List[Tensor]:
     return [tf.sub(*args)]
 
 
@@ -44,45 +47,52 @@ def conv(a: NegArrow, args: List[Tensor]) -> List[Tensor]:
 
 
 @overload
-def conv(a: PowArrow, args: List[Tensor]) -> List[Tensor]:
+def conv(a: PowArrow, args: TensorVarList) -> List[Tensor]:
     return [tf.pow(*args)]
 
 
 @overload
-def conv(a: ExpArrow, args: List[Tensor]) -> List[Tensor]:
+def conv(a: ExpArrow, args: TensorVarList) -> List[Tensor]:
     return [tf.exp(*args)]
 
 
 @overload
-def conv(a: LogArrow, args: List[Tensor]) -> List[Tensor]:
+def conv(a: LogArrow, args: TensorVarList) -> List[Tensor]:
     return [tf.log(*args)]
 
 
 @overload
-def conv(a: LogBaseArrow, args: List[Tensor]) -> List[Tensor]:
+def conv(a: LogBaseArrow, args: TensorVarList) -> List[Tensor]:
     # Tensorflow has no log of arbitrary base
     # so, use log _{b}(x)=log _{k}(x)}/log _{k}(b)
     return [tf.log(args[1]) / tf.log(args[0])]
 
 
 @overload
-def conv(a: MulArrow, args: List[Tensor]) -> List[Tensor]:
+def conv(a: MulArrow, args: TensorVarList) -> List[Tensor]:
     return [tf.mul(*args)]
 
 
 @overload
-def conv(a: DivArrow, args: List[Tensor]) -> List[Tensor]:
-    return [tf.mul(*args)]
+def conv(a: DivArrow, args: TensorVarList) -> List[Tensor]:
+    return [tf.div(*args)]
 
 
 @overload
-def conv(a: DuplArrow, args: List[Tensor]) -> List[Tensor]:
+def conv(a: DuplArrow, args: TensorVarList) -> List[Tensor]:
     # TODO: Genralize to n outputs
     return [args[0] for i in range(a.n_out_ports)]
 
+@overload
+def conv(a: AddNArrow, args: TensorVarList) -> List[Tensor]:
+    return [tf.add_n(args)]
 
 @overload
-def conv(a: CompositeArrow, args: List[Tensor]) -> List[Tensor]:
+def conv(a: CastArrow, args: TensorVarList) -> List[Tensor]:
+    return [tf.cast(args[0], dtype=a.to_dtype)]
+
+@overload
+def conv(a: CompositeArrow, args: TensorVarList) -> List[Tensor]:
     graph = tf.get_default_graph()
     assert len(args) == a.n_in_ports
     arrow_colors, arrow_tensors = inner_convert(a, args)
@@ -108,13 +118,26 @@ def inner_convert(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
     arrow_tensors = dict()  # type: Dict[Arrow, MutableMapping[int, tf.Tensor]]
 
     for sub_arrow in comp_arrow.get_sub_arrows():
-        arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
+        if not sub_arrow.is_source():
+            arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
 
     for i, input_tensor in enumerate(input_tensors):
         in_port = comp_arrow.inner_in_ports()[i]
         sub_arrow = in_port.arrow
         arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
         default_add(arrow_tensors, sub_arrow, in_port.index, input_tensor)
+
+    # Create tensor for each source
+    # TODO: Should we turn sources into variables always?
+    # FIXME: DRY
+    for sub_arrow in comp_arrow.get_sub_arrows():
+        if sub_arrow.is_source():
+            graph = tf.get_default_graph()
+            value = tf.Variable(sub_arrow.value, name="Jeremiah")
+            in_port = comp_arrow.edges.fwd(sub_arrow.out_ports[0])
+            arrow_colors[in_port.arrow] = arrow_colors[in_port.arrow] - 1
+            default_add(arrow_tensors, in_port.arrow, in_port.index, value)
+
 
     return arrow_colors, arrow_tensors
 
@@ -154,6 +177,7 @@ def arrow_to_graph(comp_arrow: CompositeArrow,
                 inputs = list(arrow_tensors[sub_arrow].values())
                 # import pdb; pdb.set_trace()
                 print(type(sub_arrow), type(inputs))
+
                 outputs = conv(sub_arrow, inputs)
                 assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
 

@@ -3,6 +3,7 @@ from reverseflow.arrows.composites.math_composites import *
 from reverseflow.arrows.primitive.control_flow_arrows import *
 from reverseflow.arrows.primitive.math_arrows import *
 from reverseflow.arrows.primitive.constant import *
+from reverseflow.arrows.primitive.cast_arrows import *
 from reverseflow.arrows.sourcearrow import SourceArrow
 from reverseflow.util.mapping import Bimap
 from reverseflow.arrows.compose import compose_comb
@@ -36,14 +37,17 @@ class MeanArrow(CompositeArrow):
 
     def __init__(self, n_inputs: int) -> None:
         name = "Mean"
+        edges = Bimap() # type: EdgeMap
         addn_arrow = AddNArrow(n_inputs)
         nsource = SourceArrow(n_inputs)
+        castarrow = CastArrow('float32')
         div_arrow = DivArrow()
-        div_n = compose_comb(nsource, div_arrow, {0: 1})
-        mean_arrow = compose_comb(addn_arrow, div_n, {0: 0}, name=name)
-        super().__init__(edges=mean_arrow.edges,
-                         in_ports=mean_arrow.inner_in_ports(),
-                         out_ports=mean_arrow.inner_out_ports(),
+        edges.add(nsource.out_ports[0], castarrow.in_ports[0])
+        edges.add(addn_arrow.out_ports[0], div_arrow.in_ports[0])
+        edges.add(castarrow.out_ports[0], div_arrow.in_ports[1])
+        super().__init__(edges=edges,
+                         in_ports=addn_arrow.in_ports,
+                         out_ports=div_arrow.out_ports,
                          name=name)
 
 
