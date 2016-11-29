@@ -98,9 +98,32 @@ class NegArrow(PrimitiveArrow):
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
 
-# class AddNArrow(PrimitiveArrow):
-#     """Element wise sum of n tensors"""
-#
-#     def __init__(self, n: int):
-#         name = 'AddN'
-#         super().__init__(n_in_ports=n, n_out_ports=1, name=name)
+class AddNArrow(PrimitiveArrow):
+    """Element wise sum of n tensors"""
+
+    def __init__(self, n: int):
+        name = 'AddN'
+        super().__init__(n_in_ports=n, n_out_ports=1, name=name)
+
+
+class AbsArrow(PrimitiveArrow):
+    """Abs(x)"""
+
+    def __init__(self):
+        name = 'Abs'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+
+class ReduceMean(PrimitiveArrow):
+    """Computes the mean of elements across dimensions of a tensor."""
+
+    def __init__(n_inputs,
+                 axis=None,
+                 keep_dims=False,
+                 name=None,
+                 reduction_indices=None):
+
+        self.axis = axis
+        self.kee_dims = keep_dims
+        self.reduction_indices = reduction_indices
+        super().__init__(n_in_ports=n_inputs, n_out_ports=1, name=name)

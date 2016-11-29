@@ -88,3 +88,10 @@ class CompositeArrow(Arrow):
 
     def inner_param_ports(self) -> List[ParamPort]:
         return self._inner_param_ports
+
+    def unparam(self, deep: bool=False) -> "CompositeArrow":
+        """
+        Convert all param_ports to in_ports.
+        New In_ports are appended to end of existing in_ports
+        """
+        pass

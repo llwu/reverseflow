@@ -1,4 +1,4 @@
-r"""Decode an arrow into a tensoflow graph"""
+"""Decode an arrow into a tensoflow graph"""
 import tensorflow as tf
 from tensorflow import Tensor, Graph
 from pqdict import pqdict
@@ -22,60 +22,58 @@ def default_add(arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
     else:
         arrow_tensors[sub_arrow] = OrderedDict({index: input_tensor})
 
+
 @overload
 def conv(a: Arrow, args: List[Tensor]) -> List[Tensor]:
     assert False, "Error, no conversion for %s implemented" % a.name
+
 
 @overload
 def conv(a: AddArrow, args: List[Tensor]) -> List[Tensor]:
     return [tf.add(*args)]
 
+
 @overload
 def conv(a: SubArrow, args: List[Tensor]) -> List[Tensor]:
     return [tf.sub(*args)]
+
 
 @overload
 def conv(a: NegArrow, args: List[Tensor]) -> List[Tensor]:
     return [tf.neg(*args)]
 
+
 @overload
 def conv(a: PowArrow, args: List[Tensor]) -> List[Tensor]:
     return [tf.pow(*args)]
+
 
 @overload
 def conv(a: ExpArrow, args: List[Tensor]) -> List[Tensor]:
     return [tf.exp(*args)]
 
+
 @overload
 def conv(a: LogArrow, args: List[Tensor]) -> List[Tensor]:
     return [tf.log(*args)]
 
+
 @overload
 def conv(a: LogBaseArrow, args: List[Tensor]) -> List[Tensor]:
     # Tensorflow has no log of arbitrary base
-    # use \log _{b}(x)=log _{k}(x)}/log _{k}(b)
+    # so, use log _{b}(x)=log _{k}(x)}/log _{k}(b)
     return [tf.log(args[1]) / tf.log(args[0])]
 
-
-# @overload
-# def conv(a: ExpArrow, args: List[Tensor]) -> List[Tensor]:
-#     import pdb; pdb.set_trace()
-#
-#     return [tf.exp(args[0])]
-#
-# @overload
-# def conv(a: LogArrow, args: List[Tensor]) -> List[Tensor]:
-#     import pdb; pdb.set_trace()
-#
-#     return [tf.log(*args)]
 
 @overload
 def conv(a: MulArrow, args: List[Tensor]) -> List[Tensor]:
     return [tf.mul(*args)]
 
+
 @overload
 def conv(a: DivArrow, args: List[Tensor]) -> List[Tensor]:
     return [tf.mul(*args)]
+
 
 @overload
 def conv(a: DuplArrow, args: List[Tensor]) -> List[Tensor]:
@@ -87,7 +85,7 @@ def conv(a: DuplArrow, args: List[Tensor]) -> List[Tensor]:
 def conv(a: CompositeArrow, args: List[Tensor]) -> List[Tensor]:
     graph = tf.get_default_graph()
     assert len(args) == a.n_in_ports
-    arrow_colors, arrow_tensors = okok(a, args)
+    arrow_colors, arrow_tensors = inner_convert(a, args)
     result = arrow_to_graph(a,
                             args,
                             arrow_colors,
@@ -96,7 +94,7 @@ def conv(a: CompositeArrow, args: List[Tensor]) -> List[Tensor]:
     return result['output_tensors']
 
 
-def okok(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
+def inner_convert(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
     # A priority queue for each sub_arrow
     # priority is the number of inputs it has which have already been seen
     # seen inputs are inputs to the composition, or outputs of arrows that
@@ -121,20 +119,29 @@ def okok(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
     return arrow_colors, arrow_tensors
 
 
-def arrow_to_new_graph(comp_arrow: CompositeArrow) -> Graph:
+def arrow_to_new_graph(comp_arrow: CompositeArrow,
+                       input_tensors: List[Tensor],
+                       param_tensors: List[Tensor],
+                       graph: Graph):
     """Create new graph and convert comp_arrow into it"""
-    graph = tf.Graph()
-    input_tensors = [tf.placeholder(dtype='float32') for i in range(comp_arrow.n_in_ports)]
-    arrow_colors, arrow_tensors = okok(comp_arrow, input_tensors)
-    return arrow_to_graph(comp_arrow, input_tensors, arrow_colors, arrow_tensors, graph)
+    arrow_colors, arrow_tensors = inner_convert(comp_arrow, input_tensors)
+    return arrow_to_graph(comp_arrow, input_tensors, param_tensors,
+                          arrow_colors, arrow_tensors, graph)
 
 
 def arrow_to_graph(comp_arrow: CompositeArrow,
                    input_tensors: List[Tensor],
+                   param_tensors: List[Tensor],
                    arrow_colors: MutableMapping[Arrow, int],
                    arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
                    graph: Graph) -> Tuple[Graph, List[Tensor], List[Tensor]]:
     """Convert an comp_arrow to a tensorflow graph and add to graph"""
+    assert len(input_tensors) == comp_arrow.n_in_ports, "wrong # inputs"
+    assert len(param_tensors) == comp_arrow.n_param_ports, "wron # param inputs"
+
+    # FIXMEL Horrible Hack
+    output_tensors_dict =  OrderedDict()
+
     with graph.as_default():
         with tf.name_scope(comp_arrow.name):
             while len(arrow_colors) > 0:
@@ -162,12 +169,24 @@ def arrow_to_graph(comp_arrow: CompositeArrow,
                             arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
                             default_add(arrow_tensors, neigh_arrow, neigh_port.index,
                                         outputs[i])
+                    else:
+                        # FIXME: Horrible hack
+                        output_tensor = outputs[i]
+                        j = 0
+                        for i, p in enumerate(comp_arrow.inner_out_ports()):
+                            if out_port == p:
+                                break
+                            else:
+                                j = j + 1
+                        output_tensors_dict[j] = output_tensor
 
             # The output tensors are
             output_tensors = []
+            # import pdb; pdb.set_trace()
+            # FIXME
             for out_port in comp_arrow.inner_out_ports():
                 output_tensor = arrow_tensors[out_port.arrow][out_port.index]
-                output_tensors.append(output_tensors)
+                output_tensors.append(output_tensor)
 
             error_tensors = []
             for error_port in comp_arrow.inner_error_ports():
@@ -177,6 +196,6 @@ def arrow_to_graph(comp_arrow: CompositeArrow,
 
             return {'graph': graph,
                     'input_tensors': input_tensors,
-                    'output_tensors': output_tensors,
+                    'output_tensors': list(output_tensors_dict.values()),
                     'param_tensors': [],
                     'error_tensors': error_tensors}
