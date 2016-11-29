@@ -3,9 +3,9 @@ from reverseflow.arrows.composites.math_composites import *
 from reverseflow.arrows.primitive.control_flow_arrows import *
 from reverseflow.arrows.primitive.math_arrows import *
 from reverseflow.arrows.primitive.constant import *
-from reverseflow.arrows.primitive.source_arrow import SourceArrow
+from reverseflow.arrows.sourcearrow import SourceArrow
 from reverseflow.util.mapping import Bimap
-from reverseflow.compose import compose_comb
+from reverseflow.arrows.compose import compose_comb
 
 # import numpy as np
 #
@@ -34,13 +34,17 @@ class MeanArrow(CompositeArrow):
     Takes in n tensors of same shape and returns one tensor of elementwise mean
     """
 
-    def __init__(self, n_inputs: int):
+    def __init__(self, n_inputs: int) -> None:
         name = "Mean"
         addn_arrow = AddNArrow(n_inputs)
         nsource = SourceArrow(n_inputs)
         div_arrow = DivArrow()
         div_n = compose_comb(nsource, div_arrow, {0: 1})
-        return compose_comb(addn_arrow, div_n, {0: 0}, name=name)
+        mean_arrow = compose_comb(addn_arrow, div_n, {0: 0}, name=name)
+        super().__init__(edges=mean_arrow.edges,
+                         in_ports=mean_arrow.inner_in_ports(),
+                         out_ports=mean_arrow.inner_out_ports(),
+                         name=name)
 
 
 class VarFromMean(CompositeArrow):
@@ -48,7 +52,7 @@ class VarFromMean(CompositeArrow):
     Compute variance given variance and set of inputs
     """
 
-def __init__(self, n_inputs: int):
+def __init__(self, n_inputs: int) -> None:
     name = "VarFromMean"
     dupl = DuplArrow(n_duplications=n_inputs)
     subs = [SubArrow() for i in range(n_inputs)]
@@ -72,7 +76,7 @@ def __init__(self, n_inputs: int):
     edges.add(dupl2.out_ports[1], dimsbarbatch.in_ports[0])
     edges.add(dimsbarbatch.out_ports[0], reduce_mean.in_ports[1])
     out_ports = reduce_mean.out_ports
-    return super().__init__(edges=edges,
-                            in_ports=in_ports,
-                            out_ports=out_ports,
-                            name=name)
+    super().__init__(edges=edges,
+                     in_ports=in_ports,
+                     out_ports=out_ports,
+                     name=name)
