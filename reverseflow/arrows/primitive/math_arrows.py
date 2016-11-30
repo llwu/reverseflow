@@ -3,6 +3,8 @@ from typing import Dict, List, MutableMapping
 from sympy import Expr, Rel, Gt, Ne
 
 
+def same_shape(shape): return shape
+
 class AddArrow(PrimitiveArrow):
     """Addition"""
 
@@ -114,16 +116,19 @@ class AbsArrow(PrimitiveArrow):
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
 
-class ReduceMean(PrimitiveArrow):
-    """Computes the mean of elements across dimensions of a tensor."""
+class ReduceMeanArrow(PrimitiveArrow):
+    """Computes the mean of elements across dimensions of a tensor.
+    Port0: input
+    Port1: reduction_indices"""
 
-    def __init__(n_inputs,
+    def __init__(self,
+                 n_inputs,
                  axis=None,
                  keep_dims=False,
-                 name=None,
                  reduction_indices=None):
 
+        name = 'ReduceMean'
         self.axis = axis
         self.kee_dims = keep_dims
         self.reduction_indices = reduction_indices
-        super().__init__(n_in_ports=n_inputs, n_out_ports=1, name=name)
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)

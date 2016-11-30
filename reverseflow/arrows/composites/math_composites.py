@@ -15,19 +15,19 @@ from reverseflow.arrows.compose import compose_comb
 #     return np.arange(1, t.get_shape().ndims)
 
 
-class DimsBarBatchArrow():
-    def __init__(self):
-        name = "DimsBarBatch"
+class DimsBarBatchArrow(CompositeArrow):
+    def __init__(self) -> None:
+        name = 'DimsBarBatch'
         rank_arrow = RankArrow()
         one_source = SourceArrow(1)
         range_arrow = RangeArrow()
         edges = Bimap()  #  type: EdgeMap
         edges.add(one_source.out_ports[0], range_arrow.in_ports[0])
-        edges.add(rank_arrow.out_ports[1], range_arrow.in_ports[1])
-        return super().__init__(edges=edges,
-                                in_ports=rank_arrow.in_ports,
-                                out_ports=range_arrow.out_ports,
-                                name=name)
+        edges.add(rank_arrow.out_ports[0], range_arrow.in_ports[1])
+        super().__init__(edges=edges,
+                         in_ports=rank_arrow.in_ports,
+                         out_ports=range_arrow.out_ports,
+                         name=name)
 
 
 class MeanArrow(CompositeArrow):
@@ -36,7 +36,7 @@ class MeanArrow(CompositeArrow):
     """
 
     def __init__(self, n_inputs: int) -> None:
-        name = "Mean"
+        name = 'Mean'
         edges = Bimap() # type: EdgeMap
         addn_arrow = AddNArrow(n_inputs)
         nsource = SourceArrow(n_inputs)
@@ -51,36 +51,40 @@ class MeanArrow(CompositeArrow):
                          name=name)
 
 
-class VarFromMean(CompositeArrow):
+class VarFromMeanArrow(CompositeArrow):
     """
     Compute variance given variance and set of inputs
+    In_port 0: mean
+    in_port 1 .. n+1: values to compute variance
     """
 
-def __init__(self, n_inputs: int) -> None:
-    name = "VarFromMean"
-    dupl = DuplArrow(n_duplications=n_inputs)
-    subs = [SubArrow() for i in range(n_inputs)]
-    abss = [AbsArrow() for i in range(n_inputs)]
-    addn = AddNArrow(n_inputs)
+    def __init__(self, n_inputs: int) -> None:
+        name = 'VarFromMean'
+        # import pdb; pdb.set_trace()
+        dupl = DuplArrow(n_duplications=n_inputs)
+        subs = [SubArrow() for i in range(n_inputs)]
+        abss = [AbsArrow() for i in range(n_inputs)]
+        addn = AddNArrow(n_inputs)
 
-    edges = Bimap()  # type: EdgeMap
-    in_ports = [dupl.in_ports[0]] + [sub.in_ports[1] for sub in subs]
-    for i in range(n_inputs):
-        edges.add(dupl.out_ports[i], subs[i].in_ports[i])
-        edges.add(subs[i].out_ports[0], abss[i].in_ports[0])
-        edges.add(abss[i].out_ports[0], addn.in_ports[i])
+        edges = Bimap()  # type: EdgeMap
+        in_ports = [dupl.in_ports[0]] + [sub.in_ports[1] for sub in subs]
+        for i in range(n_inputs):
+            edges.add(dupl.out_ports[i], subs[i].in_ports[0])
+            edges.add(subs[i].out_ports[0], abss[i].in_ports[0])
+            edges.add(abss[i].out_ports[0], addn.in_ports[i])
 
-    dupl2 = DuplArrow(n_duplications=2)
-    edges.add(addn.out_ports[0], dupl2.in_ports[0])
+        dupl2 = DuplArrow(n_duplications=2)
+        edges.add(addn.out_ports[0], dupl2.in_ports[0])
 
-    reduce_mean = ReduceMeanArrow(reduction_indices=dims_bar_batch(mean_variances))
-    dimsbarbatch = DimsBarBatchArrow()
+        reduce_mean = ReduceMeanArrow(n_inputs=2)
+        dimsbarbatch = DimsBarBatchArrow()
 
-    edges.add(dupl2.out_ports[0], reduce_mean.in_ports[0])
-    edges.add(dupl2.out_ports[1], dimsbarbatch.in_ports[0])
-    edges.add(dimsbarbatch.out_ports[0], reduce_mean.in_ports[1])
-    out_ports = reduce_mean.out_ports
-    super().__init__(edges=edges,
-                     in_ports=in_ports,
-                     out_ports=out_ports,
-                     name=name)
+        edges.add(dupl2.out_ports[0], reduce_mean.in_ports[0])
+        edges.add(dupl2.out_ports[1], dimsbarbatch.in_ports[0])
+        edges.add(dimsbarbatch.out_ports[0], reduce_mean.in_ports[1])
+        out_ports = reduce_mean.out_ports
+
+        super().__init__(edges=edges,
+                         in_ports=in_ports,
+                         out_ports=out_ports,
+                         name=name)

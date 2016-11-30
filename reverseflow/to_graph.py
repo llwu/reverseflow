@@ -7,6 +7,7 @@ from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 from reverseflow.arrows.primitive.math_arrows import *
 from reverseflow.arrows.primitive.control_flow_arrows import *
 from reverseflow.arrows.primitive.cast_arrows import *
+from reverseflow.arrows.primitive.constant import *
 from typing import Tuple, List, Dict, MutableMapping, Union
 from collections import OrderedDict
 from overloading import overload
@@ -92,12 +93,30 @@ def conv(a: CastArrow, args: TensorVarList) -> List[Tensor]:
     return [tf.cast(args[0], dtype=a.to_dtype)]
 
 @overload
+def conv(a: AbsArrow, args: TensorVarList) -> List[Tensor]:
+    return [tf.abs(args[0])]
+
+@overload
+def conv(a: RankArrow, args: TensorVarList) -> List[Tensor]:
+    return [tf.rank(args[0])]
+
+@overload
+def conv(a: RangeArrow, args: TensorVarList) -> List[Tensor]:
+    return [tf.range(args[0], args[1])]
+
+@overload
+def conv(a: ReduceMeanArrow, args: TensorVarList) -> List[Tensor]:
+    return [tf.reduce_mean(args[0], reduction_indices=args[1])]
+
+
+@overload
 def conv(a: CompositeArrow, args: TensorVarList) -> List[Tensor]:
     graph = tf.get_default_graph()
     assert len(args) == a.n_in_ports
     arrow_colors, arrow_tensors = inner_convert(a, args)
     result = arrow_to_graph(a,
                             args,
+                            [], # FIXME:
                             arrow_colors,
                             arrow_tensors,
                             graph)
@@ -148,8 +167,12 @@ def arrow_to_new_graph(comp_arrow: CompositeArrow,
                        graph: Graph):
     """Create new graph and convert comp_arrow into it"""
     arrow_colors, arrow_tensors = inner_convert(comp_arrow, input_tensors)
-    return arrow_to_graph(comp_arrow, input_tensors, param_tensors,
-                          arrow_colors, arrow_tensors, graph)
+    return arrow_to_graph(comp_arrow,
+                          input_tensors,
+                          param_tensors,
+                          arrow_colors,
+                          arrow_tensors,
+                          graph)
 
 
 def arrow_to_graph(comp_arrow: CompositeArrow,
