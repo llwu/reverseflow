@@ -167,6 +167,13 @@ def arrow_to_new_graph(comp_arrow: CompositeArrow,
                        graph: Graph):
     """Create new graph and convert comp_arrow into it"""
     arrow_colors, arrow_tensors = inner_convert(comp_arrow, input_tensors)
+    # Unparameterize the arrow
+    # concentate input_tensors and param_tensors
+    # make error outputs just normal outputs
+    # Then unpack results
+
+    # Only complication is in embedded composites
+    # Could reparameterize the inputs
     return arrow_to_graph(comp_arrow,
                           input_tensors,
                           param_tensors,
