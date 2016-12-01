@@ -12,6 +12,7 @@ from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
 from reverseflow.arrows.sourcearrow import SourceArrow
 from reverseflow.arrows.compose import compose_comb_modular, compose_comb
+from reverseflow.defaults import default_dispatch
 from reverseflow.util.mapping import Bimap
 from reverseflow.arrows.compositearrow import CompositeArrow
 
@@ -74,21 +75,23 @@ def test_multicomb() -> CompositeArrow:
 
 def test_random_math() -> PrimitiveArrow:
     """Generates a random math arrow."""
-    # maths = [m[1] for m in inspect.getmembers(reverseflow.arrows.primitive.math_arrows,
-    #         inspect.isclass) if m[1].__module__ == 'reverseflow.arrows.primitive.math_arrows']
 
     # FIXME: Hack until we have more general random generator
-    maths = [AddArrow,
-             SubArrow,
-             MulArrow,
-             DivArrow,
-             PowArrow,
-             ExpArrow,
-             LogArrow,
-             LogBaseArrow,
-             NegArrow,
-             AddNArrow,
-             AbsArrow]
+    # maths = [AddArrow,
+    #          SubArrow,
+    #          MulArrow,
+    #          DivArrow,
+    #          PowArrow,
+    #          ExpArrow,
+    #          LogArrow,
+    #          LogBaseArrow,
+    #          NegArrow,
+    #          AddNArrow,
+    #          AbsArrow]
+
+    maths = [m[1] for m in inspect.getmembers(reverseflow.arrows.primitive.math_arrows,
+            inspect.isclass) if m[1].__module__ == 'reverseflow.arrows.primitive.math_arrows']
+    maths = list(set.intersection(set(maths), default_dispatch.keys()))
     idx = randint(0, len(maths) - 1)
     args = []
     n_input_arrows = [

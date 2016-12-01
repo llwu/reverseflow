@@ -16,7 +16,6 @@ class InvAddArrow(CompositeArrow):
 
     def __init__(self):
         name = "InvAdd"
-        # consider having theta be something other than an InPort
         edges = Bimap()  # type: EdgeMap
         dupl_theta = DuplArrow()
         sub = SubArrow()
@@ -24,6 +23,7 @@ class InvAddArrow(CompositeArrow):
         in_ports = [sub.in_ports[0], dupl_theta.in_ports[0]]
         out_ports = [sub.out_ports[0], dupl_theta.out_ports[1]]
         edges.add(dupl_theta.out_ports[0], sub.in_ports[1])
+
         super().__init__(edges=edges,
                          in_ports=in_ports,
                          out_ports=out_ports,
@@ -41,63 +41,80 @@ class InvSubArrow(CompositeArrow):
         edges = Bimap()  # type: EdgeMap
         dupl_theta = DuplArrow()
         add = AddArrow()
-        in_ports = [add.in_ports[0]]
+
+        in_ports = [add.in_ports[0], dupl_theta.in_ports[0]]
         out_ports = [add.out_ports[0], dupl_theta.out_ports[1]]
-        param_ports = [dupl_theta.in_ports[0]]
         edges.add(dupl_theta.out_ports[0], add.in_ports[1])
-        super().__init__(edges=edges, in_ports=in_ports,
-                         out_ports=out_ports, param_ports=param_ports,
+
+        super().__init__(edges=edges,
+                         in_ports=in_ports,
+                         out_ports=out_ports,
                          name=name)
+        self.change_in_port_type(ParamPort, 1)
 
 class InvMulArrow(CompositeArrow):
-
+    """
+    Parametric Inverse Multiplication
+    mul-1(z; theta) = (z/theta, theta)
+    TODO: consider singularities
+    """
     def __init__(self):
-        name = "InvMulAdd"
+        name = "InvMul"
         edges = Bimap()  # type: EdgeMap
         dupl_theta = DuplArrow()
         div = DivArrow()
 
-        in_ports = [div.in_ports[0]]
+        in_ports = [div.in_ports[0], dupl_theta.in_ports[0]]
         out_ports = [div.out_ports[0], dupl_theta.out_ports[1]]
-        param_ports = [dupl_theta.in_ports[0]]
         edges.add(dupl_theta.out_ports[0], div.in_ports[1])
+
         super().__init__(edges=edges,
                          in_ports=in_ports,
                          out_ports=out_ports,
-                         param_ports=param_ports,
                          name=name)
+        self.change_in_port_type(ParamPort, 1)
 
 class InvDivArrow(CompositeArrow):
+    """
+    Parametric Inverse Division
+    div-1(z; theta) = (z * theta, theta)
+    TODO: consider singularities
+    """
     def __init__(self):
-        name = "InvDivAdd"
+        name = "InvDiv"
         edges = Bimap()  # type: EdgeMap
         dupl_theta = DuplArrow()
         div = DivArrow()
 
-        in_ports = [div.in_ports[0]]
+        in_ports = [div.in_ports[0], dupl_theta.in_ports[0]]
         out_ports = [div.out_ports[0], dupl_theta.out_ports[1]]
-        param_ports = [dupl_theta.in_ports[0]]
         edges.add(dupl_theta.out_ports[0], div.in_ports[1])
+
         super().__init__(edges=edges,
                          in_ports=in_ports,
                          out_ports=out_ports,
-                         param_ports=param_ports,
                          name=name)
+        self.change_in_port_type(ParamPort, 1)
 
 
 class InvPowArrow(CompositeArrow):
+    """
+    Parametric Inverse Division
+    pow-1(z; theta) = (theta, log_theta(z))
+    TODO: consider singularities
+    """
     def __init__(self) -> None:
         name = 'InvPow'
         edges = Bimap()  # type: EdgeMap
         dupl_theta = DuplArrow()
         log = LogArrow()
 
-        in_ports = [log.in_ports[1]]
+        in_ports = [log.in_ports[1], dupl_theta.in_ports[0]]
         out_ports = [dupl_theta.out_ports[1], log.out_ports[0]]
-        param_ports = [dupl_theta.in_ports[0]]
         edges.add(dupl_theta.out_ports[0], log.in_ports[0])
+
         super().__init__(edges=edges,
                          in_ports=in_ports,
                          out_ports=out_ports,
-                         param_ports=param_ports,
                          name=name)
+        self.change_in_port_type(ParamPort, 1)

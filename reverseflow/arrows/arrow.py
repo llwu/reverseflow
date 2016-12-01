@@ -40,11 +40,5 @@ class Arrow:
     def inner_error_ports(self):
         return []
 
-    def inner_param_ports(self):
-        return []
-
-    def num_param_ports(self) -> int:
-        return 0
-
     def get_sub_arrows(self):
         return []
