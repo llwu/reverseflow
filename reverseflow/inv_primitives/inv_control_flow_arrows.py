@@ -4,7 +4,7 @@ from sympy import Expr, Eq, Rel
 
 
 class InvDuplArrow(PrimitiveArrow):
-    """InvDupl f(x,x) = x"""
+    """InvDupl f(x1,...,xn) = x"""
 
     def __init__(self, n_duplications=2):
         name = "InvDupl"

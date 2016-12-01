@@ -1,6 +1,6 @@
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
 from typing import Dict, List, MutableMapping
-from sympy import Expr, Rel, Gt
+from sympy import Expr, Rel, Gt, Ne
 
 
 class AddArrow(PrimitiveArrow):
@@ -41,11 +41,14 @@ class DivArrow(PrimitiveArrow):
         return constraints
 
 
-class ExpArrow(PrimitiveArrow):
-    """Exponentiaion"""
+class PowArrow(PrimitiveArrow):
+    """Computes the power of one value to another.
+
+    Given a tensor `x` and a tensor `y`, this operation computes \\(x^y\\) for
+    corresponding elements in `x` and `y`. For example"""
 
     def __init__(self):
-        name = 'Exp'
+        name = 'Pow'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
     def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
@@ -56,12 +59,26 @@ class ExpArrow(PrimitiveArrow):
             constraints.append(Gt(output_expr[0], 0))
         return constraints
 
+class ExpArrow(PrimitiveArrow):
+    """Exponential e^x"""
+
+    def __init__(self):
+        name = 'Exp'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
 
 class LogArrow(PrimitiveArrow):
-    """Logarithm"""
+    """Log_e(x)"""
 
     def __init__(self):
         name = 'Log'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+class LogBaseArrow(PrimitiveArrow):
+    """Log_y(x)"""
+
+    def __init__(self):
+        name = 'LogBase'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
     def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
@@ -79,3 +96,11 @@ class NegArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Neg'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+
+# class AddNArrow(PrimitiveArrow):
+#     """Element wise sum of n tensors"""
+#
+#     def __init__(self, n: int):
+#         name = 'AddN'
+#         super().__init__(n_in_ports=n, n_out_ports=1, name=name)

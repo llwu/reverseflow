@@ -8,7 +8,8 @@ class SourceArrow(Arrow):
     A source arrow is a constant, it takes no input and has one output
     """
 
-    def __init__(self, value) -> None:
+    def __init__(self, value, name: str = None) -> None:
+        super().__init__(name=name)
         self.in_ports = []  # type: List[InPort]
         self.out_ports = [OutPort(self, 0)]
         self.value = value

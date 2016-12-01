@@ -91,6 +91,7 @@ def symbolic_apply(comp_arrow) -> Tuple[Dict[Arrow, MutableMapping[int, Expr]], 
     arrow_exprs = dict()  # type: Dict[Arrow, MutableMapping[int, Expr]]
     output_arrow_exprs = dict()  # type: Dict[Arrow, MutableMapping[int, Expr]]
 
+    invadd = InvAddArrow()
     # create a tensor for each in_port to the composition
     # decrement priority for each arrow connected to inputs
     print(comp_arrow.inner_in_ports)

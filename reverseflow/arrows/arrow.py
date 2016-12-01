@@ -7,10 +7,10 @@ class Arrow:
     def __init__(self, name: str) -> None:
         self.name = name
 
-    def num_in_ports(self):
+    def num_in_ports(self) -> int:
         return len(self.in_ports)
 
-    def num_out_ports(self):
+    def num_out_ports(self) -> int:
         return len(self.out_ports)
 
     def is_primitive(self) -> bool:
@@ -30,3 +30,12 @@ class Arrow:
 
     def is_tf(self) -> bool:
         return False
+
+    def inner_in_ports(self):
+        return self.in_ports
+
+    def inner_out_ports(self):
+        return self.out_ports
+
+    def get_sub_arrows(self):
+        return []

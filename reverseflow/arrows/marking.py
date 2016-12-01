@@ -12,13 +12,15 @@ def mark(arrow: Arrow,
          knowns: Set[InPort]) -> Tuple[Set[InPort], Set[OutPort]]:
     """Propagates knowns throughout the arrow.
     Won't propagate to outside of the arrow.
+    Won't return knowns within composite subarrows.
 
     Args:
         arrow (Arrow): The arrow to propagate throughout.
         knowns (Set[InPort]): The in ports which we know to be known.
+            Generally wants to be a subset of arrow.inner_in_ports()
 
     Returns:
-        Set[InPort]: The in ports which are known as a result.
+        Set[InPort]: The ports which are known as a result.
     """
     to_mark = pqdict()
     marked_inports = set()
@@ -34,7 +36,9 @@ def mark(arrow: Arrow,
     def add(out_port):
         """Marks out_port and (if it exists) the neighboring in port."""
         marked_outports.add(out_port)
-        if out_port in arrow.edges.keys():
+        if not arrow.is_composite():
+            return
+        if out_port in arrow.edges:
             in_port = arrow.neigh_in_port(out_port)
             marked_inports.add(in_port)
             dec(in_port.arrow)
@@ -47,17 +51,18 @@ def mark(arrow: Arrow,
         sub_arrow, priority = to_mark.popitem()
         assert priority >= 0, "knowns > num_in_ports?"
         if priority == 0:
-            for i in range(sub_arrow.num_out_ports()):
-                add(OutPort(sub_arrow, i))
+            for out_port in sub_arrow.out_ports:
+                add(out_port)
         elif sub_arrow.is_composite():
             sub_knowns = set()
-            for i, in_port in enumerate(sub_arrow.in_ports):
-                if InPort(sub_arrow, i) in marked_inports:  # outer InPort
+            for i, in_port in enumerate(sub_arrow.inner_in_ports()):
+                if sub_arrow.in_ports[i] in marked_inports:  # outer InPort
                     sub_knowns.add(in_port)  # inner InPort
+            # perhaps it is worth appending these?
             _, sub_marked_outports = mark(sub_arrow, sub_knowns)
-            for i, out_port in enumerate(sub_arrow.out_ports):
+            for i, out_port in enumerate(sub_arrow.inner_out_ports()):
                 if out_port in sub_marked_outports:  # inner OutPort
-                    add(OutPort(sub_arrow, i))  # outer OutPort
+                    add(sub_arrow.out_ports[i])  # outer OutPort
 
     return marked_inports, marked_outports
 
@@ -67,7 +72,7 @@ def mark_source(arrow: Arrow):
     # FIXME: Assumes arrow is flat
     knowns = set()  # type: Set[InPort]
     for sub_arrow in arrow.get_sub_arrows():
-        if sub_arrow.is_source():
+        if sub_arrow.is_source() and (sub_arrow.out_ports[0] in arrow.edges):
             in_port = arrow.edges.fwd(sub_arrow.out_ports[0])
             knowns.add(in_port)
 

@@ -1,4 +1,4 @@
-"""Decode an arrow into a tensoflow graph"""
+r"""Decode an arrow into a tensoflow graph"""
 import tensorflow as tf
 from tensorflow import Tensor, Graph
 from pqdict import pqdict
@@ -6,32 +6,13 @@ from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 from reverseflow.arrows.primitive.math_arrows import *
 from reverseflow.arrows.primitive.control_flow_arrows import *
-from typing import List, Dict, MutableMapping
+from typing import Tuple, List, Dict, MutableMapping
 from collections import OrderedDict
 from overloading import overload
 
-
-def valid(sub_arrow, arrow_tensors):
-    input_tensors = arrow_tensors[sub_arrow]
-    # TODO: Check that the number of inputs created is same as num inputs to
-    # arrow
-    return True
-
-
-@overload
-def conv(a: AddArrow, args: List[Tensor]) -> List[Tensor]:
-    return [tf.add(*args)]
-
-
-@overload
-def conv(a: MulArrow, args: List[Tensor]) -> List[Tensor]:
-    return [tf.mul(*args)]
-
-
-@overload
-def conv(a: DuplArrow, args: List[Tensor]) -> List[Tensor]:
-    # TODO: Genralize to n outputs
-    return [args[0], args[0]]
+def print_arrow_colors(arrow_colors):
+    for (arr, pr) in arrow_colors.items():
+        print(arr.name, ": ", pr)
 
 
 def default_add(arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
@@ -41,67 +22,161 @@ def default_add(arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
     else:
         arrow_tensors[sub_arrow] = OrderedDict({index: input_tensor})
 
+@overload
+def conv(a: Arrow, args: List[Tensor]) -> List[Tensor]:
+    assert False, "Error, no conversion for %s implemented" % a.name
 
-def print_arrow_colors(arrow_colors):
-    for (arr, pr) in arrow_colors.items():
-        print(arr.name, ": ", pr)
+@overload
+def conv(a: AddArrow, args: List[Tensor]) -> List[Tensor]:
+    return [tf.add(*args)]
+
+@overload
+def conv(a: SubArrow, args: List[Tensor]) -> List[Tensor]:
+    return [tf.sub(*args)]
+
+@overload
+def conv(a: NegArrow, args: List[Tensor]) -> List[Tensor]:
+    return [tf.neg(*args)]
+
+@overload
+def conv(a: PowArrow, args: List[Tensor]) -> List[Tensor]:
+    return [tf.pow(*args)]
+
+@overload
+def conv(a: ExpArrow, args: List[Tensor]) -> List[Tensor]:
+    return [tf.exp(*args)]
+
+@overload
+def conv(a: LogArrow, args: List[Tensor]) -> List[Tensor]:
+    return [tf.log(*args)]
+
+@overload
+def conv(a: LogBaseArrow, args: List[Tensor]) -> List[Tensor]:
+    # Tensorflow has no log of arbitrary base
+    # use \log _{b}(x)=log _{k}(x)}/log _{k}(b)
+    return [tf.log(args[1]) / tf.log(args[0])]
+
+
+# @overload
+# def conv(a: ExpArrow, args: List[Tensor]) -> List[Tensor]:
+#     import pdb; pdb.set_trace()
+#
+#     return [tf.exp(args[0])]
+#
+# @overload
+# def conv(a: LogArrow, args: List[Tensor]) -> List[Tensor]:
+#     import pdb; pdb.set_trace()
+#
+#     return [tf.log(*args)]
+
+@overload
+def conv(a: MulArrow, args: List[Tensor]) -> List[Tensor]:
+    return [tf.mul(*args)]
+
+@overload
+def conv(a: DivArrow, args: List[Tensor]) -> List[Tensor]:
+    return [tf.mul(*args)]
+
+@overload
+def conv(a: DuplArrow, args: List[Tensor]) -> List[Tensor]:
+    # TODO: Genralize to n outputs
+    return [args[0] for i in range(a.n_out_ports)]
 
 
 @overload
-def arrow_to_graph(comp_arrow: CompositeArrow) -> Graph:
-    """Convert an comp_arrow to a tensorflow graph"""
+def conv(a: CompositeArrow, args: List[Tensor]) -> List[Tensor]:
+    graph = tf.get_default_graph()
+    assert len(args) == a.n_in_ports
+    arrow_colors, arrow_tensors = okok(a, args)
+    result = arrow_to_graph(a,
+                            args,
+                            arrow_colors,
+                            arrow_tensors,
+                            graph)
+    return result['output_tensors']
 
-    graph = tf.Graph()  # type: Graph
+
+def okok(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
+    # A priority queue for each sub_arrow
+    # priority is the number of inputs it has which have already been seen
+    # seen inputs are inputs to the composition, or outputs of arrows that
+    # have already been converted into
+    # create a tensor for each in_port to the composition
+    # decrement priority for each arrow connected to inputs
+    arrow_colors = pqdict()  # type: MutableMapping[Arrow, int]
+
+    # Store a map from an arrow to its inputs
+    # Use a dict because no guarantee we'll create input tensors in order
+    arrow_tensors = dict()  # type: Dict[Arrow, MutableMapping[int, tf.Tensor]]
+
+    for sub_arrow in comp_arrow.get_sub_arrows():
+        arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
+
+    for i, input_tensor in enumerate(input_tensors):
+        in_port = comp_arrow.inner_in_ports()[i]
+        sub_arrow = in_port.arrow
+        arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
+        default_add(arrow_tensors, sub_arrow, in_port.index, input_tensor)
+
+    return arrow_colors, arrow_tensors
+
+
+def arrow_to_new_graph(comp_arrow: CompositeArrow) -> Graph:
+    """Create new graph and convert comp_arrow into it"""
+    graph = tf.Graph()
+    input_tensors = [tf.placeholder(dtype='float32') for i in range(comp_arrow.n_in_ports)]
+    arrow_colors, arrow_tensors = okok(comp_arrow, input_tensors)
+    return arrow_to_graph(comp_arrow, input_tensors, arrow_colors, arrow_tensors, graph)
+
+
+def arrow_to_graph(comp_arrow: CompositeArrow,
+                   input_tensors: List[Tensor],
+                   arrow_colors: MutableMapping[Arrow, int],
+                   arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
+                   graph: Graph) -> Tuple[Graph, List[Tensor], List[Tensor]]:
+    """Convert an comp_arrow to a tensorflow graph and add to graph"""
     with graph.as_default():
-        # A priority queue for each sub_arrow
-        # priority is the number of inputs it has which have already been seen
-        # seen inputs are inputs to the composition, or outputs of arrows that
-        # have already been converted into tensorfow
-        arrow_colors = pqdict()
-        # import pdb; pdb.set_trace()
-        for sub_arrow in comp_arrow.get_sub_arrows():
-            arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
+        with tf.name_scope(comp_arrow.name):
+            while len(arrow_colors) > 0:
+                print_arrow_colors(arrow_colors)
+                sub_arrow, priority = arrow_colors.popitem()
+                print("Converting ", sub_arrow.name)
+                assert priority == 0, "Must resolve all inputs to sub_arrow first"
+                # TODO: Check that the number of inputs created is same as num inputs to
 
-        print_arrow_colors(arrow_colors)
+                inputs = list(arrow_tensors[sub_arrow].values())
+                # import pdb; pdb.set_trace()
+                print(type(sub_arrow), type(inputs))
+                outputs = conv(sub_arrow, inputs)
+                assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
 
-        # Store a map from an arrow to its inputs
-        # Use a dict because no guarantee we'll create input tensors in order
-        arrow_tensors = dict()  # type: Dict[Arrow, MutableMapping[int, tf.Tensor]]
+                # Decrement the priority of each subarrow connected to this arrow
+                # Unless of course it is connected to the outside word
+                for i, out_port in enumerate(sub_arrow.out_ports):
+                    # FIXME: this is linear search, encapsulate
+                    if out_port not in comp_arrow.inner_out_ports():
+                        neigh_port = comp_arrow.neigh_in_port(out_port)
+                        neigh_arrow = neigh_port.arrow
+                        if neigh_arrow is not comp_arrow:
+                            assert neigh_arrow in arrow_colors
+                            arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
+                            default_add(arrow_tensors, neigh_arrow, neigh_port.index,
+                                        outputs[i])
 
-        # create a tensor for each in_port to the composition
-        # decrement priority for each arrow connected to inputs
-        for in_port in comp_arrow.inner_in_ports:
-            sub_arrow = in_port.arrow
-            assert sub_arrow in arrow_colors
-            arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
-            input_tensor = tf.placeholder(dtype='float32')  # FIXME: Generalize
-            default_add(arrow_tensors, sub_arrow, in_port.index, input_tensor)
+            # The output tensors are
+            output_tensors = []
+            for out_port in comp_arrow.inner_out_ports():
+                output_tensor = arrow_tensors[out_port.arrow][out_port.index]
+                output_tensors.append(output_tensors)
 
-        
+            error_tensors = []
+            for error_port in comp_arrow.inner_error_ports():
+                error_tensor = arrow_tensors[error_port.arrow][error_port.index]
+                error_tensors.append(error_tensor)
 
-        while len(arrow_colors) > 0:
-            print_arrow_colors(arrow_colors)
-            sub_arrow, priority = arrow_colors.popitem()
-            print("Converting ", sub_arrow.name)
-            print_arrow_colors(arrow_colors)
-            assert priority == 0, "Must resolve all inputs to sub_arrow first"
-            assert sub_arrow.is_primitive(), "Cannot convert unflat arrow"
-            assert valid(sub_arrow, arrow_tensors)
 
-            inputs = list(arrow_tensors[sub_arrow].values())
-            # import pdb; pdb.set_trace()
-            outputs = conv(sub_arrow, inputs)
-            assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
-
-            for i, out_port in enumerate(sub_arrow.out_ports):
-                # FIXME: this is linear search, encapsulate
-                if out_port not in comp_arrow.inner_out_ports:
-                    neigh_port = comp_arrow.neigh_in_port(out_port)
-                    neigh_arrow = neigh_port.arrow
-                    if neigh_arrow is not comp_arrow:
-                        assert neigh_arrow in arrow_colors
-                        arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
-                        default_add(arrow_tensors, neigh_arrow, neigh_port.index,
-                                    outputs[i])
-
-        return graph
+            return {'graph': graph,
+                    'input_tensors': input_tensors,
+                    'output_tensors': output_tensors,
+                    'param_tensors': [],
+                    'error_tensors': error_tensors}

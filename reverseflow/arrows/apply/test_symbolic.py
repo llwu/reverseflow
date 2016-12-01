@@ -12,7 +12,6 @@ def test_symbolic_apply() -> None:
     """inverse of f(x, y) = x * y + x"""
     arrow = test_xyplusx_flat()
     inv_arrow = invert(arrow)
-    print(inv_arrow.is_parametric())
     (symbolic_map, constraints) = symbolic_apply(inv_arrow)
     print(constraints)
     print(symbolic_map)
