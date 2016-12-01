@@ -11,6 +11,7 @@ from reverseflow.arrows.primitive.constant import *
 from typing import Tuple, List, Dict, MutableMapping, Union
 from collections import OrderedDict
 from overloading import overload
+from reverseflow.arrows.apply.interpret import interpret
 
 TensorVarList = Union[List[Tensor], List[Variable]]
 
@@ -121,123 +122,8 @@ def conv(a: CompositeArrow, args: TensorVarList) -> List[Tensor]:
                             graph)
     return result['output_tensors']
 
-
-def inner_convert(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
-    # A priority queue for each sub_arrow
-    # priority is the number of inputs it has which have already been seen
-    # seen inputs are inputs to the composition, or outputs of arrows that
-    # have already been converted into
-    # create a tensor for each in_port to the composition
-    # decrement priority for each arrow connected to inputs
-    arrow_colors = pqdict()  # type: MutableMapping[Arrow, int]
-
-    # Store a map from an arrow to its inputs
-    # Use a dict because no guarantee we'll create input tensors in order
-    arrow_tensors = dict()  # type: Dict[Arrow, MutableMapping[int, tf.Tensor]]
-
-    for sub_arrow in comp_arrow.get_sub_arrows():
-        if not sub_arrow.is_source():
-            arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
-
-    for i, input_tensor in enumerate(input_tensors):
-        in_port = comp_arrow.inner_in_ports()[i]
-        sub_arrow = in_port.arrow
-        arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
-        default_add(arrow_tensors, sub_arrow, in_port.index, input_tensor)
-
-    # Create tensor for each source
-    # TODO: Should we turn sources into variables always?
-    # FIXME: DRY
-    for sub_arrow in comp_arrow.get_sub_arrows():
-        if sub_arrow.is_source():
-            graph = tf.get_default_graph()
-            value = tf.Variable(sub_arrow.value)
-            in_port = comp_arrow.edges.fwd(sub_arrow.out_ports[0])
-            arrow_colors[in_port.arrow] = arrow_colors[in_port.arrow] - 1
-            default_add(arrow_tensors, in_port.arrow, in_port.index, value)
-
-
-    return arrow_colors, arrow_tensors
-
-
 def arrow_to_new_graph(comp_arrow: CompositeArrow,
                        input_tensors: List[Tensor],
                        graph: Graph):
-    """Create new graph and convert comp_arrow into it"""
-    arrow_colors, arrow_tensors = inner_convert(comp_arrow, input_tensors)
-    # Unparameterize the arrow
-    # concentate input_tensors and param_tensors
-    # make error outputs just normal outputs
-    # Then unpack results
-
-    # Only complication is in embedded composites
-    # Could do the same
-    return arrow_to_graph(comp_arrow,
-                          input_tensors,
-                          arrow_colors,
-                          arrow_tensors,
-                          graph)
-
-
-def arrow_to_graph(comp_arrow: CompositeArrow,
-                   input_tensors: List[Tensor],
-                   arrow_colors: MutableMapping[Arrow, int],
-                   arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
-                   graph: Graph) -> Tuple[Graph, List[Tensor], List[Tensor]]:
-    """Convert an comp_arrow to a tensorflow graph and add to graph"""
-    assert len(input_tensors) == comp_arrow.n_in_ports, "wrong # inputs"
-
-    # FIXMEL Horrible Hack
-    output_tensors_dict =  OrderedDict()
-
     with graph.as_default():
-        with tf.name_scope(comp_arrow.name):
-            while len(arrow_colors) > 0:
-                print_arrow_colors(arrow_colors)
-                sub_arrow, priority = arrow_colors.popitem()
-                print("Converting ", sub_arrow.name)
-                assert priority == 0, "Must resolve all inputs to sub_arrow first"
-                # TODO: Check that the number of inputs created is same as num inputs to
-
-                inputs = list(arrow_tensors[sub_arrow].values())
-                # import pdb; pdb.set_trace()
-                print(type(sub_arrow), type(inputs))
-
-                outputs = conv(sub_arrow, inputs)
-                assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
-
-                # Decrement the priority of each subarrow connected to this arrow
-                # Unless of course it is connected to the outside word
-                for i, out_port in enumerate(sub_arrow.out_ports):
-                    # FIXME: this is linear search, encapsulate
-                    if out_port not in comp_arrow.inner_out_ports():
-                        neigh_port = comp_arrow.neigh_in_port(out_port)
-                        neigh_arrow = neigh_port.arrow
-                        if neigh_arrow is not comp_arrow:
-                            assert neigh_arrow in arrow_colors
-                            arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
-                            default_add(arrow_tensors, neigh_arrow, neigh_port.index,
-                                        outputs[i])
-                    else:
-                        # FIXME: Horrible hack
-                        output_tensor = outputs[i]
-                        j = 0
-                        for i, p in enumerate(comp_arrow.inner_out_ports()):
-                            if out_port == p:
-                                break
-                            else:
-                                j = j + 1
-                        output_tensors_dict[j] = output_tensor
-
-            # The output tensors are
-            output_tensors = []
-            # import pdb; pdb.set_trace()
-            # FIXME
-            for out_port in comp_arrow.inner_out_ports():
-                output_tensor = arrow_tensors[out_port.arrow][out_port.index]
-                output_tensors.append(output_tensor)
-
-
-            return {'graph': graph,
-                    'input_tensors': input_tensors,
-                    'output_tensors': list(output_tensors_dict.values())}
+        return interpret(conv, comp_arrow, input_tensors)

@@ -7,6 +7,7 @@ from reverseflow.arrows.arrow import Arrow
 from reverseflow.to_graph import arrow_to_new_graph
 from test_arrows import test_xyplusx_flat, all_composites
 from util import random_arrow_test
+import numpy as np
 
 
 def test_arrow_to_graph() -> None:
@@ -35,10 +36,10 @@ def reset_and_conv(arrow: Arrow) -> None:
 
 random_arrow_test(reset_and_conv, "to_graph")
 
-def test_all_composites() -> None:
-    composites = all_composites()
-
-    for arrow_class in composites:
-        reset_and_conv(arrow_class())
-
-test_all_composites()
+# def test_all_composites() -> None:
+#     composites = all_composites()
+#
+#     for arrow_class in composites:
+#         reset_and_conv(arrow_class())
+#
+# test_all_composites()
