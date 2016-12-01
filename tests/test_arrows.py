@@ -7,7 +7,7 @@ import tensorflow as tf
 
 import reverseflow.arrows.primitive.math_arrows
 from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.primitive.math_arrows import MulArrow, AddArrow
+from reverseflow.arrows.primitive.math_arrows import *
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
 from reverseflow.arrows.sourcearrow import SourceArrow
@@ -74,10 +74,31 @@ def test_multicomb() -> CompositeArrow:
 
 def test_random_math() -> PrimitiveArrow:
     """Generates a random math arrow."""
-    maths = [m[1] for m in inspect.getmembers(reverseflow.arrows.primitive.math_arrows,
-            inspect.isclass) if m[1].__module__ == 'reverseflow.arrows.primitive.math_arrows']
-    # maths = [MulArrow, AddArrow, SubArrow, DivArrow]
-    return maths[randint(0, len(maths) - 1)]()
+    # maths = [m[1] for m in inspect.getmembers(reverseflow.arrows.primitive.math_arrows,
+    #         inspect.isclass) if m[1].__module__ == 'reverseflow.arrows.primitive.math_arrows']
+
+    # FIXME: Hack until we have more general random generator
+    maths = [AddArrow,
+             SubArrow,
+             MulArrow,
+             DivArrow,
+             PowArrow,
+             ExpArrow,
+             LogArrow,
+             LogBaseArrow,
+             NegArrow,
+             AddNArrow,
+             AbsArrow]
+    idx = randint(0, len(maths) - 1)
+    args = []
+    n_input_arrows = [
+        reverseflow.arrows.primitive.math_arrows.ReduceMeanArrow,
+        reverseflow.arrows.primitive.math_arrows.AddNArrow
+        ]
+    if maths[idx] in n_input_arrows:
+        args = [randint(1, 5)]
+    return maths[idx](*args)
+
 
 
 def test_random_input() -> Arrow:
@@ -115,3 +136,16 @@ def test_random_composite() -> CompositeArrow:
                 arrow,
                 {0: randint(0, arrow.num_in_ports() - 1)})
     return arrow
+
+# FIXME: There must be a better way to get all arrows
+import reverseflow.inv_primitives.inv_math_arrows
+import reverseflow.arrows.composites.math_composites
+composite_module_list = [reverseflow.inv_primitives.inv_math_arrows]
+
+def all_composites() -> List:
+    composites = []
+    for module in composite_module_list:
+        comp_arrow_classes = [m[1] for m in inspect.getmembers(module,
+                  inspect.isclass) if inspect.getmodule(m[1]) == module]
+        composites = composites + comp_arrow_classes
+    return composites

@@ -21,15 +21,14 @@ class InvAddArrow(CompositeArrow):
         dupl_theta = DuplArrow()
         sub = SubArrow()
 
-        in_ports = [sub.in_ports[0]]
+        in_ports = [sub.in_ports[0], dupl_theta.in_ports[0]]
         out_ports = [sub.out_ports[0], dupl_theta.out_ports[1]]
-        param_ports = [dupl_theta.in_ports[0]]
         edges.add(dupl_theta.out_ports[0], sub.in_ports[1])
         super().__init__(edges=edges,
                          in_ports=in_ports,
                          out_ports=out_ports,
-                         param_ports=param_ports,
                          name=name)
+        self.change_in_port_type(ParamPort, 1)
 
 
 class InvSubArrow(CompositeArrow):

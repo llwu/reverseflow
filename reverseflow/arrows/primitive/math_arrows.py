@@ -3,6 +3,8 @@ from typing import Dict, List, MutableMapping
 from sympy import Expr, Rel, Gt, Ne
 
 
+def same_shape(shape): return shape
+
 class AddArrow(PrimitiveArrow):
     """Addition"""
 
@@ -98,9 +100,35 @@ class NegArrow(PrimitiveArrow):
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
 
-# class AddNArrow(PrimitiveArrow):
-#     """Element wise sum of n tensors"""
-#
-#     def __init__(self, n: int):
-#         name = 'AddN'
-#         super().__init__(n_in_ports=n, n_out_ports=1, name=name)
+class AddNArrow(PrimitiveArrow):
+    """Element wise sum of n tensors"""
+
+    def __init__(self, n: int):
+        name = 'AddN'
+        super().__init__(n_in_ports=n, n_out_ports=1, name=name)
+
+
+class AbsArrow(PrimitiveArrow):
+    """Abs(x)"""
+
+    def __init__(self):
+        name = 'Abs'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+
+class ReduceMeanArrow(PrimitiveArrow):
+    """Computes the mean of elements across dimensions of a tensor.
+    Port0: input
+    Port1: reduction_indices"""
+
+    def __init__(self,
+                 n_inputs,
+                 axis=None,
+                 keep_dims=False,
+                 reduction_indices=None):
+
+        name = 'ReduceMean'
+        self.axis = axis
+        self.kee_dims = keep_dims
+        self.reduction_indices = reduction_indices
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)

@@ -16,11 +16,14 @@ class CompositeArrow(Arrow):
     def is_composite(self) -> bool:
         return True
 
-    def is_parametric(self) -> bool:
-        return len(self.param_ports) > 0
+    def is_primitive(self) -> bool:
+        return False
 
-    def is_approximate(self) -> bool:
-        return len(self.error_ports) > 0
+    def has_in_port_type(self, InPortType) -> bool:
+        return any((isinstance(port, InPortType) for port in self.in_ports))
+
+    def has_out_port_type(self, OutPortType) -> bool:
+        return any((isinstance(port, OutPortType) for port in self.out_ports))
 
     def get_sub_arrows(self) -> Set[Arrow]:
         """Return all the constituent arrows of composition"""
@@ -35,8 +38,6 @@ class CompositeArrow(Arrow):
                  edges: EdgeMap,
                  in_ports: List[InPort],
                  out_ports: List[OutPort],
-                 param_ports: List[ParamPort] = [],
-                 error_ports: List[ErrorPort] = [],
                  name: str=None) -> None:
         super().__init__(name=name)
         assert len(in_ports) > 0, "Composite Arrow must have in ports"
@@ -62,14 +63,8 @@ class CompositeArrow(Arrow):
         self.n_in_ports = len(self.in_ports)
         self.out_ports = [OutPort(self, i) for i in range(len(out_ports))]
         self.n_out_ports = len(self.out_ports)
-        self.error_ports = [ErrorPort(self, i) for i in range(len(error_ports))]
-        self.n_error_ports = len(self.error_ports)
-        self.param_ports = [ParamPort(self, i) for i in range(len(param_ports))]
-        self.n_param_ports = len(self.param_ports)
         self._inner_in_ports = in_ports  # type: List[InPort]
         self._inner_out_ports = out_ports  # type: List[OutPort]
-        self._inner_param_ports = param_ports  # type: List[ParamPort]
-        self._inner_error_ports = error_ports  # type: List[ErrorPort]
 
     def neigh_in_port(self, out_port: OutPort) -> InPort:
         return self.edges.fwd(out_port)
@@ -83,8 +78,37 @@ class CompositeArrow(Arrow):
     def inner_out_ports(self) -> List[OutPort]:
         return self._inner_out_ports
 
-    def inner_error_ports(self) -> List[ErrorPort]:
-        return self._inner_error_ports
+    def num_param_ports(self) -> int:
+        return len(self.param_ports)
 
-    def inner_param_ports(self) -> List[ParamPort]:
-        return self._inner_param_ports
+    def change_in_port_type(self, InPortType, index) -> "CompositeArrow":
+        """
+        Convert an in_port to a different in_port type.
+        """
+        # asert Porttype is a subclass of InPort
+        port = self.in_ports[index]
+        self.in_ports[index] = InPortType(port.arrow, port.index)
+
+    def change_out_port_type(self, OutPortType, index) -> "CompositeArrow":
+        """
+        Convert an out_port to a different out_port type.
+        """
+        # TODO: assert
+        port = self.out_ports[index]
+        self.out_ports[index] = OutPortType(port.arrow, port.index)
+
+
+def is_parametric(comp_arrow: CompositeArrow) -> bool:
+    return comp_arrow.has_in_port_type(ParamPort)
+
+
+def is_approximate(comp_arrow: CompositeArrow) -> bool:
+    return comp_arrow.has_out_port_type(ErrorPort)
+
+
+def unparam_all(comp_arrow: CompositeArrow):
+    """
+    Convert all parametric ports to in_ports
+    """
+    for i in range(comp_arrow.n_in_ports):
+        comp_arrow.change_in_port_type(ParamPort, i)
