@@ -76,8 +76,15 @@ def test_random_math() -> PrimitiveArrow:
     """Generates a random math arrow."""
     maths = [m[1] for m in inspect.getmembers(reverseflow.arrows.primitive.math_arrows,
             inspect.isclass) if m[1].__module__ == 'reverseflow.arrows.primitive.math_arrows']
-    # maths = [MulArrow, AddArrow, SubArrow, DivArrow]
-    return maths[randint(0, len(maths) - 1)]()
+    idx = randint(0, len(maths) - 1)
+    args = []
+    n_input_arrows = [
+        reverseflow.arrows.primitive.math_arrows.ReduceMeanArrow,
+        reverseflow.arrows.primitive.math_arrows.AddNArrow
+        ]
+    if maths[idx] in n_input_arrows:
+        args = [randint(1, 5)]
+    return maths[idx](*args)
 
 
 def test_random_input() -> Arrow:

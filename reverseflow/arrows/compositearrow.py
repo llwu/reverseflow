@@ -89,6 +89,9 @@ class CompositeArrow(Arrow):
     def inner_param_ports(self) -> List[ParamPort]:
         return self._inner_param_ports
 
+    def num_param_ports(self) -> int:
+        return len(self.param_ports)
+
     def unparam(self, deep: bool=False) -> "CompositeArrow":
         """
         Convert all param_ports to in_ports.

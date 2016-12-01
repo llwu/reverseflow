@@ -1,4 +1,4 @@
-from reverseflow.train import train_y_arr, train_y_tf
+from reverseflow.train.train_y import train_y_arr, train_y_tf
 
 from test_arrows import test_xyplusx_flat
 from test_graphs import test_xy

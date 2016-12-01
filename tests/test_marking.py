@@ -13,9 +13,9 @@ def marking_test():
 random_arrow_test(lambda arrow: mark(arrow, set(arrow.inner_in_ports()[:-1])), "mark")
 
 """
-from test_arrows import test_random_composite
+from test_arrows import test_random_composite, test_multicomb
 from reverseflow.util.viz import show_tensorboard
-a = test_random_composite()
+a = test_multicomb()
 show_tensorboard(a)
 b, c = mark(a, set(a.inner_in_ports()[:-1]))
 import pdb; pdb.set_trace()

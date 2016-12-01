@@ -58,7 +58,7 @@ class OutPort(Port):
         return "Out:%s" % super().__repr__()
 
 
-class ParamPort(Port):
+class ParamPort(InPort):
     """Parametric port"""
     def __str__(self):
         return "Param%s" % super().__str__()
@@ -67,7 +67,7 @@ class ParamPort(Port):
         return "Param:%s" % super().__repr__()
 
 
-class ErrorPort(Port):
+class ErrorPort(OutPort):
     """Error Port"""
     def __str__(self):
         return "Error%s" % super().__str__()

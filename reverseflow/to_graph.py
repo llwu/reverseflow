@@ -112,8 +112,8 @@ def conv(a: ReduceMeanArrow, args: TensorVarList) -> List[Tensor]:
 @overload
 def conv(a: CompositeArrow, args: TensorVarList) -> List[Tensor]:
     graph = tf.get_default_graph()
-    assert len(args) == a.n_in_ports
     arrow_colors, arrow_tensors = inner_convert(a, args)
+    assert len(args) == a.num_in_ports()
     result = arrow_to_graph(a,
                             args,
                             [], # FIXME:
