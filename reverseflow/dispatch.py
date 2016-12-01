@@ -4,7 +4,7 @@ from reverseflow.arrows.primitive.control_flow_arrows import *
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.inv_primitives.inv_control_flow_arrows import *
 # from reverseflow.inv_primitives.approximate_arrows import *
-from reverseflow.compose import compose_comb
+from reverseflow.arrows.compose import compose_comb
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.port import Port, InPort
 from reverseflow.util.mapping import Bimap

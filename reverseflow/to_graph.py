@@ -185,7 +185,7 @@ def arrow_to_graph(comp_arrow: CompositeArrow,
                    arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
                    graph: Graph) -> Tuple[Graph, List[Tensor], List[Tensor]]:
     """Convert an comp_arrow to a tensorflow graph and add to graph"""
-    assert len(input_tensors) == comp_arrow.n_in_ports, "wrong # inputs"
+    assert len(input_tensors) == comp_arrow.num_in_ports(), "wrong # inputs"
 
     # FIXMEL Horrible Hack
     output_tensors_dict =  OrderedDict()
