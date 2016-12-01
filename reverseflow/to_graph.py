@@ -112,11 +112,10 @@ def conv(a: ReduceMeanArrow, args: TensorVarList) -> List[Tensor]:
 @overload
 def conv(a: CompositeArrow, args: TensorVarList) -> List[Tensor]:
     graph = tf.get_default_graph()
+    assert len(args) == a.n_in_ports
     arrow_colors, arrow_tensors = inner_convert(a, args)
-    assert len(args) == a.num_in_ports()
     result = arrow_to_graph(a,
                             args,
-                            [], # FIXME:
                             arrow_colors,
                             arrow_tensors,
                             graph)
@@ -152,7 +151,7 @@ def inner_convert(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
     for sub_arrow in comp_arrow.get_sub_arrows():
         if sub_arrow.is_source():
             graph = tf.get_default_graph()
-            value = tf.Variable(sub_arrow.value, name="Jeremiah")
+            value = tf.Variable(sub_arrow.value)
             in_port = comp_arrow.edges.fwd(sub_arrow.out_ports[0])
             arrow_colors[in_port.arrow] = arrow_colors[in_port.arrow] - 1
             default_add(arrow_tensors, in_port.arrow, in_port.index, value)
@@ -163,7 +162,6 @@ def inner_convert(comp_arrow: CompositeArrow, input_tensors: List[Tensor]):
 
 def arrow_to_new_graph(comp_arrow: CompositeArrow,
                        input_tensors: List[Tensor],
-                       param_tensors: List[Tensor],
                        graph: Graph):
     """Create new graph and convert comp_arrow into it"""
     arrow_colors, arrow_tensors = inner_convert(comp_arrow, input_tensors)
@@ -173,10 +171,9 @@ def arrow_to_new_graph(comp_arrow: CompositeArrow,
     # Then unpack results
 
     # Only complication is in embedded composites
-    # Could reparameterize the inputs
+    # Could do the same
     return arrow_to_graph(comp_arrow,
                           input_tensors,
-                          param_tensors,
                           arrow_colors,
                           arrow_tensors,
                           graph)
@@ -184,13 +181,11 @@ def arrow_to_new_graph(comp_arrow: CompositeArrow,
 
 def arrow_to_graph(comp_arrow: CompositeArrow,
                    input_tensors: List[Tensor],
-                   param_tensors: List[Tensor],
                    arrow_colors: MutableMapping[Arrow, int],
                    arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
                    graph: Graph) -> Tuple[Graph, List[Tensor], List[Tensor]]:
     """Convert an comp_arrow to a tensorflow graph and add to graph"""
     assert len(input_tensors) == comp_arrow.n_in_ports, "wrong # inputs"
-    assert len(param_tensors) == comp_arrow.n_param_ports, "wron # param inputs"
 
     # FIXMEL Horrible Hack
     output_tensors_dict =  OrderedDict()
@@ -242,14 +237,7 @@ def arrow_to_graph(comp_arrow: CompositeArrow,
                 output_tensor = arrow_tensors[out_port.arrow][out_port.index]
                 output_tensors.append(output_tensor)
 
-            error_tensors = []
-            for error_port in comp_arrow.inner_error_ports():
-                error_tensor = arrow_tensors[error_port.arrow][error_port.index]
-                error_tensors.append(error_tensor)
-
 
             return {'graph': graph,
                     'input_tensors': input_tensors,
-                    'output_tensors': list(output_tensors_dict.values()),
-                    'param_tensors': [],
-                    'error_tensors': error_tensors}
+                    'output_tensors': list(output_tensors_dict.values())}
