@@ -106,11 +106,11 @@ def conv(a: ReduceMeanArrow, shapes: ShapeList) -> ShapeList:
 def conv(a: CompositeArrow, args: ShapeList) -> ShapeList:
     assert len(args) == a.n_in_ports
     arrow_colors, arrow_tensors = inner_convert(a, args)
-    result = arrow_to_graph(a,
+    result = arrow_to_graph(conv,
+                            a,
                             args,
                             arrow_colors,
-                            arrow_tensors,
-                            graph)
+                            arrow_tensors)
     return result['output_tensors']
 
 def propagate_shapes(comp_arrow: CompositeArrow,

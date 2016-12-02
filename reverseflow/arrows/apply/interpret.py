@@ -66,7 +66,7 @@ def inner_convert(comp_arrow: CompositeArrow, inputs: List[Tensor]):
 
 def arrow_to_graph(conv: Callable,
                    comp_arrow: CompositeArrow,
-                   inputs: List[Tensor],
+                   inputs: List,
                    arrow_colors: MutableMapping[Arrow, int],
                    arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]]):
     """Convert an comp_arrow to a tensorflow graph and add to graph"""

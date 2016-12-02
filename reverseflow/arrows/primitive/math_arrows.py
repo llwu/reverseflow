@@ -1,5 +1,5 @@
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
-from typing import Dict, List, MutableMapping
+from typing import Dict, List, MutableMapping, Set
 from sympy import Expr, Rel, Gt, Ne
 
 
@@ -36,7 +36,7 @@ class DivArrow(PrimitiveArrow):
         name = 'Div'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
-    def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
+    def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> Set[Rel]:
         constraints = []
         if 1 in input_expr:
             constraints.append(Ne(input_expr[1], 0))
@@ -53,7 +53,7 @@ class PowArrow(PrimitiveArrow):
         name = 'Pow'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
-    def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
+    def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> Set[Rel]:
         constraints = []
         if 0 in input_expr:
             constraints.append(Gt(input_expr[0], 0))
@@ -83,7 +83,7 @@ class LogBaseArrow(PrimitiveArrow):
         name = 'LogBase'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
-    def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
+    def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> Set[Rel]:
         constraints = []
         if 0 in input_expr:
             constraints.append(Gt(input_expr[0], 0))

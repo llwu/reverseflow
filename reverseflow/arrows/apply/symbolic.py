@@ -1,8 +1,9 @@
 """Symbolically Evaluate a Graph"""
 from collections import OrderedDict
-from typing import Dict, Sequence, MutableMapping, Tuple, List, Set
+from typing import Dict, MutableMapping, Tuple, List, Set
 from reverseflow.arrows.port import InPort, OutPort
 from reverseflow.arrows.arrow import Arrow
+from reverseflow.arrows.compositearrow import CompositeArrow
 from reverseflow.arrows.primitive.math_arrows import (AddArrow,
     MulArrow)
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
@@ -16,131 +17,115 @@ import sympy
 from sympy import Expr, Rel
 from overloading import overload
 
-ExprList = Sequence[Expr]
+ConstrainedExpr = Tuple[Expr, Set[Rel]]
+ExprList = List[ConstrainedExpr]
+
+def get_constraints(arrow: Arrow, in_args: List[Expr], out_args: List[Expr], new_var = False) -> Set[Rel]:
+    constraints = set()
+    if new_var == True:
+        new_out_args = []
+        for i, out in enumerate(out_args):
+            out_var = sympy.var(arrow.name + '_out_' + str(i))
+            # constraints.add(Eq(out_var, out))
+            new_out_args.append(out_var)
+        out_args = new_out_args[:]
+    input_expr = OrderedDict()  # type: MutableMapping[int, Expr]
+    output_expr = OrderedDict()  # type: MutableMapping[int, Expr]
+    for i, in_expr in enumerate(in_args):
+        input_expr[i] = in_expr
+    for i, out_expr in enumerate(out_args):
+        output_expr[i] = out_expr
+    constraints.update(generate_constraints(arrow, input_expr, output_expr))
+    return constraints
+
+def generate_constraints(arrow: Arrow,
+                         input_expr: MutableMapping[int, Expr],
+                         output_expr: MutableMapping[int, Expr]) -> Set[Rel]:
+    if arrow.is_primitive():
+        return arrow.gen_constraints(input_expr, output_expr)
 
 @overload
 def conv(add: AddArrow, args: ExprList) -> ExprList:
     assert len(args) == 2
-    return [args[0] + args[1]]
+    in_args = [arg[0] for arg in args]
+    out_args = [in_args[0] + in_args[1]]
+    constraints = get_constraints(add, in_args, out_args)
+    for arg in args:
+        constraints.update(arg[1])
+    output = [(out_arg, constraints) for out_arg in out_args]
+    return output
 
 @overload
 def conv(mul: MulArrow, args: ExprList) -> ExprList:
     assert len(args) == 2
-    return [args[0] * args[1]]
+    in_args = [arg[0] for arg in args]
+    out_args = [in_args[0] * in_args[1]]
+    constraints = get_constraints(mul, in_args, out_args)
+    for arg in args:
+        constraints.update(arg[1])
+    output = [(out_arg, constraints) for out_arg in out_args]
+    return output
+
+@overload
+def conv(sub: SubArrow, args: ExprList) -> ExprList:
+    assert len(args) == 2
+    in_args = [arg[0] for arg in args]
+    out_args = [in_args[0] - in_args[1]]
+    constraints = get_constraints(sub, in_args, out_args)
+    for arg in args:
+        constraints.update(arg[1])
+    output = [(out_arg, constraints) for out_arg in out_args]
+    return output
+
+@overload
+def conv(div: DivArrow, args: ExprList) -> ExprList:
+    assert len(args) == 2
+    in_args = [arg[0] for arg in args]
+    out_args = [in_args[0] / in_args[1]]
+    constraints = get_constraints(div, in_args, out_args)
+    for arg in args:
+        constraints.update(arg[1])
+    output = [(out_arg, constraints) for out_arg in out_args]
+    return output
 
 @overload
 def conv(dupl: DuplArrow, args: ExprList) -> ExprList:
-    return [args[0] for i in range(dupl.n_out_ports)]
-
-@overload
-def conv(inv_add: InvAddArrow, args: ExprList) -> ExprList:
-    assert len(args) == 2
-    return [args[0] - args[1], args[1]]
-
-@overload
-def conv(inv_mul: InvMulArrow, args: ExprList) -> ExprList:
-    assert len(args) == 2
-    return [args[0] / args[1], args[1]]
+    assert len(args) == 1
+    in_args = [arg[0] for arg in args]
+    out_args = [in_args[0] for i in range(dupl.n_out_ports)]
+    constraints = get_constraints(dupl, in_args, out_args)
+    for arg in args:
+        constraints.update(arg[1])
+    output = [(out_arg, constraints) for out_arg in out_args]
+    return output
 
 @overload
 def conv(inv_dupl: InvDuplArrow, args: ExprList) -> ExprList:
-    return [args[0]]
-
-
-def default_add(arrow_exprs: Dict[Arrow, MutableMapping[int, Expr]],
-                sub_arrow: Arrow, index: int, input_expr: Expr) -> None:
-    if sub_arrow in arrow_exprs:
-        arrow_exprs[sub_arrow][index] = input_expr
-    else:
-        arrow_exprs[sub_arrow] = OrderedDict({index: input_expr})
-
-
-def print_arrow_colors(arrow_colors):
-    for (arr, pr) in arrow_colors.items():
-        print(arr.name, ": ", pr)
-
-def primitive_subarrows(comp_arrow):
-    subarrows = set()
-    for sub in comp_arrow.get_sub_arrows():
-        if sub.is_primitive() == True:
-            subarrows.add(sub)
-        else:
-            primitives = primitive_subarrows(sub)
-            subarrows = subarrows.union(primitives)
-    return subarrows
-
+    assert len(args) == inv_dupl.num_in_ports()
+    in_args = [arg[0] for arg in args]
+    out_args = [in_args[0]]
+    constraints = get_constraints(inv_div, in_args, out_args, new_var = True)
+    for arg in args:
+        constraints.update(arg[1])
+    output = [(out_arg, constraints) for out_arg in out_args]
+    return output
 
 @overload
-def symbolic_apply(comp_arrow) -> Tuple[Dict[Arrow, MutableMapping[int, Expr]], List[Rel]]:
-    """Convert an comp_arrow to a tensorflow graph"""
+def conv(comp_arrow: CompositeArrow, input_args: ExprList) -> ExprList:
+    assert len(args) == comp_arrow.num_in_ports()
+    arrow_colors, arrow_tensors = inner_convert(comp_arrow, input_args)
+    result = arrow_to_graph(conv,
+                            comp_arrow,
+                            input_args,
+                            arrow_colors,
+                            arrow_tensors)
+    return result['output_tensors']
 
-    # A priority queue for each sub_arrow
-    # priority is the number of inputs it has which have already been seen
-    # seen inputs are inputs to the composition, or outputs of arrows that
-    # have already been converted into tensorfow
-    arrow_colors = pqdict()
-    # import pdb; pdb.set_trace()
-    prim_subarrows = primitive_subarrows(comp_arrow)
-    for sub_arrow in prim_subarrows:
-        arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
 
-    print_arrow_colors(arrow_colors)
-
-    # Store a map from an arrow to its inputs
-    # Use a dict because no guarantee we'll create input tensors in order
-    arrow_exprs = dict()  # type: Dict[Arrow, MutableMapping[int, Expr]]
-    output_arrow_exprs = dict()  # type: Dict[Arrow, MutableMapping[int, Expr]]
-
-    invadd = InvAddArrow()
-    # create a tensor for each in_port to the composition
-    # decrement priority for each arrow connected to inputs
-    print(comp_arrow.inner_in_ports)
-    if comp_arrow.is_parametric():
-        print(comp_arrow.param_ports)
-    for i, in_port in enumerate(comp_arrow.inner_in_ports):
-        print(in_port)
-        sub_arrow = in_port.arrow
-        print(sub_arrow)
-        assert sub_arrow in arrow_colors
-        arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
-        input_expr = sympy.var('inp_%s' % i)
-        default_add(arrow_exprs, sub_arrow, in_port.index, input_expr)
-
-    while len(arrow_colors) > 0:
-        print_arrow_colors(arrow_colors)
-        sub_arrow, priority = arrow_colors.popitem()
-        print("Converting ", sub_arrow.name)
-        print_arrow_colors(arrow_colors)
-        assert priority == 0, "Must resolve all inputs to sub_arrow first"
-        assert sub_arrow.is_primitive(), "Cannot convert unflat arrow"
-        # assert valid(sub_arrow, arrow_exprs)
-
-        inputs = list(arrow_exprs[sub_arrow].values())
-        # import pdb; pdb.set_trace()
-        outputs = conv(sub_arrow, inputs)
-        assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
-
-        for i, out_port in enumerate(sub_arrow.out_ports):
-            # FIXME: this is linear search, encapsulate
-            default_add(output_arrow_exprs, sub_arrow, i, outputs[i])
-            if out_port not in comp_arrow.inner_out_ports:
-                neigh_port = comp_arrow.neigh_in_port(out_port)
-                neigh_arrow = neigh_port.arrow
-                if neigh_arrow is not comp_arrow:
-                    assert neigh_arrow in arrow_colors
-                    arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
-                    default_add(arrow_exprs, neigh_arrow, neigh_port.index,
-                                outputs[i])
-
-    constraints = []  # type: List[Rel]
-    for sub_arrow in prim_subarrows:
-        input_expr = OrderedDict()
-        output_expr = OrderedDict()
-        if sub_arrow in arrow_exprs:
-            input_expr = arrow_exprs[sub_arrow]
-        if sub_arrow in output_arrow_exprs:
-            output_expr = output_arrow_exprs[sub_arrow]
-        new_constraints = sub_arrow.gen_constraints(input_expr, output_expr)
-        constraints.extend(new_constraints)
-
-    return (arrow_exprs, constraints)
+def symbolic_apply(comp_arrow: CompositeArrow):
+    """Return the output expressions and constraints of the CompositeArrow"""
+    input_exprs = []
+    for i in range(comp_arrow.num_in_ports()):
+        in_expr = sympy.var(comp_arrow.name + '_inp_' + str(i))
+        input_expr.append((in_expr, set()))
+    return interpret(conv, comp_arrow, input_exprs)
