@@ -14,8 +14,7 @@ def show_tensorboard(arrow: Arrow) -> None:
     tf.reset_default_graph()
     graph = tf.Graph()
     input_tensors = [tf.placeholder(dtype='float32') for i in range(arrow.num_in_ports())]
-    param_tensors = [tf.Variable(dtype='float32', shape=()) for i in range(arrow.num_param_ports())]
-    arrow_to_new_graph(arrow, input_tensors, param_tensors, graph)
+    arrow_to_new_graph(arrow, input_tensors, graph)
     writer = tf.train.SummaryWriter(TENSORBOARD_LOGDIR, tf.Session().graph)
     writer.flush()
     print("For graph visualization, invoke")

@@ -70,7 +70,7 @@ def arrow_to_graph(conv: Callable,
                    arrow_colors: MutableMapping[Arrow, int],
                    arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]]):
     """Convert an comp_arrow to a tensorflow graph and add to graph"""
-    assert len(inputs) == comp_arrow.n_in_ports, "wrong # inputs"
+    assert len(inputs) == comp_arrow.num_in_ports(), "wrong # inputs"
 
     # FIXMEL Horrible Hack
     output_tensors_dict =  OrderedDict()

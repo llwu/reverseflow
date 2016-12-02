@@ -125,5 +125,6 @@ def conv(a: CompositeArrow, args: TensorVarList) -> List[Tensor]:
 def arrow_to_new_graph(comp_arrow: CompositeArrow,
                        input_tensors: List[Tensor],
                        graph: Graph):
+
     with graph.as_default():
         return interpret(conv, comp_arrow, input_tensors)

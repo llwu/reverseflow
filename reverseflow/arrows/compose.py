@@ -39,7 +39,7 @@ def compose_comb(l: Arrow, r: Arrow, out_to_in: Dict[int, int], name: str=None) 
         if not r_in_connect[i]:
             in_ports.append(r.inner_in_ports()[i])
 
-    # TODO: param_ports.append(), etc. should be trivial
+    # TODO: propagate paramport-ness
 
     new_edges.update(edges(l))
     new_edges.update(edges(r))
@@ -73,6 +73,8 @@ def compose_comb_modular(l: Arrow,
     for i in range(len(r.in_ports)):
         if not r_in_connect[i]:
             in_ports.append(r.in_ports[i])
+
+    # TODO: propagate paramport-ness
 
     return CompositeArrow(edges=edges,
                           in_ports=in_ports,
