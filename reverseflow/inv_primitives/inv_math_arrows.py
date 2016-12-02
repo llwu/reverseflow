@@ -1,8 +1,8 @@
-from typing import Tuple, Dict
-from reverseflow.arrows.arrow import Arrow
+"""Constructors for inverse arrows."""
+
 from reverseflow.arrows.compositearrow import CompositeArrow
-from reverseflow.arrows.port import InPort, OutPort, ParamPort
-from reverseflow.util.mapping import Bimap, ImageBimap, OneToMany, OneToManyList
+from reverseflow.arrows.port import ParamPort
+from reverseflow.util.mapping import Bimap
 from reverseflow.arrows.primitive.math_arrows import (AddArrow, SubArrow,
     MulArrow, DivArrow, NegArrow)
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
@@ -52,6 +52,7 @@ class InvSubArrow(CompositeArrow):
                          name=name)
         self.change_in_port_type(ParamPort, 1)
 
+
 class InvMulArrow(CompositeArrow):
     """
     Parametric Inverse Multiplication
@@ -73,6 +74,7 @@ class InvMulArrow(CompositeArrow):
                          out_ports=out_ports,
                          name=name)
         self.change_in_port_type(ParamPort, 1)
+
 
 class InvDivArrow(CompositeArrow):
     """

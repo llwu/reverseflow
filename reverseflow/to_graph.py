@@ -11,7 +11,7 @@ from reverseflow.arrows.primitive.constant import *
 from typing import Tuple, List, Dict, MutableMapping, Union, Sequence
 from collections import OrderedDict
 from overloading import overload
-from reverseflow.arrows.apply.interpret import interpret
+from reverseflow.arrows.apply.interpret import interpret, inner_convert
 
 TensorVarList = Union[Sequence[Tensor], Sequence[Variable]]
 
@@ -70,7 +70,7 @@ def conv(a: DivArrow, args: TensorVarList) -> Sequence[Tensor]:
 @overload
 def conv(a: DuplArrow, args: TensorVarList) -> Sequence[Tensor]:
     # TODO: Genralize to n outputs
-    return [args[0] for i in range(a.n_out_ports)]
+    return [args[0] for i in range(a.num_out_ports())]
 
 @overload
 def conv(a: AddNArrow, args: TensorVarList) -> Sequence[Tensor]:
@@ -100,7 +100,7 @@ def conv(a: ReduceMeanArrow, args: TensorVarList) -> Sequence[Tensor]:
 @overload
 def conv(a: CompositeArrow, args: TensorVarList) -> Sequence[Tensor]:
     graph = tf.get_default_graph()
-    assert len(args) == a.n_in_ports
+    assert len(args) == a.num_in_ports()
     arrow_colors, arrow_tensors = inner_convert(a, args)
     result = arrow_to_graph(a,
                             args,
