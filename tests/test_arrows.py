@@ -103,7 +103,6 @@ def test_random_math() -> PrimitiveArrow:
     return maths[idx](*args)
 
 
-
 def test_random_input() -> Arrow:
     """Generates a random math or source arrow."""
     odds = 50000000

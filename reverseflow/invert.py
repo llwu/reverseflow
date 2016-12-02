@@ -1,9 +1,12 @@
+"""Inversion implementation."""
+
+from typing import Dict, Callable, Set, Tuple
+
 from reverseflow.arrows.compositearrow import CompositeArrow
 from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.port import InPort, OutPort
+from reverseflow.arrows.port import InPort, OutPort, ParamPort
 from reverseflow.defaults import default_dispatch
 from reverseflow.arrows.marking import mark_source
-from typing import Dict, Callable, Set
 from reverseflow.util.mapping import Bimap
 
 
@@ -16,7 +19,8 @@ def get_inverse(arrow: Arrow,
                 const_in_ports: Set[InPort],
                 const_out_ports: Set[OutPort],
                 dispatch: Dict[Arrow, Callable],
-                arrow_to_inv: Dict[Arrow, Arrow]):
+                arrow_to_inv: Dict[Arrow, Tuple[Arrow, Dict]]):
+    """Memoized inverse."""
     if arrow in arrow_to_inv:
         return arrow_to_inv[arrow]
     elif arrow.is_composite():
@@ -32,7 +36,7 @@ def invert_const(arrow: CompositeArrow,
                  const_out_ports: Set[OutPort],
                  dispatch: Dict[Arrow, Callable]) -> Arrow:
     """Invert an arrow assuming constants are known"""
-    arrow_to_inv = dict()  # type: Dict[Arrow, Arrow]
+    arrow_to_inv = dict()  # type: Dict[Arrow, Tuple[Arrow, Dict]]
     edges = Bimap()  # type: EdgeMap
     for out_port, in_port in arrow.edges.items():
         # Edge is constant
@@ -80,6 +84,11 @@ def invert_const(arrow: CompositeArrow,
         out_port = port_map[in_port]
         assert isinstance(out_port, OutPort)
         inv_out_ports.append(out_port)
+
+    for inv_tuple in arrow_to_inv.values():
+        for in_port in inv_tuple[0].in_ports:
+            if isinstance(in_port, ParamPort):
+                inv_in_ports.append(in_port)
 
     inv_name = "%s_inv" % arrow.name
     return CompositeArrow(edges=edges,
