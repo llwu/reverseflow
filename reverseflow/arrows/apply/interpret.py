@@ -106,9 +106,10 @@ def arrow_to_graph(conv: Callable,
                 j = 0
                 for i, p in enumerate(comp_arrow.inner_out_ports()):
                     if out_port == p:
-                        break
-                    else:
-                        j = j + 1
+                        j = i
+   #                     break
+   #                 else:
+   #                     j = j + 1
                 output_tensors_dict[j] = output_tensor
 
     # The output tensors are
@@ -119,9 +120,9 @@ def arrow_to_graph(conv: Callable,
         output_tensor = arrow_tensors[out_port.arrow][out_port.index]
         output_tensors.append(output_tensor)
 
-
     return {'inputs': inputs,
             'outputs': list(output_tensors_dict.values())}
+
 
 def interpret(conv: Callable,
               comp_arrow: CompositeArrow,

@@ -9,14 +9,15 @@ def invert_test() -> None:
     invert(arrow)
 
 
-random_arrow_test(invert, "invert")
+def invert_visual_test() -> None:
+    from test_arrows import test_random_composite
+    from reverseflow.util.viz import show_tensorboard
+    a = test_random_composite()
+    show_tensorboard(a)
+    b = invert(a)
+    show_tensorboard(b)
+    import pdb; pdb.set_trace()
 
-"""
-from test_arrows import test_random_composite
-from reverseflow.util.viz import show_tensorboard
-a = test_random_composite()
-show_tensorboard(a)
-b = invert(a)
-show_tensorboard(b)
-import pdb; pdb.set_trace()
-"""
+
+random_arrow_test(invert, "invert")
+# invert_visual_test()
