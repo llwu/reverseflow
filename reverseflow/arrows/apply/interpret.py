@@ -20,11 +20,11 @@ def print_arrow_colors(arrow_colors):
 
 
 def default_add(arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
-                sub_arrow: Arrow, index: int, input_tensor: Tensor) -> None:
+                sub_arrow: Arrow, index: int, input_value: Tensor) -> None:
     if sub_arrow in arrow_tensors:
-        arrow_tensors[sub_arrow][index] = input_tensor
+        arrow_tensors[sub_arrow][index] = input_value
     else:
-        arrow_tensors[sub_arrow] = OrderedDict({index: input_tensor})
+        arrow_tensors[sub_arrow] = OrderedDict({index: input_value})
 
 def inner_convert(comp_arrow: CompositeArrow, inputs: List[Tensor]):
     # A priority queue for each sub_arrow
@@ -43,11 +43,11 @@ def inner_convert(comp_arrow: CompositeArrow, inputs: List[Tensor]):
         if not sub_arrow.is_source():
             arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
 
-    for i, input_tensor in enumerate(inputs):
+    for i, input_value in enumerate(inputs):
         in_port = comp_arrow.inner_in_ports()[i]
         sub_arrow = in_port.arrow
         arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
-        default_add(arrow_tensors, sub_arrow, in_port.index, input_tensor)
+        default_add(arrow_tensors, sub_arrow, in_port.index, input_value)
 
     # Create tensor for each source
     # TODO: Should we turn sources into variables always?
@@ -121,7 +121,7 @@ def arrow_to_graph(conv: Callable,
 
 
     return {'inputs': inputs,
-            'output_tensors': list(output_tensors_dict.values())}
+            'outputs': list(output_tensors_dict.values())}
 
 def interpret(conv: Callable,
               comp_arrow: CompositeArrow,
