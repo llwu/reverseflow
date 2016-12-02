@@ -16,7 +16,7 @@ def test_arrow_to_graph() -> None:
     tf.reset_default_graph()
     arrow_to_new_graph(arrow)
 
-def generate_input(arrow):
+def generate_input(arrow: Arrow):
     input_tensors = []
     for in_port in arrow.in_ports:
         if isinstance(in_port, ParamPort):
