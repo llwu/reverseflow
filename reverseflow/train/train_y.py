@@ -1,66 +1,84 @@
+from reverseflow.arrows.compositearrow import CompositeArrow
+
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.to_graph import arrow_to_graph
+from reverseflow.arrows.port import ParamPort, InPort, ErrorPort
+from reverseflow.arrows.arrow import Arrow
+from reverseflow.config import floatX
 
 from typing import List
-from tensorflow import Graph, Tensor
+import tensorflow as tf
+from tensorflow import Graph, Tensor, Session
 
-# When to add c function in inversion or otherwise
-# - Ideally not at all, then when all other methods fail then add
-# For now assume its added
-
-# How to get tensors corresponding to error out_ports
-# - Update to_graph to expect both parametric inputs and error outputs
-# should return parameter_tensors and error output tensors
-
-
-
-def train_y_tf(outputs: List[Tensor]) -> Graph:
-    """
-    """
-    arrow = graph_to_arrow(outputs)
-    inv_arrow = invert(arrow)
-    train_y(inv_arrow)
-
-
-def train_y_arr(arrow: Arrow, dataset: List):
-    inv_arrow = invert(arrow)
-    train_y_parr(inv_arrow, dataset)
-    # if necessary append tensorflow arrow
-
-def reduce_approx_error(approx_arrow: Arrow) -> Arrow:
-    """
-    From approximate arrow with n error symbols of arbitrary shape
-    reduce to single scalar error
-    """
-
-def train_y_arr(param_arrow: CompositeArrow, dataset: List) -> ParametricArrow:
-    """
-    Given:
-
-    param_arrow : Y x Theta -> X
-    dataset : [Y]
-
-    Find Theta such that
-
-    """
-    # Convert to tensorflow
-    # Find which tensors correspond to costs
-    # in tensorflow reduce and minimize these to a single scalar
-    # Need to find correspondance of parameters to parametric inputs
-    graph, input_tensors, output_tensors = to_graph(tensorflow)
-    loss_tensors = ...
-    loss_tensor = ...some reduction
-
+def gen_update_step(loss: Tensor) -> Tensor:
     optimizer = tf.train.MomentumOptimizer(learning_rate=options['learning_rate'],
-                                               momentum=options['momentum'])
+                                           momentum=options['momentum'])
     update_step = optimizer.minimize(loss)
-    train_loop(num_iterations)
-    # add loss function
-    convert to tensorflow graph
-    # train
-    # convert back to arrow
+    return updaet_step
 
-def train_loop(num_iterations:int):
+
+def accumulate_losses(tensors: List[Tensor]) -> Tensor:
+    """
+    Mean of list of tensors of arbitrary size
+    Args:
+        tensors: list of tensors
+
+    Returns:
+        mean tensor
+    """
+    return tf.add_n([tf.reduce_mean(t) for t in tensors]) / len(tensors)
+
+def train_y_tf(params: List[Tensor], losses: List[Tensor]) -> Graph:
+    """
+    """
+    loss = accumulate_losses(losses)
+    update_step = gen_update_step(loss)
+    train_loop(update_step)
+
+
+def gen_input_tensors(arrow: Arrow) -> List[Tensor]:
+    """Generate input tensors from an arrow"""
+    input_tensors = []
+    for in_port in arrow.in_ports:
+        if isinstance(in_port, ParamPort):
+            # FIXME for right shape
+            input_tensors.append(tf.Variable(np.random.rand(1)))
+        elif isinstance(in_port, InPort):
+            input_tensors.append(tf.placeholder(dtype=floatX()))
+        else:
+            assert False, "Don't know how to handle %s" % in_port
+    return input_tensors
+
+
+def min_approx_error_arrow(arrow: CompositeArrow, y_data: List) -> CompositeArrow:
+    """
+    Find parameter values which minimize approximation error
+    Args:
+        param_arrow:
+        y_data:
+
+    Returns:
+        parametric_arrow with parameters fixed
+    """
+    graph = tf.Graph()
+    input_tensors = gen_input_tensors(arrow)
+    output_tensors = arrow_to_graph(arrow, input_tensors, graph,)
+    params = [t for i, t in enumerate(input_tensors) if isinstance(arrow.in_ports[i], ParamPort)]
+    errors = [t for i, t in enumerate(output_tensors) if isinstance(arrow.out_ports[i], ErrorPort)]
+    assert len(params) > 0, "Must have parametric inports"
+    assert len(error) > 0, "Must have error outports"
+    train_y_tf(graph, params, errors)
+
+def train_loop(update_step,
+               sess: Session,
+               num_iterations = 1000,
+               summary_gap=500,
+               save_every=10,
+               sfx='',
+               compress=False,
+               save_dir="./",
+               saver=None):
+
     for i in range(num_iterations):
-        ...
+        sess.run()

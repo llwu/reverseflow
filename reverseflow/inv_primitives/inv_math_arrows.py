@@ -3,8 +3,7 @@
 from reverseflow.arrows.compositearrow import CompositeArrow
 from reverseflow.arrows.port import ParamPort
 from reverseflow.util.mapping import Bimap
-from reverseflow.arrows.primitive.math_arrows import (AddArrow, SubArrow,
-    MulArrow, DivArrow, NegArrow)
+from reverseflow.arrows.primitive.math_arrows import *
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 
 
@@ -43,8 +42,8 @@ class InvSubArrow(CompositeArrow):
         add = AddArrow()
 
         in_ports = [add.in_ports[0], dupl_theta.in_ports[0]]
-        out_ports = [add.out_ports[0], dupl_theta.out_ports[1]]
         edges.add(dupl_theta.out_ports[0], add.in_ports[1])
+        out_ports = [add.out_ports[0], dupl_theta.out_ports[1]]
 
         super().__init__(edges=edges,
                          in_ports=in_ports,
@@ -109,7 +108,7 @@ class InvPowArrow(CompositeArrow):
         name = 'InvPow'
         edges = Bimap()  # type: EdgeMap
         dupl_theta = DuplArrow()
-        log = LogArrow()
+        log = LogBaseArrow()
 
         in_ports = [log.in_ports[1], dupl_theta.in_ports[0]]
         out_ports = [dupl_theta.out_ports[1], log.out_ports[0]]

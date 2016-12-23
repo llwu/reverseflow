@@ -8,6 +8,9 @@ import tensorflow as tf
 import reverseflow.arrows.primitive.math_arrows
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.primitive.math_arrows import *
+from reverseflow.inv_primitives.inv_math_arrows import *
+from reverseflow.inv_primitives.inv_control_flow_arrows import *
+from reverseflow.arrows.composite.approx_arrows import *
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
 from reverseflow.arrows.sourcearrow import SourceArrow
@@ -15,6 +18,7 @@ from reverseflow.arrows.compose import compose_comb_modular, compose_comb
 from reverseflow.defaults import default_dispatch
 from reverseflow.util.mapping import Bimap
 from reverseflow.arrows.compositearrow import CompositeArrow
+
 
 
 def test_xyplusx_flat() -> CompositeArrow:
@@ -58,6 +62,26 @@ def test_twoxyplusx() -> CompositeArrow:
     edges.add(mul2.out_ports[0], add.in_ports[1])  # mul1 -> add
     return CompositeArrow(in_ports=[dupl.in_ports[0], mul1.in_ports[1]],
                           out_ports=[add.out_ports[0]],
+                          edges=edges)
+
+def test_inv_twoxyplusx() -> CompositeArrow:
+    """approximate parametric inverse of twoxyplusx"""
+    inv_add = InvAddArrow()
+    inv_mul = InvMulArrow()
+    two = SourceArrow(2)
+    div = DivArrow()
+    c = ApproxIdentityArrow(2)
+    inv_dupl = InvDuplArrow()
+    edges = Bimap()  # type: EdgeMap
+    edges.add(inv_add.out_ports[0], c.in_ports[0])
+    edges.add(inv_add.out_ports[1], inv_mul.in_ports[0])
+    edges.add(inv_mul.out_ports[0], div.in_ports[0])
+    edges.add(two.out_ports[0], div.in_ports[1])
+    edges.add(div.out_ports[0], c.in_ports[1])
+    edges.add(c.out_ports[0], inv_dupl.in_ports[0])
+    edges.add(c.out_ports[1], inv_dupl.in_ports[1])
+    return CompositeArrow(in_ports=[inv_add.in_ports[0]],
+                          out_ports=[inv_dupl.out_ports[0], inv_mul.out_ports[1]],
                           edges=edges)
 
 
@@ -141,7 +165,7 @@ def test_random_composite() -> CompositeArrow:
 
 # FIXME: There must be a better way to get all arrows
 import reverseflow.inv_primitives.inv_math_arrows
-import reverseflow.arrows.composites.math_composites
+import reverseflow.arrows.composite.math
 composite_module_list = [reverseflow.inv_primitives.inv_math_arrows]
 
 def all_composites() -> List:

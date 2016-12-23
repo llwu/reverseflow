@@ -17,7 +17,7 @@ class DuplArrow(PrimitiveArrow):
     def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> Set[Rel]:
         constraints = []
         for i in output_expr.keys():
-            for j output_expr.keys():
+            for j in output_expr.keys():
                 if i != j:
                     constraints.append(Eq(output_expr[i], output_expr[j]))
         return constraints

@@ -3,6 +3,7 @@ import tensorflow as tf
 from tensorflow import Tensor, Graph, Variable
 from pqdict import pqdict
 from reverseflow.arrows.arrow import Arrow
+from reverseflow.arrows.sourcearrow import SourceArrow
 from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
 from reverseflow.arrows.primitive.math_arrows import *
 from reverseflow.arrows.primitive.control_flow_arrows import *
@@ -11,8 +12,7 @@ from reverseflow.arrows.primitive.constant import *
 from typing import Tuple, List, Dict, MutableMapping, Union, Sequence
 from collections import OrderedDict
 from overloading import overload
-from reverseflow.arrows.apply.interpret import (interpret,
-    inner_convert, arrow_to_graph)
+from reverseflow.arrows.apply.interpret import interpret
 
 TensorVarList = Union[Sequence[Tensor], Sequence[Variable]]
 
@@ -97,21 +97,18 @@ def conv(a: RangeArrow, args: TensorVarList) -> Sequence[Tensor]:
 def conv(a: ReduceMeanArrow, args: TensorVarList) -> Sequence[Tensor]:
     return [tf.reduce_mean(args[0], reduction_indices=args[1])]
 
+@overload
+def conv(a: SourceArrow, args: TensorVarList) -> Sequence[Tensor]:
+    assert len(args) == 0, "Source arrow has no inputs"
+    return [tf.Variable(a.value)]
 
 @overload
 def conv(a: CompositeArrow, args: TensorVarList) -> Sequence[Tensor]:
-    graph = tf.get_default_graph()
     assert len(args) == a.num_in_ports()
-    arrow_colors, arrow_tensors = inner_convert(a, args)
-    result = arrow_to_graph(conv,
-                            a,
-                            args,
-                            arrow_colors,
-                            arrow_tensors)
-    return result['output']
+    return interpret(conv, a, args)
 
 
-def arrow_to_new_graph(comp_arrow: CompositeArrow,
+def arrow_to_graph(comp_arrow: CompositeArrow,
                        input_tensors: Sequence[Tensor],
                        graph: Graph):
 

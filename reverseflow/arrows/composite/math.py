@@ -1,5 +1,4 @@
 from reverseflow.arrows.compositearrow import CompositeArrow
-from reverseflow.arrows.composites.math_composites import *
 from reverseflow.arrows.primitive.control_flow_arrows import *
 from reverseflow.arrows.primitive.math_arrows import *
 from reverseflow.arrows.primitive.constant import *
@@ -7,7 +6,7 @@ from reverseflow.arrows.primitive.cast_arrows import *
 from reverseflow.arrows.sourcearrow import SourceArrow
 from reverseflow.util.mapping import Bimap
 from reverseflow.arrows.compose import compose_comb
-
+from reverseflow.config import floatX
 # import numpy as np
 #
 # def dims_bar_batch(t):
@@ -40,7 +39,7 @@ class MeanArrow(CompositeArrow):
         edges = Bimap() # type: EdgeMap
         addn_arrow = AddNArrow(n_inputs)
         nsource = SourceArrow(n_inputs)
-        castarrow = CastArrow('float32')
+        castarrow = CastArrow(floatX())
         div_arrow = DivArrow()
         edges.add(nsource.out_ports[0], castarrow.in_ports[0])
         edges.add(addn_arrow.out_ports[0], div_arrow.in_ports[0])
@@ -53,7 +52,7 @@ class MeanArrow(CompositeArrow):
 
 class VarFromMeanArrow(CompositeArrow):
     """
-    Compute variance given variance and set of inputs
+    Compute variance given mean and set of inputs
     In_port 0: mean
     in_port 1 .. n+1: values to compute variance
     """

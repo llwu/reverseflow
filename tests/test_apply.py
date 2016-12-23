@@ -1,7 +1,7 @@
 from reverseflow.arrows.apply.apply import apply
 from test_arrows import *
 from reverseflow.arrows.primitive.math_arrows import *
-from reverseflow.arrows.composites.math_composites import *
+from reverseflow.arrows.composite.math import *
 from reverseflow.arrows.compose import compose_comb_modular
 import numpy as np
 
