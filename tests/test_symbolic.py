@@ -18,15 +18,15 @@ def generate_input(arrow: Arrow):
     input_symbols = []
     for i, in_port in enumerate(arrow.in_ports):
         if isinstance(in_port, ParamPort):
-            input_symbols.append(sympy.Dummy("input_%s" % i))
-        elif isinstance(in_port, InPort):
             input_symbols.append(sympy.Dummy("param_%s" % i))
+        elif isinstance(in_port, InPort):
+            input_symbols.append(sympy.Dummy("input_%s" % i))
         else:
             assert False, "Don't know how to handle %s" % in_port
     return input_symbols
 
 def reset_and_conv(arrow: Arrow) -> None:
     input_symbols = generate_input(arrow)
-    output_symbols, constraints = symbolic_apply(input_symbols)
+    output_symbols = symbolic_apply(arrow, input_symbols)
 
 random_arrow_test(reset_and_conv, "to_symbolic_apply")

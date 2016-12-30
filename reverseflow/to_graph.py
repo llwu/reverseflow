@@ -14,7 +14,6 @@ from reverseflow.arrows.primitive.cast_arrows import *
 from reverseflow.arrows.primitive.constant import *
 from reverseflow.arrows.apply.interpret import interpret
 from typing import Tuple, List, Dict, MutableMapping, Union, Sequence
-from collections import OrderedDict
 from overloading import overload
 
 def gen_input_tensors(arrow: Arrow):
@@ -124,8 +123,8 @@ def conv(a: CompositeArrow, args: TensorVarList) -> Sequence[Tensor]:
 
 
 def arrow_to_graph(comp_arrow: CompositeArrow,
-                       input_tensors: Sequence[Tensor],
-                       graph: Graph):
+                   input_tensors: Sequence[Tensor],
+                   graph: Graph):
 
     with graph.as_default():
         return interpret(conv, comp_arrow, input_tensors)

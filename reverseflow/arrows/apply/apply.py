@@ -2,7 +2,7 @@ from numpy import ndarray
 from typing import List
 import tensorflow as tf
 from reverseflow.arrows.arrow import Arrow
-from reverseflow.to_graph import arrow_to_new_graph
+from reverseflow.to_graph import arrow_to_graph
 from reverseflow.config import floatX
 
 def apply(arrow: Arrow, inputs: List[ndarray], params: List[ndarray] = []) -> List[ndarray]:
@@ -14,7 +14,7 @@ def apply(arrow: Arrow, inputs: List[ndarray], params: List[ndarray] = []) -> Li
     with graph.as_default():
         input_tensors = [tf.placeholder(dtype=floatX()) for i in range(len(inputs))]
         param_tensors = [tf.placeholder(dtype=floatX()) for i in range(len(params))]
-        graph_etc = arrow_to_new_graph(arrow, input_tensors, param_tensors, graph)
+        graph_etc = arrow_to_graph(arrow, input_tensors, param_tensors, graph)
 
         feed_dict = dict(zip(input_tensors + param_tensors, inputs + params))
         init = tf.initialize_all_variables()

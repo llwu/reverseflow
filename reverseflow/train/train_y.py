@@ -1,5 +1,4 @@
-ffrom reverseflow.arrows.compositearrow import CompositeArrow
-
+from reverseflow.arrows.compositearrow import CompositeArrow
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.to_graph import arrow_to_graph, gen_input_tensors

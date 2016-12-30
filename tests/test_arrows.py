@@ -10,7 +10,7 @@ from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.primitive.math_arrows import *
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.inv_primitives.inv_control_flow_arrows import *
-from reverseflow.arrows.composite.approx_arrows import *
+from reverseflow.arrows.composite.approx import *
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
 from reverseflow.arrows.sourcearrow import SourceArrow

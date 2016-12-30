@@ -1,15 +1,14 @@
 """Symbolically Evaluate a Graph"""
 from collections import OrderedDict
-from typing import Dict, MutableMapping, Tuple, List, Set
+from typing import Dict, MutableMapping, Tuple, List, Set, Sequence
 from reverseflow.arrows.port import InPort, OutPort
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.compositearrow import CompositeArrow
-from reverseflow.arrows.primitive.math_arrows import (AddArrow,
-    MulArrow)
-from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
-from reverseflow.inv_primitives.inv_math_arrows import (InvAddArrow,
-    InvMulArrow)
-from reverseflow.inv_primitives.inv_control_flow_arrows import InvDuplArrow
+from reverseflow.arrows.primitive.math_arrows import *
+from reverseflow.arrows.primitive.control_flow_arrows import *
+from reverseflow.inv_primitives.inv_math_arrows import *
+from reverseflow.inv_primitives.inv_control_flow_arrows import *
+from reverseflow.arrows.apply.interpret import interpret
 
 
 from pqdict import pqdict
@@ -18,7 +17,7 @@ from sympy import Expr, Rel
 from overloading import overload
 
 ConstrainedExpr = Tuple[Expr, Set[Rel]]
-ExprList = List[ConstrainedExpr]
+ExprList = Sequence[ConstrainedExpr]
 
 def get_constraints(arrow: Arrow, in_args: List[Expr], out_args: List[Expr], new_var = False) -> Set[Rel]:
     constraints = set()
@@ -122,10 +121,7 @@ def conv(comp_arrow: CompositeArrow, input_args: ExprList) -> ExprList:
     return result['output_tensors']
 
 
-def symbolic_apply(comp_arrow: CompositeArrow):
+def symbolic_apply(comp_arrow: CompositeArrow, input_exprs: List):
     """Return the output expressions and constraints of the CompositeArrow"""
-    input_exprs = []
-    for i in range(comp_arrow.num_in_ports()):
-        in_expr = sympy.var(comp_arrow.name + '_inp_' + str(i))
-        input_expr.append((in_expr, set()))
-    return interpret(conv, comp_arrow, input_exprs)
+    constrained_inputs = [(expr, set()) for expr in input_exprs]
+    return interpret(conv, comp_arrow, constrained_inputs)
