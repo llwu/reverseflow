@@ -1,7 +1,10 @@
 """Decode an arrow into a tensoflow graph"""
 import tensorflow as tf
 from tensorflow import Tensor, Graph, Variable
+import numpy as np
 from pqdict import pqdict
+from reverseflow.config import floatX
+from reverseflow.arrows.port import InPort, ParamPort
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.arrows.sourcearrow import SourceArrow
 from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
@@ -9,10 +12,22 @@ from reverseflow.arrows.primitive.math_arrows import *
 from reverseflow.arrows.primitive.control_flow_arrows import *
 from reverseflow.arrows.primitive.cast_arrows import *
 from reverseflow.arrows.primitive.constant import *
+from reverseflow.arrows.apply.interpret import interpret
 from typing import Tuple, List, Dict, MutableMapping, Union, Sequence
 from collections import OrderedDict
 from overloading import overload
-from reverseflow.arrows.apply.interpret import interpret
+
+def gen_input_tensors(arrow: Arrow):
+    input_tensors = []
+    for in_port in arrow.in_ports:
+        if isinstance(in_port, ParamPort):
+            # FIXME for right shape
+            input_tensors.append(tf.Variable(np.random.rand(1), dtype=floatX()))
+        elif isinstance(in_port, InPort):
+            input_tensors.append(tf.placeholder(dtype=floatX()))
+        else:
+            assert False, "Don't know how to handle %s" % in_port
+    return input_tensors
 
 TensorVarList = Union[Sequence[Tensor], Sequence[Variable]]
 

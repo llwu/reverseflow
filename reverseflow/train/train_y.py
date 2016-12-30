@@ -1,8 +1,8 @@
-from reverseflow.arrows.compositearrow import CompositeArrow
+ffrom reverseflow.arrows.compositearrow import CompositeArrow
 
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
-from reverseflow.to_graph import arrow_to_graph
+from reverseflow.to_graph import arrow_to_graph, gen_input_tensors
 from reverseflow.arrows.port import ParamPort, InPort, ErrorPort
 from reverseflow.arrows.arrow import Arrow
 from reverseflow.config import floatX
@@ -36,27 +36,12 @@ def train_y_tf(params: List[Tensor], losses: List[Tensor]) -> Graph:
     update_step = gen_update_step(loss)
     train_loop(update_step)
 
-
-def gen_input_tensors(arrow: Arrow) -> List[Tensor]:
-    """Generate input tensors from an arrow"""
-    input_tensors = []
-    for in_port in arrow.in_ports:
-        if isinstance(in_port, ParamPort):
-            # FIXME for right shape
-            input_tensors.append(tf.Variable(np.random.rand(1)))
-        elif isinstance(in_port, InPort):
-            input_tensors.append(tf.placeholder(dtype=floatX()))
-        else:
-            assert False, "Don't know how to handle %s" % in_port
-    return input_tensors
-
-
 def min_approx_error_arrow(arrow: CompositeArrow, y_data: List) -> CompositeArrow:
     """
-    Find parameter values which minimize approximation error
+    Find parameter values of arrow which minimize approximation error of arrow(data)
     Args:
-        param_arrow:
-        y_data:
+        arrow: Parametric Arrow
+        y_data: List of input data to arrow
 
     Returns:
         parametric_arrow with parameters fixed
