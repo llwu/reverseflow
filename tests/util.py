@@ -22,4 +22,5 @@ def random_arrow_test(test: Callable,
         print("Random Arrow Test", i, " out of ", n)
         rand_arrow = test_random_composite()
         results.append(test(rand_arrow))
-        return results
+
+    return results

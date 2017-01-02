@@ -12,13 +12,14 @@ from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.inv_primitives.inv_control_flow_arrows import *
 from reverseflow.arrows.composite.approx import *
 from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
+from reverseflow.arrows.primitive.cast_arrows import *
 from reverseflow.arrows.primitivearrow import PrimitiveArrow
 from reverseflow.arrows.sourcearrow import SourceArrow
 from reverseflow.arrows.compose import compose_comb_modular, compose_comb
 from reverseflow.defaults import default_dispatch
 from reverseflow.util.mapping import Bimap
 from reverseflow.arrows.compositearrow import CompositeArrow
-
+from reverseflow.config import floatX
 
 
 def test_xyplusx_flat() -> CompositeArrow:
@@ -48,7 +49,6 @@ def test_xyplusx() -> CompositeArrow:
 
 def test_twoxyplusx() -> CompositeArrow:
     """f(x,y) = 2 * x * y + x"""
-    tf.reset_default_graph()
     two = SourceArrow(2)
     mul1 = MulArrow()
     mul2 = MulArrow()
@@ -68,11 +68,13 @@ def test_inv_twoxyplusx() -> CompositeArrow:
     """approximate parametric inverse of twoxyplusx"""
     inv_add = InvAddArrow()
     inv_mul = InvMulArrow()
-    two = SourceArrow(2)
+    two_int = SourceArrow(2)
+    two = CastArrow(floatX())
     div = DivArrow()
     c = ApproxIdentityArrow(2)
     inv_dupl = InvDuplArrow()
     edges = Bimap()  # type: EdgeMap
+    edges.add(two_int.out_ports[0], two.in_ports[0])
     edges.add(inv_add.out_ports[0], c.in_ports[0])
     edges.add(inv_add.out_ports[1], inv_mul.in_ports[0])
     edges.add(inv_mul.out_ports[0], div.in_ports[0])
@@ -80,9 +82,17 @@ def test_inv_twoxyplusx() -> CompositeArrow:
     edges.add(div.out_ports[0], c.in_ports[1])
     edges.add(c.out_ports[0], inv_dupl.in_ports[0])
     edges.add(c.out_ports[1], inv_dupl.in_ports[1])
-    return CompositeArrow(in_ports=[inv_add.in_ports[0]],
-                          out_ports=[inv_dupl.out_ports[0], inv_mul.out_ports[1]],
-                          edges=edges)
+
+    param_inports = [inv_add.in_ports[1], inv_mul.in_ports[1]]
+    c = CompositeArrow(in_ports=[inv_add.in_ports[0]]+ param_inports,
+                       out_ports=[inv_dupl.out_ports[0], inv_mul.out_ports[1], c.out_ports[2]],
+                       edges=edges)
+    c.change_in_port_type(ParamPort, 1)
+    c.change_in_port_type(ParamPort, 2)
+    c.change_out_port_type(ErrorPort, 2)
+    c.name = "InvTwoXPlusY"
+    return c
+
 
 
 def test_multicomb() -> CompositeArrow:

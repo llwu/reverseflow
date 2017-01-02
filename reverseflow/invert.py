@@ -4,7 +4,7 @@ from typing import Dict, Callable, Set, Tuple
 
 from reverseflow.arrows.compositearrow import CompositeArrow
 from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.port import InPort, OutPort, ParamPort
+from reverseflow.arrows.port import InPort, OutPort, ParamPort, ErrorPort
 from reverseflow.defaults import default_dispatch
 from reverseflow.arrows.marking import mark_source
 from reverseflow.util.mapping import Bimap
@@ -73,22 +73,30 @@ def invert_const(arrow: CompositeArrow,
     inv_in_ports = []
     inv_out_ports = []
 
+    # Every out_port of arrows should be an in_port of inv_arrow
     for out_port in arrow.inner_out_ports():
         inv_arrow, port_map = arrow_to_inv[out_port.arrow]
         in_port = port_map[out_port]
         assert isinstance(in_port, InPort)
         inv_in_ports.append(in_port)
 
+    # Every in_port of arrow should be an out_port of inv_arrow
     for in_port in arrow.inner_in_ports():
         inv_arrow, port_map = arrow_to_inv[in_port.arrow]
         out_port = port_map[in_port]
         assert isinstance(out_port, OutPort)
         inv_out_ports.append(out_port)
 
+    # Every param_port should be an out_port of inv_arrow
     for inv_tuple in arrow_to_inv.values():
         for in_port in inv_tuple[0].in_ports:
             if isinstance(in_port, ParamPort):
                 inv_in_ports.append(in_port)
+
+        for out_port in inv_tuple[0].out_ports:
+            if isinstance(out_port, ErrorPort):
+                inv_out_ports.append(out_port)
+
 
     inv_name = "%s_inv" % arrow.name
     return CompositeArrow(edges=edges,

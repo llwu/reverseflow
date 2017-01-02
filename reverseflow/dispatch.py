@@ -72,7 +72,18 @@ def inv_dupl_approx(arrow: DuplArrow, const_in_ports: Set[InPort]) -> Tuple[Arro
     n_duplications = arrow.n_out_ports
     inv_dupl = InvDuplArrow(n_duplications=n_duplications)
     approx_id = ApproxIdentityArrow(n_inputs=n_duplications)
-    inv_arrow = compose_comb(approx_id, inv_dupl, {i: i for i in range(n_duplications)})
+    edges = Bimap()  # type: EdgeMap
+    for i in range(n_duplications):
+        edges.add(approx_id.out_ports[i], inv_dupl.in_ports[i])
+    error_ports = [approx_id.out_ports[n_duplications]]
+    out_ports=inv_dupl.out_ports+error_ports
+    inv_arrow = CompositeArrow(edges=edges,
+                               in_ports=approx_id.in_ports,
+                               out_ports=out_ports,
+                               name="InvDuplApprox")
+    inv_arrow.change_out_port_type(ErrorPort, len(out_ports)-1)
+    # inv_arrow = compose_comb(approx_id, inv_dupl, {i: i for i in range(n_duplications)})
     port_map = {arrow.in_ports[0]: inv_arrow.out_ports[0]}
     port_map.update({arrow.out_ports[i]: inv_arrow.in_ports[i] for i in range(n_duplications)})
+    inv_arrow.name = "InvDuplApprox"
     return inv_arrow, port_map

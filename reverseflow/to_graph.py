@@ -12,6 +12,7 @@ from reverseflow.arrows.primitive.math_arrows import *
 from reverseflow.arrows.primitive.control_flow_arrows import *
 from reverseflow.arrows.primitive.cast_arrows import *
 from reverseflow.arrows.primitive.constant import *
+from reverseflow.inv_primitives.inv_control_flow_arrows import *
 from reverseflow.arrows.apply.interpret import interpret
 from typing import Tuple, List, Dict, MutableMapping, Union, Sequence
 from overloading import overload
@@ -88,6 +89,11 @@ def conv(a: DuplArrow, args: TensorVarList) -> Sequence[Tensor]:
     return [args[0] for i in range(a.num_out_ports())]
 
 @overload
+def conv(a: InvDuplArrow, args: TensorVarList) -> Sequence[Tensor]:
+    # TODO: Add assert that all args are equal
+    return [args[0]]
+
+@overload
 def conv(a: AddNArrow, args: TensorVarList) -> Sequence[Tensor]:
     return [tf.add_n(args)]
 
@@ -119,6 +125,7 @@ def conv(a: SourceArrow, args: TensorVarList) -> Sequence[Tensor]:
 @overload
 def conv(a: CompositeArrow, args: TensorVarList) -> Sequence[Tensor]:
     assert len(args) == a.num_in_ports()
+    # import pdb; pdb.set_trace()
     return interpret(conv, a, args)
 
 
