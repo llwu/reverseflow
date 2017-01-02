@@ -125,13 +125,11 @@ def conv(a: SourceArrow, args: TensorVarList) -> Sequence[Tensor]:
 @overload
 def conv(a: CompositeArrow, args: TensorVarList) -> Sequence[Tensor]:
     assert len(args) == a.num_in_ports()
-    # import pdb; pdb.set_trace()
-    return interpret(conv, a, args)
+    with tf.name_scope(a.name):
+        # import pdb; pdb.set_trace()
+        return interpret(conv, a, args)
 
 
 def arrow_to_graph(comp_arrow: CompositeArrow,
-                   input_tensors: Sequence[Tensor],
-                   graph: Graph):
-
-    with graph.as_default():
-        return interpret(conv, comp_arrow, input_tensors)
+                   input_tensors: Sequence[Tensor]):
+    return interpret(conv, comp_arrow, input_tensors)

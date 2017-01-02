@@ -11,10 +11,11 @@ import tensorflow as tf
 from tensorflow import Graph, Tensor, Session
 
 def gen_update_step(loss: Tensor) -> Tensor:
-    optimizer = tf.train.MomentumOptimizer(0.01,
-                                           momentum=0.1)
-    update_step = optimizer.minimize(loss)
-    return update_step
+    with tf.name_scope('optimization'):
+        optimizer = tf.train.MomentumOptimizer(0.01,
+                                               momentum=0.1)
+        update_step = optimizer.minimize(loss)
+        return update_step
 
 
 def accumulate_losses(tensors: List[Tensor]) -> Tensor:
@@ -26,12 +27,18 @@ def accumulate_losses(tensors: List[Tensor]) -> Tensor:
     Returns:
         mean tensor
     """
-    return tf.add_n([tf.reduce_mean(t) for t in tensors]) / len(tensors)
+    with tf.name_scope('loss'):
+        return tf.add_n([tf.reduce_mean(t) for t in tensors]) / len(tensors)
+
+def gen_batch(input_tensors, input_data):
+    return dict(zip(input_tensors, input_data))
 
 def train_loop(update_step,
                sess: Session,
                loss,
-               num_iterations = 1,
+               input_tensors,
+               input_data,
+               num_iterations=1000,
                summary_gap=500,
                save_every=10,
                sfx='',
@@ -40,9 +47,14 @@ def train_loop(update_step,
                saver=None):
 
     for i in range(num_iterations):
-        sess.run(loss)
+        feed_dict = gen_batch(input_tensors, input_data)
+        loss_res = sess.run([loss, update_step], feed_dict=feed_dict)
+        print("Loss is ", loss_res)
 
-def train_y_tf(params: List[Tensor], losses: List[Tensor]) -> Graph:
+def train_y_tf(params: List[Tensor],
+               losses: List[Tensor],
+               input_tensors,
+               input_data) -> Graph:
     """
     """
     loss = accumulate_losses(losses)
@@ -52,24 +64,25 @@ def train_y_tf(params: List[Tensor], losses: List[Tensor]) -> Graph:
     sess.run(init)
     train_loop(update_step,
                sess,
-               loss)
+               loss,
+               input_tensors,
+               input_data)
 
-def min_approx_error_arrow(arrow: CompositeArrow, y_data: List) -> CompositeArrow:
+def min_approx_error_arrow(arrow: CompositeArrow, input_data: List) -> CompositeArrow:
     """
     Find parameter values of arrow which minimize approximation error of arrow(data)
     Args:
         arrow: Parametric Arrow
-        y_data: List of input data to arrow
+        input_data: List of input data for each input of arrow
 
     Returns:
         parametric_arrow with parameters fixed
     """
-    graph = tf.Graph()
-    with graph.as_default():
-        input_tensors = gen_input_tensors(arrow)
-        output_tensors = arrow_to_graph(arrow, input_tensors, graph,)
-        params = [t for i, t in enumerate(input_tensors) if isinstance(arrow.in_ports[i], ParamPort)]
-        errors = [t for i, t in enumerate(output_tensors) if isinstance(arrow.out_ports[i], ErrorPort)]
-        assert len(params) > 0, "Must have parametric inports"
-        assert len(errors) > 0, "Must have error outports"
-        train_y_tf(params, errors)
+    # assert arrow.num_in_ports() == len(input_data), "Arrow has %s in_ports but only %s input data feeds" % (arrow.num_in_ports(), len(input_data))
+    input_tensors = gen_input_tensors(arrow)
+    output_tensors = arrow_to_graph(arrow, input_tensors)
+    params = [t for i, t in enumerate(input_tensors) if isinstance(arrow.in_ports[i], ParamPort)]
+    errors = [t for i, t in enumerate(output_tensors) if isinstance(arrow.out_ports[i], ErrorPort)]
+    assert len(params) > 0, "Must have parametric inports"
+    assert len(errors) > 0, "Must have error outports"
+    train_y_tf(params, errors, input_tensors, input_data)
