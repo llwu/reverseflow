@@ -22,6 +22,7 @@ def default_add(arrow_inputs: Dict[Arrow, MutableMapping],
     if sub_arrow in arrow_inputs:
         arrow_inputs[sub_arrow][index] = input_value
     else:
+        assert False
         arrow_inputs[sub_arrow] = OrderedDict({index: input_value})
 
 
@@ -48,6 +49,8 @@ def gen_arrow_inputs(comp_arrow: CompositeArrow,
     # Store a map from an arrow to its inputs
     # Use a dict because no guarantee we'll create input tensors in order
     arrow_inputs = dict()  # type: Dict[Arrow, MutableMapping[int, tf.Tensor]]
+    for sub_arrow in comp_arrow.get_sub_arrows():
+        arrow_inputs[sub_arrow] = OrderedDict()
 
     # Decrement priority of every arrow connected to the input
     for i, input_value in enumerate(inputs):
@@ -67,7 +70,6 @@ def inner_interpret(conv: Callable,
     """Convert an comp_arrow to a tensorflow graph and add to graph"""
     assert len(inputs) == comp_arrow.num_in_ports(), "wrong # inputs"
 
-    # FIXMEL Horrible Hack
     output_tensors_dict = OrderedDict()
     while len(arrow_colors) > 0:
         # print_arrow_colors(arrow_colors)

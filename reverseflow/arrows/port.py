@@ -22,13 +22,13 @@ class Port():
         self.index = index
 
     def __str__(self):
-        return "Port[%s:%s]" % (self.arrow.name, self.index)
+        return "Port[%s@%s]" % (self.arrow, self.index)
 
     def __repr__(self):
-        return "%s:%s" % (repr(self.arrow), self.index)
+        return str(self)
 
     def __eq__(self, other):
-        if type(self) == type(other):
+        if (isinstance(self, InPort) and isinstance(other, InPort)) or (isinstance(self, OutPort) and isinstance(other, OutPort)):
             return ((self.arrow is other.arrow) and (self.index == other.index))
         else:
             return False
@@ -46,7 +46,7 @@ class InPort(Port):
         return "In%s" % super().__str__()
 
     def __repr__(self):
-        return "In:%s" % super().__repr__()
+        return str(self)
 
 
 class OutPort(Port):
@@ -55,8 +55,7 @@ class OutPort(Port):
         return "Out%s" % super().__str__()
 
     def __repr__(self):
-        return "Out:%s" % super().__repr__()
-
+        return str(self)
 
 class ParamPort(InPort):
     """Parametric port"""
@@ -64,8 +63,7 @@ class ParamPort(InPort):
         return "Param%s" % super().__str__()
 
     def __repr__(self):
-        return "Param:%s" % super().__repr__()
-
+        return str(self)
 
 class ErrorPort(OutPort):
     """Error Port"""
@@ -73,4 +71,4 @@ class ErrorPort(OutPort):
         return "Error%s" % super().__str__()
 
     def __repr__(self):
-        return "Error:%s" % super().__repr__()
+        return str(self)

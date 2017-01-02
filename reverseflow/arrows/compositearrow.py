@@ -44,18 +44,35 @@ class CompositeArrow(Arrow):
         assert len(in_ports) > 0, "Composite Arrow must have in ports"
         assert len(out_ports) > 0, "Composite Arrow must have out ports"
         self.edges = edges
+
+        # Check edge direction is out_port to in_port
         for out_port, in_port in edges.items():
             assert isinstance(out_port, OutPort), "Expected OutPort got %s" % out_port
             assert isinstance(in_port, InPort), "Expected InPort got %s" % in_port
 
+        # Check each in_port is not connected to another arrow (only counted to outside world)
         arrows = self.get_sub_arrows()
         for in_port in in_ports:
             assert in_port not in edges.values(), "in_port must be unconnected"  % in_port.arrow
             assert in_port.arrow in arrows, "InPort arrow (%s) not in composition" % in_port.arrow
 
+        # Check each inport is connected to an actual arrow
         for out_port in out_ports:
             assert out_port.arrow in arrows, "OutPort arrow (%s) not in composition" % out_port.arrow
             assert out_port not in edges.keys(), "out_port must be unconnected"
+
+        # vanilla_out_ports = [OutPort(o.arrow, o.index) for o in out_ports]
+        # vanilla_in_ports = [InPort(i.arrow, i.index) for i in in_ports]
+
+        vanilla_out_ports = out_ports
+        vanilla_in_ports = in_ports
+
+        for sub_arrow in self.get_sub_arrows():
+            for in_port in sub_arrow.in_ports:
+                assert (in_port in edges.values()) or (in_port in vanilla_in_ports)
+
+            for out_port in sub_arrow.out_ports:
+                assert (out_port in edges.keys()) or (out_port in vanilla_out_ports)
 
         # TODO: Assert There must be no cycles
         # TODO: Assert Every inport must be on end of edge or be in in_ports
@@ -93,6 +110,9 @@ class CompositeArrow(Arrow):
         # TODO: assert
         port = self.out_ports[index]
         self.out_ports[index] = OutPortType(port.arrow, port.index)
+
+    def __str__(self):
+        return "Comp_%s_%s" % (self.name, hex(id(self)))
 
 
 def is_parametric(comp_arrow: CompositeArrow) -> bool:

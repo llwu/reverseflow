@@ -20,6 +20,7 @@ class ApproxIdentityArrow(CompositeArrow):
             edges.add(dupls[i].out_ports[0], mean.in_ports[i])
             edges.add(dupls[i].out_ports[1], varfrommean.in_ports[i+1])
         mean_dupl = DuplArrow(n_duplications=n_inputs+1)
+        edges.add(mean.out_ports[0], mean_dupl.in_ports[0])
         edges.add(mean_dupl.out_ports[n_inputs], varfrommean.in_ports[0])
         out_ports = mean_dupl.out_ports[0:n_inputs]
         x = varfrommean.out_ports[0]
