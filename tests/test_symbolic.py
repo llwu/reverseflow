@@ -12,7 +12,7 @@ def test_symbolic_apply() -> None:
     """f(x,y) = x * y + x"""
     arrow = test_xyplusx_flat()
     input_symbols = generate_input(arrow)
-    output_symbols, constraints = symbolic_apply(input_symbols)
+    output_symbols = symbolic_apply(arrow, input_symbols)
 
 def generate_input(arrow: Arrow):
     input_symbols = []
