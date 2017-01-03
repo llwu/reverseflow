@@ -27,7 +27,7 @@ class ApproxIdentityArrow(CompositeArrow):
         out_ports = mean_dupl.out_ports[0:n_inputs]
         x = varfrommean.out_ports[0]
         error_ports = [ErrorPort(x.arrow, x.index)]
-        out_ports=out_ports + error_ports
+        out_ports = out_ports + error_ports
         super().__init__(edges=edges,
                          in_ports=[dupl.in_ports[0] for dupl in dupls],
                          out_ports=out_ports,

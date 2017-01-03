@@ -12,12 +12,13 @@ from overloading import overload
 
 # Mapping between op types and arrows
 # Cannot use multimethods because different ops not distinguished by type
-THE_DICT = {'Add': AddArrow,  # type: Dict[string, Arrow]
-            'Mul': MulArrow}
+Op_To_Arrow = {'Add': AddArrow,  # type: Dict[string, Arrow]
+               'Mul': MulArrow,
+               'Const': SourceArrow}
 
 def create_arrow_from_op(op: Operation) -> Arrow:
     """Construct arrow which corresponds to op"""
-    op_class = THE_DICT[op.type]
+    op_class = Op_To_Arrow[op.type]
     return op_class()
 
 
@@ -46,7 +47,6 @@ def consumer_index(op: Operation, tensor: Tensor) -> int:
     return pos_in_seq(op, tensor.consumers())
 
 
-import pdb
 def find_out_port(in_port: InPort,
                   tensor: Tensor,
                   op_to_arrow: Dict[Operation, Arrow],
@@ -75,7 +75,9 @@ def find_out_port(in_port: InPort,
 
 
 def graph_to_arrow(output_tensors: List[Tensor]) -> Arrow:
-    """Convert a tensorflow graph into an arrow"""
+    """Convert a tensorflow graph into an arrow
+    Args:
+        output_tensors: Tensors designated as outputs"""
     edges = Bimap()  # type: EdgeMap
     op_to_arrow = dict()  # type: Dict[Operation, Arrow]
     tensor_to_dupl_idx = dict()  # type: Dict[Tensor, Tuple[DuplArrow, int]]
@@ -88,8 +90,6 @@ def graph_to_arrow(output_tensors: List[Tensor]) -> Arrow:
         assert len(tensor.consumers()) == 0, "Output tensor cant have consumer"
         arrow = arrow_from_op(tensor.op, op_to_arrow, to_link)
         comp_out_ports.append(arrow.out_ports[tensor.value_index])
-
-    print("TOLINK", to_link)
 
     assert len(to_link) > 0, "Expected nonzero number of inputs"
     # FIXME: This is a mess

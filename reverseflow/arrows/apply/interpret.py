@@ -15,17 +15,6 @@ def print_arrow_colors(arrow_colors):
         print(arr.name, ": ", pr)
 
 
-def default_add(arrow_inputs: Dict[Arrow, MutableMapping],
-                sub_arrow: Arrow,
-                index: int,
-                input_value) -> None:
-    if sub_arrow in arrow_inputs:
-        arrow_inputs[sub_arrow][index] = input_value
-    else:
-        assert False
-        arrow_inputs[sub_arrow] = OrderedDict({index: input_value})
-
-
 def gen_arrow_colors(comp_arrow: CompositeArrow):
     """
     Interpret a composite arrow on some inputs
@@ -50,14 +39,14 @@ def gen_arrow_inputs(comp_arrow: CompositeArrow,
     # Use a dict because no guarantee we'll create input tensors in order
     arrow_inputs = dict()  # type: Dict[Arrow, MutableMapping[int, tf.Tensor]]
     for sub_arrow in comp_arrow.get_sub_arrows():
-        arrow_inputs[sub_arrow] = OrderedDict()
+        arrow_inputs[sub_arrow] = dict()
 
     # Decrement priority of every arrow connected to the input
     for i, input_value in enumerate(inputs):
         in_port = comp_arrow.inner_in_ports()[i]
         sub_arrow = in_port.arrow
         arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
-        default_add(arrow_inputs, sub_arrow, in_port.index, input_value)
+        arrow_inputs[sub_arrow][in_port.index] = input_value
 
     return arrow_inputs
 
@@ -70,19 +59,17 @@ def inner_interpret(conv: Callable,
     """Convert an comp_arrow to a tensorflow graph and add to graph"""
     assert len(inputs) == comp_arrow.num_in_ports(), "wrong # inputs"
 
-    output_tensors_dict = OrderedDict()
+    output_tensors_dict = dict()
     while len(arrow_colors) > 0:
         # print_arrow_colors(arrow_colors)
-        sub_arrow, priority = arrow_colors.popitem()
         # print("Converting ", sub_arrow.name)
+        sub_arrow, priority = arrow_colors.popitem()
         assert priority == 0, "Must resolve all inputs to sub_arrow first"
-        # TODO: Check that the number of inputs created is same as num inputs to
+        # TODO: Check that the number of inputs created is same as num inputs t
 
         inputs = list(arrow_inputs[sub_arrow].values())
-        # import pdb; pdb.set_trace()
-        # print(type(sub_arrow), type(inputs))
-
         outputs = conv(sub_arrow, inputs)
+
         assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
 
         # Decrement the priority of each subarrow connected to this arrow
@@ -95,9 +82,13 @@ def inner_interpret(conv: Callable,
                 if neigh_arrow is not comp_arrow:
                     assert neigh_arrow in arrow_colors
                     arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
-                    default_add(arrow_inputs, neigh_arrow, neigh_port.index,
-                                outputs[i])
+                    arrow_inputs[neigh_arrow][neigh_port.index] = outputs[i]
             else:
+                print(comp_arrow.name)
+                print(i, out_port)
+                print(i, outputs[i])
+                print("\n")
+
                 # If connected to outside world
                 # FIXME: Horrible hack
                 output_tensor = outputs[i]
@@ -110,7 +101,10 @@ def inner_interpret(conv: Callable,
    #                     j = j + 1
                 output_tensors_dict[j] = output_tensor
 
-    return list(output_tensors_dict.values())
+    final_outputs = []
+    for i in range(len(output_tensors_dict)):
+        final_outputs.append(output_tensors_dict[i])
+    return final_outputs
 
 
 def interpret(conv: Callable,

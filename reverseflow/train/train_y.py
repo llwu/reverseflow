@@ -12,7 +12,7 @@ from tensorflow import Graph, Tensor, Session
 
 def gen_update_step(loss: Tensor) -> Tensor:
     with tf.name_scope('optimization'):
-        optimizer = tf.train.MomentumOptimizer(0.01,
+        optimizer = tf.train.MomentumOptimizer(0.001,
                                                momentum=0.1)
         update_step = optimizer.minimize(loss)
         return update_step
@@ -37,8 +37,9 @@ def train_loop(update_step,
                sess: Session,
                loss,
                input_tensors,
+               output_tensors,
                input_data,
-               num_iterations=1000,
+               num_iterations=100000,
                summary_gap=500,
                save_every=10,
                sfx='',
@@ -48,12 +49,13 @@ def train_loop(update_step,
 
     for i in range(num_iterations):
         feed_dict = gen_batch(input_tensors, input_data)
-        loss_res = sess.run([loss, update_step], feed_dict=feed_dict)
+        loss_res = sess.run([loss, update_step] + output_tensors, feed_dict=feed_dict)
         print("Loss is ", loss_res)
 
 def train_y_tf(params: List[Tensor],
                losses: List[Tensor],
                input_tensors,
+               output_tensors,
                input_data) -> Graph:
     """
     """
@@ -66,6 +68,7 @@ def train_y_tf(params: List[Tensor],
                sess,
                loss,
                input_tensors,
+               output_tensors,
                input_data)
 
 def min_approx_error_arrow(arrow: CompositeArrow, input_data: List) -> CompositeArrow:
@@ -85,4 +88,4 @@ def min_approx_error_arrow(arrow: CompositeArrow, input_data: List) -> Composite
     errors = [t for i, t in enumerate(output_tensors) if isinstance(arrow.out_ports[i], ErrorPort)]
     assert len(params) > 0, "Must have parametric inports"
     assert len(errors) > 0, "Must have error outports"
-    train_y_tf(params, errors, input_tensors, input_data)
+    train_y_tf(params, errors, input_tensors, output_tensors, input_data)
