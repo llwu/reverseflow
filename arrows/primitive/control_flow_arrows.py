@@ -1,5 +1,5 @@
 """These are arrows for control flow of input"""
-from reverseflow.arrows.primitivearrow import PrimitiveArrow
+from arrows.primitivearrow import PrimitiveArrow
 from typing import List, MutableMapping, Set
 from sympy import Expr, Eq, Rel
 

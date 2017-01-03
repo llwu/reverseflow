@@ -1,11 +1,11 @@
 
-from reverseflow.arrows.port import OutPort, InPort
-from reverseflow.arrows.sourcearrow import SourceArrow
-from reverseflow.arrows.primitive.math_arrows import MulArrow, AddArrow
-from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
+from arrows.port import OutPort, InPort
+from arrows.sourcearrow import SourceArrow
+from arrows.primitive.math_arrows import MulArrow, AddArrow
+from arrows.primitive.control_flow_arrows import DuplArrow
 from reverseflow.util.mapping import Bimap
-from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
-from reverseflow.arrows.compose import compose_comb
+from arrows.compositearrow import CompositeArrow, EdgeMap
+from arrows.compose import compose_comb
 from reverseflow.to_graph import arrow_to_graph
 from reverseflow.to_arrow import graph_to_arrow
 import tensorflow as tf

@@ -5,8 +5,8 @@ from typing import Set, Tuple
 
 from pqdict import pqdict
 
-from reverseflow.arrows.port import InPort, OutPort
-from reverseflow.arrows.arrow import Arrow
+from arrows.port import InPort, OutPort
+from arrows.arrow import Arrow
 
 def mark(arrow: Arrow,
          knowns: Set[InPort]) -> Tuple[Set[InPort], Set[OutPort]]:

@@ -2,11 +2,11 @@
 
 from typing import Dict, Callable, Set, Tuple
 
-from reverseflow.arrows.compositearrow import CompositeArrow
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.port import InPort, OutPort, ParamPort, ErrorPort
+from arrows.compositearrow import CompositeArrow
+from arrows.arrow import Arrow
+from arrows.port import InPort, OutPort, ParamPort, ErrorPort
 from reverseflow.defaults import default_dispatch
-from reverseflow.arrows.marking import mark_source
+from arrows.marking import mark_source
 from reverseflow.util.mapping import Bimap
 
 

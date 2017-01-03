@@ -1,11 +1,11 @@
 """Convert a tensoflow graph into an arrow"""
 from typing import List, Tuple, Dict
 from tensorflow import Tensor, Operation
-from reverseflow.arrows.port import InPort, OutPort
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
-from reverseflow.arrows.primitive.math_arrows import AddArrow, MulArrow
-from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
+
+from arrows import (Arrow, CompositeArrow, compose_comb_modular, compose_comb)
+from arrows import InPort, OutPort
+from arrows.std_arrows import *
+
 from reverseflow.util.mapping import Bimap
 from reverseflow.util.misc import pos_in_seq
 from overloading import overload

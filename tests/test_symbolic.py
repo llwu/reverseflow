@@ -1,8 +1,8 @@
 import sympy
 
-from reverseflow.arrows.apply.symbolic import symbolic_apply
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.port import InPort, ParamPort
+from arrows.apply.symbolic import symbolic_apply
+from arrows.arrow import Arrow
+from arrows.port import InPort, ParamPort
 
 from util import random_arrow_test
 from test_arrows import test_xyplusx_flat, all_composites

@@ -1,5 +1,5 @@
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.port import InPort, OutPort
+from arrows.arrow import Arrow
+from arrows.port import InPort, OutPort
 from typing import Dict, List, MutableMapping, Set
 from sympy import Expr, Rel
 

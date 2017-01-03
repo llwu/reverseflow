@@ -1,9 +1,9 @@
 from typing import Set, List
-from reverseflow.arrows.arrow import Arrow
+from arrows.arrow import Arrow
 from reverseflow.util.mapping import Bimap
-from reverseflow.arrows.port import InPort, OutPort, ErrorPort, ParamPort
+from arrows.port import InPort, OutPort, ErrorPort, ParamPort
 
-from reverseflow.config import floatX
+from arrows.config import floatX
 EdgeMap = Bimap[OutPort, InPort]
 
 

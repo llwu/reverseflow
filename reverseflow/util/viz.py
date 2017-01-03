@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 
-from reverseflow.arrows.arrow import Arrow
+from arrows.arrow import Arrow
 from reverseflow.to_graph import arrow_to_graph
 
 

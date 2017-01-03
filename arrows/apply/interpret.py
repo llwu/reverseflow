@@ -1,11 +1,11 @@
 """Decode an arrow into a tensoflow graph"""
 from pqdict import pqdict
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
-from reverseflow.arrows.primitive.math_arrows import *
-from reverseflow.arrows.primitive.control_flow_arrows import *
-from reverseflow.arrows.primitive.cast_arrows import *
-from reverseflow.arrows.primitive.constant import *
+from arrows.arrow import Arrow
+from arrows.compositearrow import CompositeArrow, EdgeMap
+from arrows.primitive.math_arrows import *
+from arrows.primitive.control_flow_arrows import *
+from arrows.primitive.cast_arrows import *
+from arrows.primitive.constant import *
 from typing import List, Dict, MutableMapping, Union, Callable
 from collections import OrderedDict
 

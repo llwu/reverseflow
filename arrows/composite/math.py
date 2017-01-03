@@ -1,12 +1,12 @@
-from reverseflow.arrows.compositearrow import CompositeArrow
-from reverseflow.arrows.primitive.control_flow_arrows import *
-from reverseflow.arrows.primitive.math_arrows import *
-from reverseflow.arrows.primitive.constant import *
-from reverseflow.arrows.primitive.cast_arrows import *
-from reverseflow.arrows.sourcearrow import SourceArrow
+from arrows.compositearrow import CompositeArrow
+from arrows.primitive.control_flow_arrows import *
+from arrows.primitive.math_arrows import *
+from arrows.primitive.constant import *
+from arrows.primitive.cast_arrows import *
+from arrows.sourcearrow import SourceArrow
 from reverseflow.util.mapping import Bimap
-from reverseflow.arrows.compose import compose_comb
-from reverseflow.config import floatX
+from arrows.compose import compose_comb
+from arrows.config import floatX
 # import numpy as np
 #
 # def dims_bar_batch(t):

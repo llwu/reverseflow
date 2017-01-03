@@ -1,5 +1,5 @@
 """Tests propagation of known ports."""
-from reverseflow.arrows.marking import mark
+from arrows.marking import mark
 from util import random_arrow_test
 
 

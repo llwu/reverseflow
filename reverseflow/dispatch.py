@@ -1,12 +1,12 @@
 """Inverse Dispatches for Inverses"""
-from reverseflow.arrows.primitive.math_arrows import *
-from reverseflow.arrows.primitive.control_flow_arrows import *
+from arrows.primitive.math_arrows import *
+from arrows.primitive.control_flow_arrows import *
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.inv_primitives.inv_control_flow_arrows import *
-from reverseflow.arrows.composite.approx import *
-from reverseflow.arrows.compose import compose_comb
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.port import Port, InPort
+from arrows.composite.approx import *
+from arrows.compose import compose_comb
+from arrows.arrow import Arrow
+from arrows.port import Port, InPort
 from reverseflow.util.mapping import Bimap
 from typing import Set, Tuple, Dict
 

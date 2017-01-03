@@ -2,9 +2,9 @@
 
 import tensorflow as tf
 
-from reverseflow.config import floatX
-from reverseflow.arrows.port import InPort, ParamPort
-from reverseflow.arrows.arrow import Arrow
+from arrows.config import floatX
+from arrows.port import InPort, ParamPort
+from arrows.arrow import Arrow
 from reverseflow.to_graph import arrow_to_graph, gen_input_tensors
 from test_arrows import test_xyplusx_flat, all_composites, test_inv_twoxyplusx
 from util import random_arrow_test
@@ -13,10 +13,8 @@ import numpy as np
 
 def reset_and_conv(arrow: Arrow) -> None:
     tf.reset_default_graph()
-    graph = tf.Graph()
-    with graph.as_default():
-        input_tensors = gen_input_tensors(arrow)
-    arrow_to_graph(arrow, input_tensors, graph)
+    input_tensors = gen_input_tensors(arrow)
+    arrow_to_graph(arrow, input_tensors)
 
 random_arrow_test(reset_and_conv, "to_graph")
 

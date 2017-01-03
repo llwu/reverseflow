@@ -3,10 +3,10 @@
 from typing import Dict
 from copy import copy
 from overloading import overload
-from reverseflow.arrows.primitivearrow import PrimitiveArrow
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.port import InPort, OutPort
-from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
+from arrows.primitivearrow import PrimitiveArrow
+from arrows.arrow import Arrow
+from arrows.port import InPort, OutPort
+from arrows.compositearrow import CompositeArrow, EdgeMap
 from reverseflow.util.mapping import Bimap
 
 

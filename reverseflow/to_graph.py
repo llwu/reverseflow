@@ -3,17 +3,17 @@ import tensorflow as tf
 from tensorflow import Tensor, Graph, Variable
 import numpy as np
 from pqdict import pqdict
-from reverseflow.config import floatX
-from reverseflow.arrows.port import InPort, ParamPort
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.sourcearrow import SourceArrow
-from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
-from reverseflow.arrows.primitive.math_arrows import *
-from reverseflow.arrows.primitive.control_flow_arrows import *
-from reverseflow.arrows.primitive.cast_arrows import *
-from reverseflow.arrows.primitive.constant import *
+from arrows.config import floatX
+from arrows.port import InPort, ParamPort
+from arrows.arrow import Arrow
+from arrows.sourcearrow import SourceArrow
+from arrows.compositearrow import CompositeArrow, EdgeMap
+from arrows.primitive.math_arrows import *
+from arrows.primitive.control_flow_arrows import *
+from arrows.primitive.cast_arrows import *
+from arrows.primitive.constant import *
 from reverseflow.inv_primitives.inv_control_flow_arrows import *
-from reverseflow.arrows.apply.interpret import interpret
+from arrows.apply.interpret import interpret
 from typing import Tuple, List, Dict, MutableMapping, Union, Sequence
 from overloading import overload
 

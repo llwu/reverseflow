@@ -1,6 +1,6 @@
 """Default mappings between parametric inverses and inverses"""
-from reverseflow.arrows.primitive.math_arrows import *
-from reverseflow.arrows.primitive.control_flow_arrows import *
+from arrows.primitive.math_arrows import *
+from arrows.primitive.control_flow_arrows import *
 from reverseflow.dispatch import *
 
 default_dispatch = {AddArrow: inv_add,

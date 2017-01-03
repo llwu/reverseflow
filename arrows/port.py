@@ -1,6 +1,6 @@
 """Immutable port classes, should be identified by arrow, index, and type."""
 
-from reverseflow.arrows.arrow import Arrow
+from arrows.arrow import Arrow
 
 
 class Port():

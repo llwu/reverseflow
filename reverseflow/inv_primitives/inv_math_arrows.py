@@ -1,10 +1,10 @@
 """Constructors for inverse arrows."""
 
-from reverseflow.arrows.compositearrow import CompositeArrow
-from reverseflow.arrows.port import ParamPort
+from arrows.compositearrow import CompositeArrow
+from arrows.port import ParamPort
 from reverseflow.util.mapping import Bimap
-from reverseflow.arrows.primitive.math_arrows import *
-from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
+from arrows.primitive.math_arrows import *
+from arrows.primitive.control_flow_arrows import DuplArrow
 
 
 class InvAddArrow(CompositeArrow):

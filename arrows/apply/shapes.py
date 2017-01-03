@@ -2,17 +2,17 @@
 import tensorflow as tf
 from tensorflow import Tensor, Graph, Variable
 from pqdict import pqdict
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
-from reverseflow.arrows.primitive.math_arrows import *
-from reverseflow.arrows.primitive.control_flow_arrows import *
-from reverseflow.arrows.primitive.cast_arrows import *
-from reverseflow.arrows.primitive.constant import *
+from arrows.arrow import Arrow
+from arrows.compositearrow import CompositeArrow, EdgeMap
+from arrows.primitive.math_arrows import *
+from arrows.primitive.control_flow_arrows import *
+from arrows.primitive.cast_arrows import *
+from arrows.primitive.constant import *
 from reverseflow.util.misc import same
 from typing import Tuple, List, Dict, MutableMapping, Union, Sequence
 from collections import OrderedDict
 from overloading import overload
-from reverseflow.arrows.apply.interpret import interpret
+from arrows.apply.interpret import interpret
 
 ShapeList = Sequence[Tuple[int, ...]]
 

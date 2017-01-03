@@ -1,4 +1,4 @@
-from reverseflow.arrows.primitivearrow import PrimitiveArrow
+from arrows.primitivearrow import PrimitiveArrow
 from typing import List, MutableMapping
 from sympy import Expr, Eq, Rel
 

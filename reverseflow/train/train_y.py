@@ -1,10 +1,11 @@
-from reverseflow.arrows.compositearrow import CompositeArrow
+from arrows import (Arrow, CompositeArrow, compose_comb_modular, compose_comb)
+from arrows import ParamPort, InPort, ErrorPort
+from arrows.std_arrows import *
+
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.to_graph import arrow_to_graph, gen_input_tensors
-from reverseflow.arrows.port import ParamPort, InPort, ErrorPort
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.config import floatX
+from arrows.config import floatX
 
 from typing import List
 import tensorflow as tf
@@ -39,7 +40,7 @@ def train_loop(update_step,
                input_tensors,
                output_tensors,
                input_data,
-               num_iterations=100000,
+               num_iterations=1000,
                summary_gap=500,
                save_every=10,
                sfx='',

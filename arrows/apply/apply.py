@@ -1,9 +1,9 @@
 from numpy import ndarray
 from typing import List
 import tensorflow as tf
-from reverseflow.arrows.arrow import Arrow
+from arrows.arrow import Arrow
 from reverseflow.to_graph import arrow_to_graph
-from reverseflow.config import floatX
+from arrows.config import floatX
 
 def apply(arrow: Arrow, inputs: List[ndarray]) -> List[ndarray]:
     """Apply an arrow to some inputs"""
@@ -12,7 +12,7 @@ def apply(arrow: Arrow, inputs: List[ndarray]) -> List[ndarray]:
     sess = tf.InteractiveSession(graph=graph)
     with graph.as_default():
         input_tensors = [tf.placeholder(dtype=floatX()) for i in range(len(inputs))]
-        outputs = arrow_to_graph(arrow, input_tensors, graph)
+        outputs = arrow_to_graph(arrow, input_tensors)
         feed_dict = dict(zip(input_tensors, inputs))
         init = tf.initialize_all_variables()
         sess.run(init)

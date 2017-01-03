@@ -5,21 +5,14 @@ import inspect
 
 import tensorflow as tf
 
-import reverseflow.arrows.primitive.math_arrows
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.primitive.math_arrows import *
+from arrows import (Arrow, CompositeArrow, compose_comb_modular, compose_comb)
+from arrows.std_arrows import *
+
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.inv_primitives.inv_control_flow_arrows import *
-from reverseflow.arrows.composite.approx import *
-from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
-from reverseflow.arrows.primitive.cast_arrows import *
-from reverseflow.arrows.primitivearrow import PrimitiveArrow
-from reverseflow.arrows.sourcearrow import SourceArrow
-from reverseflow.arrows.compose import compose_comb_modular, compose_comb
 from reverseflow.defaults import default_dispatch
 from reverseflow.util.mapping import Bimap
-from reverseflow.arrows.compositearrow import CompositeArrow
-from reverseflow.config import floatX
+from arrows.config import floatX
 
 
 def test_xyplusx_flat() -> CompositeArrow:
@@ -85,8 +78,8 @@ def test_inv_twoxyplusx() -> CompositeArrow:
 
     param_inports = [inv_add.in_ports[1], inv_mul.in_ports[1]]
     op = CompositeArrow(in_ports=[inv_add.in_ports[0]] + param_inports,
-                       out_ports=[inv_dupl.out_ports[0], inv_mul.out_ports[1], c.out_ports[2]],
-                       edges=edges)
+                        out_ports=[inv_dupl.out_ports[0], inv_mul.out_ports[1], c.out_ports[2]],
+                        edges=edges)
     op.change_in_port_type(ParamPort, 1)
     op.change_in_port_type(ParamPort, 2)
     op.change_out_port_type(ErrorPort, 2)
@@ -123,14 +116,14 @@ def test_random_math() -> PrimitiveArrow:
     #          AddNArrow,
     #          AbsArrow]
 
-    maths = [m[1] for m in inspect.getmembers(reverseflow.arrows.primitive.math_arrows,
-            inspect.isclass) if m[1].__module__ == 'reverseflow.arrows.primitive.math_arrows']
+    maths = [m[1] for m in inspect.getmembers(arrows.primitive.math_arrows,
+            inspect.isclass) if m[1].__module__ == 'arrows.primitive.math_arrows']
     maths = list(set.intersection(set(maths), default_dispatch.keys()))
     idx = randint(0, len(maths) - 1)
     args = []
     n_input_arrows = [
-        reverseflow.arrows.primitive.math_arrows.ReduceMeanArrow,
-        reverseflow.arrows.primitive.math_arrows.AddNArrow
+        arrows.primitive.math_arrows.ReduceMeanArrow,
+        arrows.primitive.math_arrows.AddNArrow
         ]
     if maths[idx] in n_input_arrows:
         args = [randint(1, 5)]
@@ -175,7 +168,7 @@ def test_random_composite() -> CompositeArrow:
 
 # FIXME: There must be a better way to get all arrows
 import reverseflow.inv_primitives.inv_math_arrows
-import reverseflow.arrows.composite.math
+import arrows.composite.math
 composite_module_list = [reverseflow.inv_primitives.inv_math_arrows]
 
 def all_composites() -> List:

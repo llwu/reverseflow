@@ -1,7 +1,7 @@
-from reverseflow.arrows.port import ErrorPort
-from reverseflow.arrows.composite.math import MeanArrow, VarFromMeanArrow
-from reverseflow.arrows.compositearrow import CompositeArrow
-from reverseflow.arrows.primitive.control_flow_arrows import DuplArrow
+from arrows.port import ErrorPort
+from arrows.composite.math import MeanArrow, VarFromMeanArrow
+from arrows.compositearrow import CompositeArrow
+from arrows.primitive.control_flow_arrows import DuplArrow
 from reverseflow.util.mapping import Bimap
 
 

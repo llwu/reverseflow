@@ -1,8 +1,8 @@
-from reverseflow.arrows.primitive.math_arrows import *
-from reverseflow.arrows.primitive.constant import *
+from arrows.primitive.math_arrows import *
+from arrows.primitive.constant import *
 
-from reverseflow.arrows.compose import compose_comb
-from reverseflow.arrows.apply.shapes import propagate_shapes
+from arrows.compose import compose_comb
+from arrows.apply.shapes import propagate_shapes
 
 addarr = AddArrow()
 rankarr = RankArrow()

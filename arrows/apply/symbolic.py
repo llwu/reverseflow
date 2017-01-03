@@ -1,14 +1,14 @@
 """Symbolically Evaluate a Graph"""
 from collections import OrderedDict
 from typing import Dict, MutableMapping, Tuple, List, Set, Sequence
-from reverseflow.arrows.port import InPort, OutPort
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.compositearrow import CompositeArrow
-from reverseflow.arrows.primitive.math_arrows import *
-from reverseflow.arrows.primitive.control_flow_arrows import *
+from arrows.port import InPort, OutPort
+from arrows.arrow import Arrow
+from arrows.compositearrow import CompositeArrow
+from arrows.primitive.math_arrows import *
+from arrows.primitive.control_flow_arrows import *
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.inv_primitives.inv_control_flow_arrows import *
-from reverseflow.arrows.apply.interpret import interpret
+from arrows.apply.interpret import interpret
 
 
 from pqdict import pqdict

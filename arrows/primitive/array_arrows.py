@@ -1,5 +1,5 @@
 """Array Operations"""
-from reverseflow.arrows.primitivearrow import PrimitiveArrow
+from arrows.primitivearrow import PrimitiveArrow
 
 
 class Gather(PrimitiveArrow):

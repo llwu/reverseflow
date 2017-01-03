@@ -1,7 +1,7 @@
 """Tests port equality and hashing."""
 
-from reverseflow.arrows.port import InPort, OutPort, ParamPort, ErrorPort
-from reverseflow.arrows.primitive.math_arrows import MulArrow, AddArrow
+from arrows.port import InPort, OutPort, ParamPort, ErrorPort
+from arrows.primitive.math_arrows import MulArrow, AddArrow
 
 # This now needs to reflect fact that Ports of same type are equal even if different specialization
 # i.e. ErrorPort(a,0) == OutPort(a,0)
