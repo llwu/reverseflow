@@ -4,8 +4,9 @@
 class Arrow:
     """Abstract arrow class"""
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, parent=None) -> None:
         self.name = name
+        self.parent = parent
 
     def num_in_ports(self) -> int:
         return len(self.in_ports)

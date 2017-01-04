@@ -11,6 +11,7 @@ BiDict
 For example a normal Dict is a ManyToOne mapping which can only be computed
 in the forward direction.
 """
+from collections import defaultdict
 from typing import (TypeVar, Generic, Tuple, Set, Dict, ItemsView,
                     ValuesView, KeysView)
 
@@ -72,6 +73,58 @@ class Bimap(Generic[L, R]):
 
     def __repr__(self):
         return self.left_to_right.__repr__()
+
+
+class Relation(Generic[L, R]):
+    """Many to Many relation"""
+
+    def __init__(self):
+        self.left_to_right = defaultdict(list)  # type: Dict[L, List[R]]
+        self.right_to_left = defaultdict(list)  # type: Dict[R, List[L]]
+
+    def fwd(self, left: L) -> R:
+        return self.left_to_right[left]
+
+    def inv(self, right: R) -> L:
+        return self.right_to_left[right]
+
+    def add(self, left: L, right: R) -> None:
+        self.left_to_right[left].append(right)
+        self.right_to_left[right].append(left)
+
+    def remove(self, left: L, right: R) -> None:
+        if left in self.left_to_right:
+            del self.left_to_right[left]
+        if right in self.right_to_left:
+            del self.right_to_left[right]
+
+    def items(self) -> ItemsView[L, R]:
+        def items_gen():
+            for key, value in self.left_to_right.items():
+                for v_val in value:
+                    yield (key, v_val)
+        return items_gen()
+
+    def keys(self) -> KeysView[L]:
+        return self.left_to_right.keys()
+
+    def values(self) -> ValuesView[R]:
+        return self.left_to_right.keys()
+
+    def __getitem__(self, key: L) -> R:
+        return self.fwd(key)
+
+    def __setitem__(self, key: L, value: R):
+        return self.add(key, value)
+
+    def __contains__(self, key: L) -> bool:
+        return key in self.left_to_right
+
+    def __str__(self) -> str:
+        return str(list(self.items()))
+
+    def __repr__(self) -> str:
+        return str(self)
 
 
 class OneToMany(Generic[L, R]):

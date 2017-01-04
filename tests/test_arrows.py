@@ -13,7 +13,8 @@ from reverseflow.inv_primitives.inv_control_flow_arrows import *
 from reverseflow.defaults import default_dispatch
 from reverseflow.util.mapping import Bimap
 from arrows.config import floatX
-
+import reverseflow.inv_primitives.inv_math_arrows
+import arrows.composite.math
 
 def test_xyplusx_flat() -> CompositeArrow:
     """f(x,y) = x * y + x"""
@@ -29,15 +30,15 @@ def test_xyplusx_flat() -> CompositeArrow:
     return d
 
 
-def test_xyplusx() -> CompositeArrow:
-    """f(x,y) = x * y + x"""
-    tf.reset_default_graph()
-    mul = MulArrow()
-    add = AddArrow()
-    dupl = DuplArrow()
-    dupl_mul = compose_comb(dupl, mul, {0: 0})
-    dupl_mul_add = compose_comb(dupl_mul, add, {0: 0, 1: 1})
-    return dupl_mul_add
+# def test_xyplusx() -> CompositeArrow:
+#     """f(x,y) = x * y + x"""
+#     tf.reset_default_graph()
+#     mul = MulArrow()
+#     add = AddArrow()
+#     dupl = DuplArrow()
+#     dupl_mul = compose_comb(dupl, mul, {0: 0})
+#     dupl_mul_add = compose_comb(dupl_mul, add, {0: 0, 1: 1})
+#     return dupl_mul_add
 
 
 def test_twoxyplusx() -> CompositeArrow:
@@ -88,16 +89,16 @@ def test_inv_twoxyplusx() -> CompositeArrow:
 
 
 
-def test_multicomb() -> CompositeArrow:
-    """f(a,b,c,d,e,f) = (a+b)(cd(e+f) + e + f)"""
-    add1, add2 = AddArrow(), AddArrow()
-    mul1, mul2 = MulArrow(), MulArrow()
-    comp = test_xyplusx()
-    mul_comp = compose_comb_modular(mul1, comp, {0: 0})
-    mul_add_comp = compose_comb(add1, mul_comp, {0: 2})
-    add_mul = compose_comb(add2, mul2, {0: 0})
-    multicomb = compose_comb(mul_add_comp, add_mul, {0: 2})
-    return multicomb
+# def test_multicomb() -> CompositeArrow:
+#     """f(a,b,c,d,e,f) = (a+b)(cd(e+f) + e + f)"""
+#     add1, add2 = AddArrow(), AddArrow()
+#     mul1, mul2 = MulArrow(), MulArrow()
+#     comp = test_xyplusx()
+#     mul_comp = compose_comb_modular(mul1, comp, {0: 0})
+#     mul_add_comp = compose_comb(add1, mul_comp, {0: 2})
+#     add_mul = compose_comb(add2, mul2, {0: 0})
+#     multicomb = compose_comb(mul_add_comp, add_mul, {0: 2})
+#     return multicomb
 
 
 def test_random_math() -> PrimitiveArrow:
@@ -139,36 +140,33 @@ def test_random_input() -> Arrow:
         return test_random_math()
 
 
-def test_random_composite() -> CompositeArrow:
-    """Generates a random arrow."""
-    min_size = 10
-    max_size = 50
-    arrow = test_random_math()
-    size = randint(min_size, max_size)
-    for _ in range(size):
-        if arrow.num_in_ports() > 1:
-            odds = 5
-            if randint(0, odds) == 0:
-                ports = sample(range(arrow.num_in_ports()), 2)
-                arrow = compose_comb(
-                    DuplArrow(),
-                    arrow,
-                    {0: ports[0], 1: ports[1]})
-            else:
-                arrow = compose_comb(
-                    test_random_input(),
-                    arrow,
-                    {0: randint(0, arrow.num_in_ports() - 1)})
-        else:
-            arrow = compose_comb(
-                test_random_math(),
-                arrow,
-                {0: randint(0, arrow.num_in_ports() - 1)})
-    return arrow
+# def test_random_composite() -> CompositeArrow:
+#     """Generates a random arrow."""
+#     min_size = 10
+#     max_size = 50
+#     arrow = test_random_math()
+#     size = randint(min_size, max_size)
+#     for _ in range(size):
+#         if arrow.num_in_ports() > 1:
+#             odds = 5
+#             if randint(0, odds) == 0:
+#                 ports = sample(range(arrow.num_in_ports()), 2)
+#                 arrow = compose_comb(
+#                     DuplArrow(),
+#                     arrow,
+#                     {0: ports[0], 1: ports[1]})
+#             else:
+#                 arrow = compose_comb(
+#                     test_random_input(),
+#                     arrow,
+#                     {0: randint(0, arrow.num_in_ports() - 1)})
+#         else:
+#             arrow = compose_comb(
+#                 test_random_math(),
+#                 arrow,
+#                 {0: randint(0, arrow.num_in_ports() - 1)})
+#     return arrow
 
-# FIXME: There must be a better way to get all arrows
-import reverseflow.inv_primitives.inv_math_arrows
-import arrows.composite.math
 composite_module_list = [reverseflow.inv_primitives.inv_math_arrows]
 
 def all_composites() -> List:

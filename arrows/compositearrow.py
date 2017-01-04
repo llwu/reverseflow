@@ -1,30 +1,36 @@
-from typing import Set, List
+from typing import Set, Sequence, List
 from arrows.arrow import Arrow
-from reverseflow.util.mapping import Bimap
+from reverseflow.util.mapping import Bimap, Relation
 from arrows.port import InPort, OutPort, ErrorPort, ParamPort
 
-from arrows.config import floatX
 EdgeMap = Bimap[OutPort, InPort]
+RelEdgeMap = Relation[OutPort, InPort]
 
 
 class CompositeArrow(Arrow):
     """
     Composite arrow
-    A composite arrow is a composition of arrows, which may be either
-    primtive arrows or themselves compositions.
+    A composite arrow is a composition of SubArrows
     """
 
-    def is_composite(self) -> bool:
-        return True
+    def has_in_port_type(self, PortType) -> bool:
+        return any((isinstance(PortType, port) for port in self.in_ports))
 
-    def is_primitive(self) -> bool:
-        return False
+    def has_out_port_type(self, PortType) -> bool:
+        return any((isinstance(PortType, port) for port in self.out_ports))
 
-    def has_in_port_type(self, InPortType) -> bool:
-        return any((isinstance(port, InPortType) for port in self.in_ports))
+    def neigh_in_ports(self, out_port: OutPort) -> Sequence[InPort]:
+        return self.edges.fwd(out_port)
 
-    def has_out_port_type(self, OutPortType) -> bool:
-        return any((isinstance(port, OutPortType) for port in self.out_ports))
+    def neigh_out_ports(self, in_port: InPort) -> Sequence[OutPort]:
+        return self.edges.inv(in_port)
+
+
+    def inner_in_ports(self) -> List[InPort]:
+        return self._inner_in_ports
+
+    def inner_out_ports(self) -> List[OutPort]:
+        return self._inner_out_ports
 
     def get_sub_arrows(self) -> Set[Arrow]:
         """Return all the constituent arrows of composition"""
@@ -35,65 +41,41 @@ class CompositeArrow(Arrow):
 
         return arrows
 
-    def __init__(self,
-                 edges: EdgeMap,
-                 in_ports: List[InPort],
-                 out_ports: List[OutPort],
-                 name: str=None) -> None:
-        super().__init__(name=name)
-        assert len(in_ports) > 0, "Composite Arrow must have in ports"
-        assert len(out_ports) > 0, "Composite Arrow must have out ports"
-        self.edges = edges
-
-        # Check edge direction is out_port to in_port
-        for out_port, in_port in edges.items():
-            assert isinstance(out_port, OutPort), "Expected OutPort got %s" % out_port
-            assert isinstance(in_port, InPort), "Expected InPort got %s" % in_port
-
-        # Check each in_port is not connected to another arrow (only counted to outside world)
-        arrows = self.get_sub_arrows()
-        for in_port in in_ports:
-            assert in_port not in edges.values(), "in_port must be unconnected"  % in_port.arrow
-            assert in_port.arrow in arrows, "InPort arrow (%s) not in composition" % in_port.arrow
-
-        # Check each inport is connected to an actual arrow
-        for out_port in out_ports:
-            assert out_port.arrow in arrows, "OutPort arrow (%s) not in composition" % out_port.arrow
-            assert out_port not in edges.keys(), "out_port must be unconnected"
-
-        # vanilla_out_ports = [OutPort(o.arrow, o.index) for o in out_ports]
-        # vanilla_in_ports = [InPort(i.arrow, i.index) for i in in_ports]
-
-        vanilla_out_ports = out_ports
-        vanilla_in_ports = in_ports
-
+    def is_wired_correctly(self) -> bool:
+        """Is this composite arrow wired up correctly"""
+        out_port_fan = {}
+        in_port_fan = {}
         for sub_arrow in self.get_sub_arrows():
-            for in_port in sub_arrow.in_ports:
-                assert (in_port in edges.values()) or (in_port in vanilla_in_ports)
-
             for out_port in sub_arrow.out_ports:
-                assert (out_port in edges.keys()) or (out_port in vanilla_out_ports)
+                out_port_fan[out_port] = 0
 
-        # TODO: Assert There must be no cycles
-        # TODO: Assert Every inport must be on end of edge or be in in_ports
-        # TODO: Assert Every outport must be on start of edge or in out_ports
-        self.in_ports = [InPort(self, i) for i in range(len(in_ports))]
-        # TODO: propagate paramport-ness
-        self.out_ports = [OutPort(self, i) for i in range(len(out_ports))]
-        self._inner_in_ports = in_ports  # type: List[InPort]
-        self._inner_out_ports = out_ports  # type: List[OutPort]
+            for in_port in sub_arrow.in_ports:
+                in_port_fan[in_port] = 0
 
-    def neigh_in_port(self, out_port: OutPort) -> InPort:
-        return self.edges.fwd(out_port)
+        for out_port, in_port in self.edges.items():
+            out_port_fan[out_port] += 1
+            in_port_fan[in_port] += 1
 
-    def neigh_out_port(self, in_port: InPort) -> OutPort:
-        return self.edges.inv(in_port)
+        for in_port in self._inner_in_ports:
+            in_port_fan[in_port] += 1
 
-    def inner_in_ports(self) -> List[InPort]:
-        return self._inner_in_ports
+        for out_port in self._inner_out_ports:
+            out_port_fan[out_port] += 1
 
-    def inner_out_ports(self) -> List[OutPort]:
-        return self._inner_out_ports
+        for out_port, fan in out_port_fan.items():
+            if not fan > 0:
+                print("%s unused" % out_port)
+                return False
+
+        for in_port, fan in in_port_fan.items():
+            if not fan == 1:
+                print("%s has %s inp, expected 1" % (in_port, fan))
+                return False
+
+        return True
+
+    def are_sub_arrows_parentless(self) -> bool:
+        return all((arrow.parent is None for arrow in self.get_sub_arrows()))
 
     def change_in_port_type(self, InPortType, index) -> "CompositeArrow":
         """
@@ -114,18 +96,22 @@ class CompositeArrow(Arrow):
     def __str__(self):
         return "Comp_%s_%s" % (self.name, hex(id(self)))
 
-
-def is_parametric(comp_arrow: CompositeArrow) -> bool:
-    return comp_arrow.has_in_port_type(ParamPort)
-
-
-def is_approximate(comp_arrow: CompositeArrow) -> bool:
-    return comp_arrow.has_out_port_type(ErrorPort)
-
-
-def unparam_all(comp_arrow: CompositeArrow):
-    """
-    Convert all parametric ports to in_ports
-    """
-    for i in range(comp_arrow.n_in_ports):
-        comp_arrow.change_in_port_type(ParamPort, i)
+    def __init__(self,
+                 edges: RelEdgeMap,
+                 in_ports: Sequence[InPort],
+                 out_ports: Sequence[OutPort],
+                 name: str=None,
+                 parent=None) -> None:
+        super().__init__(name=name)
+        self.edges = Relation()
+        for out_port, in_port in edges.items():
+            self.edges.add(out_port, in_port)
+        self.in_ports = [InPort(self, i) for i in range(len(in_ports))]
+        self.out_ports = [OutPort(self, i) for i in range(len(out_ports))]
+        self._inner_in_ports = in_ports  # type: List[InPort]
+        self._inner_out_ports = out_ports  # type: List[OutPort]
+        assert self.is_wired_correctly(), "The arrow is wired incorrectly"
+        assert self.are_sub_arrows_parentless(), "subarrows must be parentless"
+        # Make this arrow the parent of each sub_arrow
+        for sub_arrow in self.get_sub_arrows():
+            sub_arrow.parent = self

@@ -1,7 +1,7 @@
 """Tests propagation of known ports."""
 from reverseflow.invert import invert
 from test_arrows import test_xyplusx_flat
-from util import random_arrow_test
+# from util import random_arrow_test
 
 def invert_test() -> None:
     """Verifies the output of invert()."""
@@ -19,5 +19,5 @@ def invert_visual_test() -> None:
     import pdb; pdb.set_trace()
 
 
-random_arrow_test(invert, "invert")
+#random_arrow_test(invert, "invert")
 # invert_visual_test()

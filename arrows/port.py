@@ -48,6 +48,9 @@ class InPort(Port):
     def __repr__(self):
         return str(self)
 
+    def __hash__(self):
+        return hash("In%s" % super().__str__())
+
 
 class OutPort(Port):
     """Output port"""
@@ -56,6 +59,10 @@ class OutPort(Port):
 
     def __repr__(self):
         return str(self)
+
+    def __hash__(self):
+        return hash("Out%s" % super().__str__())
+
 
 class ParamPort(InPort):
     """Parametric port"""

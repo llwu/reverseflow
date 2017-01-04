@@ -65,7 +65,6 @@ def inner_interpret(conv: Callable,
         # print("Converting ", sub_arrow.name)
         sub_arrow, priority = arrow_colors.popitem()
         assert priority == 0, "Must resolve all inputs to sub_arrow first"
-        # TODO: Check that the number of inputs created is same as num inputs t
 
         inputs = list(arrow_inputs[sub_arrow].values())
         outputs = conv(sub_arrow, inputs)
@@ -75,30 +74,18 @@ def inner_interpret(conv: Callable,
         # Decrement the priority of each subarrow connected to this arrow
         # Unless of course it is connected to the outside word
         for i, out_port in enumerate(sub_arrow.out_ports):
-            # FIXME: this is linear search, encapsulate
-            if out_port not in comp_arrow.inner_out_ports():
-                neigh_port = comp_arrow.neigh_in_port(out_port)
-                neigh_arrow = neigh_port.arrow
-                if neigh_arrow is not comp_arrow:
-                    assert neigh_arrow in arrow_colors
-                    arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
-                    arrow_inputs[neigh_arrow][neigh_port.index] = outputs[i]
-            else:
-                print(comp_arrow.name)
-                print(i, out_port)
-                print(i, outputs[i])
-                print("\n")
+            neigh_in_ports = comp_arrow.neigh_in_ports(out_port)
+            for neigh_in_port in neigh_in_ports:
+                neigh_arrow = neigh_in_port.arrow
+                arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
+                arrow_inputs[neigh_arrow][neigh_in_port.index] = outputs[i]
 
-                # If connected to outside world
-                # FIXME: Horrible hack
+            if out_port in comp_arrow.inner_out_ports():
                 output_tensor = outputs[i]
                 j = 0
-                for i, p in enumerate(comp_arrow.inner_out_ports()):
+                for k, p in enumerate(comp_arrow.inner_out_ports()):
                     if out_port == p:
-                        j = i
-   #                     break
-   #                 else:
-   #                     j = j + 1
+                        j = k
                 output_tensors_dict[j] = output_tensor
 
     final_outputs = []

@@ -1,6 +1,6 @@
 """Tests propagation of known ports."""
 from arrows.marking import mark
-from util import random_arrow_test
+# from util import random_arrow_test
 
 
 def marking_test() -> None:
@@ -20,5 +20,5 @@ def marking_visual_test() -> None:
     import pdb; pdb.set_trace()
 
 
-random_arrow_test(lambda arrow: mark(arrow, set(arrow.inner_in_ports()[:-1])), "mark")
+#random_arrow_test(lambda arrow: mark(arrow, set(arrow.inner_in_ports()[:-1])), "mark")
 # marking_visual_test()
