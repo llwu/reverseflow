@@ -1,11 +1,8 @@
 """Symbolically Evaluate a Graph"""
 from collections import OrderedDict
 from typing import Dict, MutableMapping, Tuple, List, Set, Sequence
-from arrows.port import InPort, OutPort
-from arrows.arrow import Arrow
-from arrows.compositearrow import CompositeArrow
-from arrows.primitive.math_arrows import *
-from arrows.primitive.control_flow_arrows import *
+from arrows import Arrow, CompositeArrow, InPort, OutPort
+from arrows.std_arrows import *
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.inv_primitives.inv_control_flow_arrows import *
 from arrows.apply.interpret import interpret
@@ -110,16 +107,9 @@ def conv(inv_dupl: InvDuplArrow, args: ExprList) -> ExprList:
     return output
 
 @overload
-def conv(comp_arrow: CompositeArrow, input_args: ExprList) -> ExprList:
+def conv(comp_arrow: CompositeArrow, args: ExprList) -> ExprList:
     assert len(args) == comp_arrow.num_in_ports()
-    arrow_colors, arrow_tensors = inner_convert(comp_arrow, input_args)
-    result = arrow_to_graph(conv,
-                            comp_arrow,
-                            input_args,
-                            arrow_colors,
-                            arrow_tensors)
-    return result['output_tensors']
-
+    return interpret(conv, comp_arrow, args)
 
 def symbolic_apply(comp_arrow: CompositeArrow, input_exprs: List):
     """Return the output expressions and constraints of the CompositeArrow"""

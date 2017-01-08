@@ -27,17 +27,17 @@ class Port():
     def __repr__(self):
         return str(self)
 
-    def __eq__(self, other):
-        if (isinstance(self, InPort) and isinstance(other, InPort)) or (isinstance(self, OutPort) and isinstance(other, OutPort)):
-            return ((self.arrow is other.arrow) and (self.index == other.index))
-        else:
-            return False
+    # def __eq__(self, other):
+    #     if isinstance(self, Port) and isinstance(other, Port):
+    #         return ((self.arrow is other.arrow) and (self.index == other.index))
+    #     else:
+    #         return False
 
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        return hash(self.__repr__())
+    # def __ne__(self, other):
+    #     return not self.__eq__(other)
+    #
+    # def __hash__(self):
+    #     return hash(self.__repr__())
 
 
 class InPort(Port):
@@ -48,8 +48,14 @@ class InPort(Port):
     def __repr__(self):
         return str(self)
 
-    def __hash__(self):
-        return hash("In%s" % super().__str__())
+    # def __eq__(self, other):
+    #     return isinstance(other, InPort) and self.arrow == other.arrow and self.index == other.index
+    #
+    # def __ne__(self, other):
+    #     return not self.__eq__(other)
+    #
+    # def __hash__(self):
+    #     return hash("In%s" % super().__str__())
 
 
 class OutPort(Port):
@@ -60,22 +66,28 @@ class OutPort(Port):
     def __repr__(self):
         return str(self)
 
-    def __hash__(self):
-        return hash("Out%s" % super().__str__())
+    # def __eq__(self, other):
+    #     return isinstance(other, OutPort) and self.arrow == other.arrow and self.index == other.index
+    #
+    # def __ne__(self, other):
+    #     return not self.__eq__(other)
+    #
+    # def __hash__(self):
+    #     return hash("Out%s" % super().__str__())
 
 
-class ParamPort(InPort):
-    """Parametric port"""
-    def __str__(self):
-        return "Param%s" % super().__str__()
-
-    def __repr__(self):
-        return str(self)
-
-class ErrorPort(OutPort):
-    """Error Port"""
-    def __str__(self):
-        return "Error%s" % super().__str__()
-
-    def __repr__(self):
-        return str(self)
+# class ParamPort(InPort):
+#     """Parametric port"""
+#     def __str__(self):
+#         return "Param%s" % super().__str__()
+#
+#     def __repr__(self):
+#         return str(self)
+#
+# class ErrorPort(OutPort):
+#     """Error Port"""
+#     def __str__(self):
+#         return "Error%s" % super().__str__()
+#
+#     def __repr__(self):
+#         return str(self)

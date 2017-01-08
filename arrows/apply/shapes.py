@@ -22,41 +22,49 @@ def same_to_n(shapes, n=1):
 
 @overload
 def conv(a: Arrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     assert False, "Error, no conversion for %s implemented" % a.name
 
 
 @overload
 def conv(a: AddArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     return same_to_n(shapes)
 
 
 @overload
 def conv(a: SubArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     return same_to_n(shapes)
 
 
 @overload
 def conv(a: NegArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     return same_to_n(shapes)
 
 
 @overload
 def conv(a: PowArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     return same_to_n(shapes)
 
 
 @overload
 def conv(a: ExpArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     return same_to_n(shapes)
 
 
 @overload
 def conv(a: LogArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     return same_to_n(shapes)
 
 
 @overload
 def conv(a: LogBaseArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     # Tensorflow has no log of arbitrary base
     # so, use log _{b}(x)=log _{k}(x)}/log _{k}(b)
     return same_to_n(shapes)
@@ -64,47 +72,56 @@ def conv(a: LogBaseArrow, shapes: ShapeList) -> ShapeList:
 
 @overload
 def conv(a: MulArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     return same_to_n(shapes)
 
 
 @overload
 def conv(a: DivArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     return same_to_n(shapes)
 
 
 @overload
 def conv(a: DuplArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     # TODO: Genralize to n outputs
-    return same_to_n(shapes.n_out_ports)
+    return same_to_n(shapes, a.num_out_ports())
 
 @overload
 def conv(a: AddNArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     return same_to_n(shapes)
 
 @overload
 def conv(a: CastArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     return same_to_n(shapes)
 
 @overload
 def conv(a: AbsArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     return same_to_n(shapes)
 
 @overload
 def conv(a: RankArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     return [()]
 
 @overload
 def conv(a: RangeArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     assert False
 
 @overload
 def conv(a: ReduceMeanArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     assert False
 
 
 @overload
-def conv(a: CompositeArrow, args: ShapeList) -> ShapeList:
-    assert len(args) == a.n_in_ports
+def conv(a: CompositeArrow, shapes: ShapeList) -> ShapeList:
+    assert len(shapes) == a.num_in_ports()
     arrow_colors, arrow_tensors = inner_convert(a, args)
     result = arrow_to_graph(conv,
                             a,

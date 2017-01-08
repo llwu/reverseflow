@@ -79,8 +79,8 @@ class Relation(Generic[L, R]):
     """Many to Many relation"""
 
     def __init__(self):
-        self.left_to_right = defaultdict(list)  # type: Dict[L, List[R]]
-        self.right_to_left = defaultdict(list)  # type: Dict[R, List[L]]
+        self.left_to_right = dict()  # type: Dict[L, List[R]]
+        self.right_to_left = dict()  # type: Dict[R, List[L]]
 
     def fwd(self, left: L) -> R:
         return self.left_to_right[left]
@@ -89,8 +89,15 @@ class Relation(Generic[L, R]):
         return self.right_to_left[right]
 
     def add(self, left: L, right: R) -> None:
-        self.left_to_right[left].append(right)
-        self.right_to_left[right].append(left)
+        if left in self.left_to_right.keys():
+            self.left_to_right[left].append(right)
+        else:
+            self.left_to_right[left] = [right]
+
+        if right in self.right_to_left.keys():
+            self.right_to_left[right].append(left)
+        else:
+            self.right_to_left[right] = [left]
 
     def remove(self, left: L, right: R) -> None:
         if left in self.left_to_right:

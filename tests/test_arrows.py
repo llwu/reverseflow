@@ -27,6 +27,7 @@ def test_xyplusx_flat() -> CompositeArrow:
     edges.add(mul.out_ports[0], add.in_ports[1])  # mul -> add
     d = CompositeArrow(in_ports=[dupl.in_ports[0], mul.in_ports[1]],
                        out_ports=[add.out_ports[0]], edges=edges)
+    d.name = "test_xyplusx_flat"
     return d
 
 

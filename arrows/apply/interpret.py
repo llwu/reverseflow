@@ -29,6 +29,9 @@ def gen_arrow_colors(comp_arrow: CompositeArrow):
     arrow_colors = pqdict()  # type: MutableMapping[Arrow, int]
     for sub_arrow in comp_arrow.get_sub_arrows():
         arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
+
+    # TODO: Unify
+    arrow_colors[comp_arrow] = comp_arrow.num_out_ports()
     return arrow_colors
 
 
@@ -38,15 +41,16 @@ def gen_arrow_inputs(comp_arrow: CompositeArrow,
     # Store a map from an arrow to its inputs
     # Use a dict because no guarantee we'll create input tensors in order
     arrow_inputs = dict()  # type: Dict[Arrow, MutableMapping[int, tf.Tensor]]
-    for sub_arrow in comp_arrow.get_sub_arrows():
+    for sub_arrow in comp_arrow.get_all_arrows():
         arrow_inputs[sub_arrow] = dict()
 
     # Decrement priority of every arrow connected to the input
     for i, input_value in enumerate(inputs):
-        in_port = comp_arrow.inner_in_ports()[i]
-        sub_arrow = in_port.arrow
-        arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
-        arrow_inputs[sub_arrow][in_port.index] = input_value
+        for in_port in comp_arrow.edges[comp_arrow.in_ports[i]]:
+            # in_port = comp_arrow.inner_in_ports()[i]
+            sub_arrow = in_port.arrow
+            arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
+            arrow_inputs[sub_arrow][in_port.index] = input_value
 
     return arrow_inputs
 
@@ -64,33 +68,26 @@ def inner_interpret(conv: Callable,
         # print_arrow_colors(arrow_colors)
         # print("Converting ", sub_arrow.name)
         sub_arrow, priority = arrow_colors.popitem()
-        assert priority == 0, "Must resolve all inputs to sub_arrow first"
+        if sub_arrow is not comp_arrow:
+            assert priority == 0, "Must resolve all inputs to sub_arrow first"
 
-        inputs = list(arrow_inputs[sub_arrow].values())
-        outputs = conv(sub_arrow, inputs)
+            inputs = list(arrow_inputs[sub_arrow].values())
+            outputs = conv(sub_arrow, inputs)
 
-        assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
+            assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
 
-        # Decrement the priority of each subarrow connected to this arrow
-        # Unless of course it is connected to the outside word
-        for i, out_port in enumerate(sub_arrow.out_ports):
-            neigh_in_ports = comp_arrow.neigh_in_ports(out_port)
-            for neigh_in_port in neigh_in_ports:
-                neigh_arrow = neigh_in_port.arrow
-                arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
-                arrow_inputs[neigh_arrow][neigh_in_port.index] = outputs[i]
-
-            if out_port in comp_arrow.inner_out_ports():
-                output_tensor = outputs[i]
-                j = 0
-                for k, p in enumerate(comp_arrow.inner_out_ports()):
-                    if out_port == p:
-                        j = k
-                output_tensors_dict[j] = output_tensor
+            # Decrement the priority of each subarrow connected to this arrow
+            # Unless of course it is connected to the outside word
+            for i, out_port in enumerate(sub_arrow.out_ports):
+                neigh_in_ports = comp_arrow.neigh_in_ports(out_port)
+                for neigh_in_port in neigh_in_ports:
+                    neigh_arrow = neigh_in_port.arrow
+                    arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
+                    arrow_inputs[neigh_arrow][neigh_in_port.index] = outputs[i]
 
     final_outputs = []
-    for i in range(len(output_tensors_dict)):
-        final_outputs.append(output_tensors_dict[i])
+    for out_port in comp_arrow.out_ports:
+        final_outputs.append(arrow_inputs[comp_arrow])
     return final_outputs
 
 
