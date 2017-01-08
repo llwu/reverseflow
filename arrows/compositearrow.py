@@ -104,22 +104,26 @@ class CompositeArrow(Arrow):
     def are_sub_arrows_parentless(self) -> bool:
         return all((arrow.parent is None for arrow in self.get_sub_arrows()))
 
-    def change_in_port_type(self, InPortType, index) -> "CompositeArrow":
-        """
-        Convert an in_port to a different in_port type.
-        """
-        # asert Porttype is a subclass of InPort
-        port = self.in_ports[index]
-        self.in_ports[index] = InPortType(port.arrow, port.index)
+    def add_port_attribute(self, index: int, attribute: str):
+        self.port_attributes[i].add(attribute)
 
-    def change_out_port_type(self, OutPortType, index) -> "CompositeArrow":
-        """
-        Convert an out_port to a different out_port type.
-        """        # self._inner_in_ports = in_ports  # type: List[InPort]
-        # self._inner_out_ports = out_ports  # type: List[OutPort]
-        # TODO: assert
-        port = self.out_ports[index]
-        self.out_ports[index] = OutPortType(port.arrow, port.index)
+
+    # def change_in_port_type(self, InPortType, index) -> "CompositeArrow":
+    #     """
+    #     Convert an in_port to a different in_port type.
+    #     """
+    #     # asert Porttype is a subclass of InPort
+    #     port = self.in_ports[index]
+    #     self.in_ports[index] = InPortType(port.arrow, port.index)
+    #
+    # def change_out_port_type(self, OutPortType, index) -> "CompositeArrow":
+    #     """
+    #     Convert an out_port to a different out_port type.
+    #     """        # self._inner_in_ports = in_ports  # type: List[InPort]
+    #     # self._inner_out_ports = out_ports  # type: List[OutPort]
+    #     # TODO: assert
+    #     port = self.out_ports[index]
+    #     self.out_ports[index] = OutPortType(port.arrow, port.index)
 
     def __str__(self):
         return "Comp_%s_%s" % (self.name, hex(id(self)))
