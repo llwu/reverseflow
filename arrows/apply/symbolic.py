@@ -10,11 +10,20 @@ from arrows.apply.interpret import interpret
 
 from pqdict import pqdict
 import sympy
-from sympy import Expr, Rel
+from sympy import Expr, Rel, Integer, Float
 from overloading import overload
 
 ConstrainedExpr = Tuple[Expr, Set[Rel]]
 ExprList = Sequence[ConstrainedExpr]
+
+
+@overload
+def to_sympy_number(x :int):
+    return Integer(x)
+
+@overload
+def to_sympy_number(x :float):
+    return Float(x)
 
 def get_constraints(arrow: Arrow, in_args: List[Expr], out_args: List[Expr], new_var = False) -> Set[Rel]:
     constraints = set()
@@ -50,6 +59,25 @@ def conv(add: AddArrow, args: ExprList) -> ExprList:
         constraints.update(arg[1])
     output = [(out_arg, constraints) for out_arg in out_args]
     return output
+
+@overload
+def conv(arrow: CastArrow, args: ExprList) -> ExprList:
+    in_args = [arg[0] for arg in args]
+    total = sum(in_args)
+    constraints = set()
+    for arg in args:
+        constraints.update(arg)
+    return [(total, constraints)]
+
+@overload
+def conv(arrow: AddNArrow, args: ExprList) -> ExprList:
+    return sum(args)
+
+
+@overload
+def conv(arrow: SourceArrow, args: ExprList) -> ExprList:
+    # import pdb; pdb.set_trace()
+    return [(to_sympy_number(arrow.value), set())]
 
 @overload
 def conv(mul: MulArrow, args: ExprList) -> ExprList:

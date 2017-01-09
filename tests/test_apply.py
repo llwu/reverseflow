@@ -1,13 +1,13 @@
+from test_arrows import all_test_arrow_gens
+from totality_test import totality_test
+from arrows import Arrow
 from arrows.apply.apply import apply
-from test_arrows import *
-from arrows.primitive.math_arrows import *
-from arrows.composite.math import *
-from arrows.compose import compose_comb_modular
 import numpy as np
 
 
+def input_gen(arrow: Arrow):
+    return [np.random.rand() for i in range(arrow.num_in_ports())]
+
 def test_apply():
-    mean = MeanArrow(2)
-    array1 = np.array([1.0, 2.0, 3.0])
-    array2 = np.array([1.0, 3.0, 5.0])
-    mean = apply(mean, [array1, array2])
+    all_test_arrows = [gen() for gen in all_test_arrow_gens]
+    totality_test(apply, all_test_arrows, input_gen, test_name="apply")

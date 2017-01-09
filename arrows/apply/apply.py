@@ -5,11 +5,17 @@ from arrows.arrow import Arrow
 from reverseflow.to_graph import arrow_to_graph
 from arrows.config import floatX
 
+
 def apply(arrow: Arrow, inputs: List[ndarray]) -> List[ndarray]:
-    """Apply an arrow to some inputs"""
+    """Apply an arrow to some inputs.  Uses tensorflow for actual computation.
+    Args:
+        Arrow: The Arrow to compute
+        inputs: Input values to the arrow
+    Returns:
+        list of outputs Arrow(inputs)"""
     assert len(inputs) == arrow.num_in_ports(), "wrong # inputs"
     graph = tf.Graph()
-    sess = tf.InteractiveSession(graph=graph)
+    sess = tf.Session(graph=graph)
     with graph.as_default():
         input_tensors = [tf.placeholder(dtype=floatX()) for i in range(len(inputs))]
         outputs = arrow_to_graph(arrow, input_tensors)

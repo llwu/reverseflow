@@ -31,20 +31,9 @@ def test_xyplusx_flat() -> CompositeArrow:
     return d
 
 
-# def test_xyplusx() -> CompositeArrow:
-#     """f(x,y) = x * y + x"""
-#     tf.reset_default_graph()
-#     mul = MulArrow()
-#     add = AddArrow()
-#     dupl = DuplArrow()
-#     dupl_mul = compose_comb(dupl, mul, {0: 0})
-#     dupl_mul_add = compose_comb(dupl_mul, add, {0: 0, 1: 1})
-#     return dupl_mul_add
-
-
 def test_twoxyplusx() -> CompositeArrow:
     """f(x,y) = 2 * x * y + x"""
-    two = SourceArrow(2)
+    two = SourceArrow(2.0)
     mul1 = MulArrow()
     mul2 = MulArrow()
     add = AddArrow()
@@ -57,7 +46,8 @@ def test_twoxyplusx() -> CompositeArrow:
     edges.add(mul2.out_ports[0], add.in_ports[1])  # mul1 -> add
     return CompositeArrow(in_ports=[dupl.in_ports[0], mul1.in_ports[1]],
                           out_ports=[add.out_ports[0]],
-                          edges=edges)
+                          edges=edges,
+                          name="test_twoxyplusx")
 
 def test_inv_twoxyplusx() -> CompositeArrow:
     """approximate parametric inverse of twoxyplusx"""
@@ -81,14 +71,13 @@ def test_inv_twoxyplusx() -> CompositeArrow:
     param_inports = [inv_add.in_ports[1], inv_mul.in_ports[1]]
     op = CompositeArrow(in_ports=[inv_add.in_ports[0]] + param_inports,
                         out_ports=[inv_dupl.out_ports[0], inv_mul.out_ports[1], c.out_ports[2]],
-                        edges=edges)
+                        edges=edges,
+                        name="InvTwoXPlusY")
 
     op.add_in_port_attribute(1, "Param")
     op.add_in_port_attribute(2, "Param")
     op.add_out_port_attribute(2, "Error")
-    op.name = "InvTwoXPlusY"
     return op
-
 
 
 # def test_multicomb() -> CompositeArrow:
@@ -178,3 +167,5 @@ def all_composites() -> List:
                   inspect.isclass) if inspect.getmodule(m[1]) == module]
         composites = composites + comp_arrow_classes
     return composites
+
+all_test_arrow_gens = [test_xyplusx_flat, test_twoxyplusx, test_inv_twoxyplusx] + all_composites()
