@@ -45,12 +45,7 @@ class CompositeArrow(Arrow):
 
     def neigh_out_ports(self, in_port: InPort) -> Sequence[OutPort]:
         return self.edges.inv(in_port)
-    #
-    # def inner_in_ports(self) -> List[InPort]:
-    #     return self._inner_in_ports
-    #
-    # def inner_out_ports(self) -> List[OutPort]:
-    #     return self._inner_out_ports
+
     def get_all_arrows(self) -> Set[Arrow]:
         """Return all arrows including self"""
         arrows = set()
@@ -117,23 +112,6 @@ class CompositeArrow(Arrow):
     def add_out_port_attribute(self, index: int, attribute: str):
         assert self.num_in_ports() <= index + self.num_in_ports() < self.num_ports()
         self.add_port_attribute(index, attribute)
-
-    # def change_in_port_type(self, InPortType, index) -> "CompositeArrow":
-    #     """
-    #     Convert an in_port to a different in_port type.
-    #     """
-    #     # asert Porttype is a subclass of InPort
-    #     port = self.in_ports[index]
-    #     self.in_ports[index] = InPortType(port.arrow, port.index)
-    #
-    # def change_out_port_type(self, OutPortType, index) -> "CompositeArrow":
-    #     """
-    #     Convert an out_port to a different out_port type.
-    #     """        # self._inner_in_ports = in_ports  # type: List[InPort]
-    #     # self._inner_out_ports = out_ports  # type: List[OutPort]
-    #     # TODO: assert
-    #     port = self.out_ports[index]
-    #     self.out_ports[index] = OutPortType(port.arrow, port.index)
 
     def __str__(self):
         return "Comp_%s_%s" % (self.name, hex(id(self)))

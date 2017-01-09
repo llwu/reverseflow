@@ -40,34 +40,33 @@ def invert_const(arrow: CompositeArrow,
     edges = Bimap()  # type: EdgeMap
     for out_port, in_port in arrow.edges.items():
         # Edge is constant
-        if in_port in const_in_ports:
-            inverse_in_arrow, port_map = get_inverse(in_port.arrow,
-                                                     const_in_ports,
-                                                     const_out_ports,
-                                                     dispatch,
-                                                     arrow_to_inv)
-            new_in_port = port_map[in_port]
-            edges.add(OutPort, new_in_port)
-        else:
-            # import pdb; pdb.set_trace()
-            inverse_in_arrow, in_port_map = get_inverse(in_port.arrow,
-                                                     const_in_ports,
-                                                     const_out_ports,
-                                                     dispatch,
-                                                     arrow_to_inv)
-            inverse_out_arrow, out_port_map = get_inverse(out_port.arrow,
-                                                      const_in_ports,
-                                                      const_out_ports,
-                                                      dispatch,
-                                                      arrow_to_inv)
-            # import pdb; pdb.set_trace()
-            inv_in_port = out_port_map[out_port]
-            assert isinstance(inv_in_port, InPort)
+        if out_port.arrow is not arrow and in_port.arrow is not arrow:
+            if in_port in const_in_ports:
+                inverse_in_arrow, port_map = get_inverse(in_port.arrow,
+                                                         const_in_ports,
+                                                         const_out_ports,
+                                                         dispatch,
+                                                         arrow_to_inv)
+                new_in_port = port_map[in_port]
+                edges.add(OutPort, new_in_port)
+            else:
+                inverse_in_arrow, in_port_map = get_inverse(in_port.arrow,
+                                                            const_in_ports,
+                                                            const_out_ports,
+                                                            dispatch,
+                                                            arrow_to_inv)
+                inverse_out_arrow, out_port_map = get_inverse(out_port.arrow,
+                                                              const_in_ports,
+                                                              const_out_ports,
+                                                              dispatch,
+                                                              arrow_to_inv)
+                inv_in_port = out_port_map[out_port]
+                assert isinstance(inv_in_port, InPort)
 
-            inv_out_port = in_port_map[in_port]
-            assert isinstance(inv_out_port, OutPort)
+                inv_out_port = in_port_map[in_port]
+                assert isinstance(inv_out_port, OutPort)
 
-            edges.add(inv_out_port, inv_in_port)
+                edges.add(inv_out_port, inv_in_port)
 
     # Every inport is an outport
     inv_in_ports = []
@@ -107,6 +106,9 @@ def invert_const(arrow: CompositeArrow,
 
 def invert(arrow: CompositeArrow,
            dispatch: Dict[Arrow, Callable]=default_dispatch) -> Arrow:
-    """Construct a parametric inverse of arrow"""
+    """Construct a parametric inverse of arrow
+    Args:
+        arrow: Arrow to invert
+        dispatch: Dict mapping arrow class to invert function"""
     const_in_ports, const_out_ports = mark_source(arrow)
     return invert_const(arrow, const_in_ports, const_out_ports, dispatch)

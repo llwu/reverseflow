@@ -66,7 +66,7 @@ def conv(arrow: CastArrow, args: ExprList) -> ExprList:
     total = sum(in_args)
     constraints = set()
     for arg in args:
-        constraints.update(arg)
+        constraints.update(arg[1])
     return [(total, constraints)]
 
 @overload
