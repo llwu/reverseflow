@@ -82,9 +82,10 @@ def test_inv_twoxyplusx() -> CompositeArrow:
     op = CompositeArrow(in_ports=[inv_add.in_ports[0]] + param_inports,
                         out_ports=[inv_dupl.out_ports[0], inv_mul.out_ports[1], c.out_ports[2]],
                         edges=edges)
-    op.change_in_port_type(ParamPort, 1)
-    op.change_in_port_type(ParamPort, 2)
-    op.change_out_port_type(ErrorPort, 2)
+
+    op.add_in_port_attribute(1, "Param")
+    op.add_in_port_attribute(2, "Param")
+    op.add_out_port_attribute(2, "Error")
     op.name = "InvTwoXPlusY"
     return op
 

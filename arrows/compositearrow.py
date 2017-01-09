@@ -101,12 +101,22 @@ class CompositeArrow(Arrow):
         #
         return True
 
+    def num_ports(self):
+        return len(self.ports)
+
     def are_sub_arrows_parentless(self) -> bool:
         return all((arrow.parent is None for arrow in self.get_sub_arrows()))
 
     def add_port_attribute(self, index: int, attribute: str):
-        self.port_attributes[i].add(attribute)
+        self.port_attributes[index].add(attribute)
 
+    def add_in_port_attribute(self, index: int, attribute: str):
+        assert index < self.num_in_ports()
+        self.add_port_attribute(index, attribute)
+
+    def add_out_port_attribute(self, index: int, attribute: str):
+        assert self.num_in_ports() <= index + self.num_in_ports() < self.num_ports()
+        self.add_port_attribute(index, attribute)
 
     # def change_in_port_type(self, InPortType, index) -> "CompositeArrow":
     #     """
@@ -159,7 +169,7 @@ class CompositeArrow(Arrow):
         self.out_ports = [OutPort(self, i) for i in range(out_port_0_id,
                                                           out_port_0_id + len(out_ports))]
         if port_attributes is None:
-            self.port_attributes = [set(), for i in range(n_ports)]
+            self.port_attributes = [set() for i in range(n_ports)]
         else:
             assert len(port_attributes) == n_ports
         self.ports = self.in_ports + self.out_ports

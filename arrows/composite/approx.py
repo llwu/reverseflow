@@ -1,4 +1,3 @@
-from arrows.port import ErrorPort
 from arrows.composite.math import MeanArrow, VarFromMeanArrow
 from arrows.compositearrow import CompositeArrow
 from arrows.primitive.control_flow_arrows import DuplArrow
@@ -25,11 +24,13 @@ class ApproxIdentityArrow(CompositeArrow):
         edges.add(mean.out_ports[0], mean_dupl.in_ports[0])
         edges.add(mean_dupl.out_ports[n_inputs], varfrommean.in_ports[0])
         out_ports = mean_dupl.out_ports[0:n_inputs]
-        x = varfrommean.out_ports[0]
-        error_ports = [ErrorPort(x.arrow, x.index)]
+        error_ports = [varfrommean.out_ports[0]]
+        # x = varfrommean.out_ports[0]
+        # error_ports = [ErrorPort(x.arrow, x.index)]
         out_ports = out_ports + error_ports
         super().__init__(edges=edges,
                          in_ports=[dupl.in_ports[0] for dupl in dupls],
                          out_ports=out_ports,
                          name=name)
-        self.change_out_port_type(ErrorPort, len(out_ports)-1)
+        self.add_out_port_attribute(len(out_ports)-1, "Error")
+        # self.change_out_port_type(ErrorPort, len(out_ports)-1)

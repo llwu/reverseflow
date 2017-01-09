@@ -4,7 +4,7 @@ from tensorflow import Tensor, Graph, Variable
 import numpy as np
 from pqdict import pqdict
 from arrows.config import floatX
-from arrows.port import InPort, ParamPort
+from arrows.port import InPort
 from arrows.arrow import Arrow
 from arrows.sourcearrow import SourceArrow
 from arrows.compositearrow import CompositeArrow, EdgeMap
@@ -20,7 +20,7 @@ from overloading import overload
 def gen_input_tensors(arrow: Arrow):
     input_tensors = []
     for in_port in arrow.in_ports:
-        if isinstance(in_port, ParamPort):
+        if "Param" in arrow.port_attributes[in_port.index]:
             # FIXME for right shape
             input_tensors.append(tf.Variable(np.random.rand(1), dtype=floatX()))
         elif isinstance(in_port, InPort):

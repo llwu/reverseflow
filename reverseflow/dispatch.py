@@ -81,7 +81,8 @@ def inv_dupl_approx(arrow: DuplArrow, const_in_ports: Set[InPort]) -> Tuple[Arro
                                in_ports=approx_id.in_ports,
                                out_ports=out_ports,
                                name="InvDuplApprox")
-    inv_arrow.change_out_port_type(ErrorPort, len(out_ports)-1)
+    inv_arrow.add_out_port_attribute(len(out_ports)-1, "Error")
+    # inv_arrow.change_out_port_type(ErrorPort, len(out_ports)-1)
     # inv_arrow = compose_comb(approx_id, inv_dupl, {i: i for i in range(n_duplications)})
     port_map = {arrow.in_ports[0]: inv_arrow.out_ports[0]}
     port_map.update({arrow.out_ports[i]: inv_arrow.in_ports[i] for i in range(n_duplications)})

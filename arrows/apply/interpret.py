@@ -85,11 +85,10 @@ def inner_interpret(conv: Callable,
                     arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
                     arrow_inputs[neigh_arrow][neigh_in_port.index] = outputs[i]
 
-    final_outputs = []
-    for out_port in comp_arrow.out_ports:
-        final_outputs.append(arrow_inputs[comp_arrow])
-    return final_outputs
-
+    outputs_dict = arrow_inputs[comp_arrow]
+    out_port_indices = list(outputs_dict.keys())
+    assert out_port_indices == list(range(comp_arrow.num_in_ports(), comp_arrow.num_ports()))
+    return [outputs_dict[i] for i in out_port_indices]
 
 def interpret(conv: Callable,
               comp_arrow: CompositeArrow,

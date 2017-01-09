@@ -4,7 +4,7 @@ from typing import Dict, Callable, Set, Tuple
 
 from arrows.compositearrow import CompositeArrow
 from arrows.arrow import Arrow
-from arrows.port import InPort, OutPort, ParamPort, ErrorPort
+from arrows.port import InPort, OutPort
 from reverseflow.defaults import default_dispatch
 from arrows.marking import mark_source
 from reverseflow.util.mapping import Bimap

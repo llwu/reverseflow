@@ -74,20 +74,3 @@ class OutPort(Port):
     #
     # def __hash__(self):
     #     return hash("Out%s" % super().__str__())
-
-
-# class ParamPort(InPort):
-#     """Parametric port"""
-#     def __str__(self):
-#         return "Param%s" % super().__str__()
-#
-#     def __repr__(self):
-#         return str(self)
-#
-# class ErrorPort(OutPort):
-#     """Error Port"""
-#     def __str__(self):
-#         return "Error%s" % super().__str__()
-#
-#     def __repr__(self):
-#         return str(self)

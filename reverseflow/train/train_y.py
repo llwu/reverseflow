@@ -1,5 +1,5 @@
 from arrows import (Arrow, CompositeArrow, compose_comb_modular, compose_comb)
-from arrows import ParamPort, InPort, ErrorPort
+from arrows import InPort
 from arrows.std_arrows import *
 
 from reverseflow.invert import invert

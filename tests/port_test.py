@@ -1,6 +1,6 @@
 """Tests port equality and hashing."""
 
-from arrows.port import InPort, OutPort, ParamPort, ErrorPort
+from arrows.port import InPort, OutPort
 from arrows.primitive.math_arrows import MulArrow, AddArrow
 
 # This now needs to reflect fact that Ports of same type are equal even if different specialization

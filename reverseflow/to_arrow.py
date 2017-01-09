@@ -1,12 +1,22 @@
 """Convert a tensoflow graph into an arrow"""
-from typing import List, Tuple, Dict, Sequence
 from tensorflow import Tensor, Operation
-
-from arrows import (Arrow, CompositeArrow, compose_comb_modular, compose_comb)
+from typing import List, Tuple, Dict, Sequence
+from arrows import (Arrow, CompositeArrow,)
 from arrows import InPort, OutPort
 from arrows.std_arrows import *
-
 from reverseflow.util.mapping import Relation
+
+
+def conv_Add(add_op: Operation):
+    return AddArrow()
+
+
+def conv_Mul(mul_op: Operation):
+    return MulArrow()
+
+
+def conv_Const(const_op: Operation):
+    assert False
 
 # Mapping between op types and arrows
 # Cannot use multimethods because different ops not distinguished by type
@@ -14,31 +24,14 @@ Op_To_Arrow = {'Add': conv_Add,  # type: Dict[string, Arrow]
                'Mul': conv_Mul,
                'Const': conv_Const}
 
-def conv_Placeholder(add_op: Operation):
-    return AddArrow()
-
-def conv_Add(add_op: Operation):
-    return AddArrow()
-
-def conv_Mul(mul_op: Operation):
-    return MulArrow()
-
-def conv_Const(const_op: Operation):
-    assert False
-
-def create_arrow_from_op(op: Operation) -> Arrow:
-    """Construct arrow which corresponds to op"""
-    conv_op = Op_To_Arrow[op.type]
-    return conv_op(op)
-
-
 def arrow_from_op(op: Operation,
                   op_to_arrow: Dict[Operation, Arrow]) -> Arrow:
     """Return an arrow from a list or create one if haven't done already"""
     if op in op_to_arrow:
         arrow = op_to_arrow[op]
     else:
-        arrow = create_arrow_from_op(op)
+        conv_op = Op_To_Arrow[op.type]
+        arrow = conv_op(op)
     assert len(arrow.in_ports) == len(op.inputs)
     return arrow
 
@@ -54,10 +47,15 @@ def is_input_tensor(tensor: Tensor) -> bool:
     return tensor.op.type == 'Placeholder'
 
 
-def graph_to_arrow(output_tensors: Sequence[Tensor]) -> Arrow:
-    """Convert a tensorflow graph into an arrow
+def graph_to_arrow(output_tensors: Sequence[Tensor],
+                   name:str=None) -> Arrow:
+    """Convert a tensorflow graph into an arrow.
+    Assume inputs are 'Placeholder' tensors
     Args:
         output_tensors: Tensors designated as outputs
+        name: Name of the composite arrow
+    Returns:
+        A 'CompositeArrow' equivalent to graph which computes 'output_tensors'
     """
     edges = Relation()
     op_to_arrow = dict()
@@ -73,9 +71,7 @@ def graph_to_arrow(output_tensors: Sequence[Tensor]) -> Arrow:
     to_see_tensors = output_tensors[:]
     while len(to_see_tensors) > 0:
         tensor = to_see_tensors.pop()
-        if is_input_tensor(tensor):
-            ok()
-        else:
+        if not is_input_tensor(tensor):
             out_port_id = tensor.value_index
             left_arrow = arrow_from_op(tensor.op, op_to_arrow)
             update_seen(tensor.op, seen_tensors, to_see_tensors)
@@ -84,7 +80,7 @@ def graph_to_arrow(output_tensors: Sequence[Tensor]) -> Arrow:
             for i, input_tensor in enumerate(rec_op.inputs):
                 if tensor == input_tensor:
                     in_port_id = i
-                    right_arrow = arrow_from_op(tensor.op, op_to_arrow)
+                    right_arrow = arrow_from_op(rec_op, op_to_arrow)
                     if is_input_tensor(tensor):
                         comp_in_ports.append(right_arrow.in_ports[in_port_id])
                     else:
@@ -92,5 +88,6 @@ def graph_to_arrow(output_tensors: Sequence[Tensor]) -> Arrow:
                                   right_arrow.in_ports[in_port_id])
 
     return CompositeArrow(edges=edges,
-                          in_ports=...,
-                          out_ports=comp_out_ports)
+                          in_ports=comp_in_ports,
+                          out_ports=comp_out_ports,
+                          name=name)

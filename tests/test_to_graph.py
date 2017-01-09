@@ -3,7 +3,7 @@
 import tensorflow as tf
 
 from arrows.config import floatX
-from arrows.port import InPort, ParamPort
+from arrows.port import InPort
 from arrows.arrow import Arrow
 from reverseflow.to_graph import arrow_to_graph, gen_input_tensors
 from test_arrows import test_xyplusx_flat, all_composites, test_inv_twoxyplusx
