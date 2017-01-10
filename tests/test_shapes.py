@@ -10,8 +10,9 @@ import numpy as np
 def input_gen(arrow: Arrow):
     ndim = 3
     maxdim = 100
-    input_shape = tuple([np.random.randint(maxdim) for i in range(ndim)])
+    input_shape = tuple([np.random.randint(1, maxdim) for i in range(ndim)])
     return [input_shape for i in range(arrow.num_in_ports())]
+
 
 def test_apply():
     all_test_arrows = [gen() for gen in all_test_arrow_gens]

@@ -64,6 +64,7 @@ def inner_interpret(conv: Callable,
     assert len(inputs) == comp_arrow.num_in_ports(), "wrong # inputs"
 
     output_tensors_dict = dict()
+    emit_list = []
     while len(arrow_colors) > 0:
         # print_arrow_colors(arrow_colors)
         # print("Converting ", sub_arrow.name)
@@ -73,6 +74,9 @@ def inner_interpret(conv: Callable,
 
             inputs = list(arrow_inputs[sub_arrow].values())
             outputs = conv(sub_arrow, inputs)
+            if isinstance(outputs, tuple) and len(outputs) == 2:
+                outputs, emit = outputs
+                emit_list += emit
 
             assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
 
@@ -88,11 +92,12 @@ def inner_interpret(conv: Callable,
     outputs_dict = arrow_inputs[comp_arrow]
     out_port_indices = list(outputs_dict.keys())
     assert out_port_indices == list(range(comp_arrow.num_in_ports(), comp_arrow.num_ports()))
-    return [outputs_dict[i] for i in out_port_indices]
+    return [outputs_dict[i] for i in out_port_indices], emit_list
 
 def interpret(conv: Callable,
               comp_arrow: CompositeArrow,
-              inputs: List) -> List:
+              inputs: List,
+              return_emit=False) -> List:
     """
     Interpret a composite arrow on some inputs
     Args:
@@ -104,8 +109,9 @@ def interpret(conv: Callable,
     """
     arrow_colors = gen_arrow_colors(comp_arrow)
     arrow_inputs = gen_arrow_inputs(comp_arrow, inputs, arrow_colors)
-    return inner_interpret(conv,
-                           comp_arrow,
-                           inputs,
-                           arrow_colors,
-                           arrow_inputs)
+    result = inner_interpret(conv,
+                             comp_arrow,
+                             inputs,
+                             arrow_colors,
+                             arrow_inputs)
+    return result if return_emit else result[0]
