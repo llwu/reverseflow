@@ -35,10 +35,10 @@ class CompositeArrow(Arrow):
     """
 
     def has_in_port_type(self, PortType) -> bool:
-        return any((isinstance(PortType, port) for port in self.in_ports))
+        return any((isinstance(PortType, port) for port in self.get_in_ports()))
 
     def has_out_port_type(self, PortType) -> bool:
-        return any((isinstance(PortType, port) for port in self.out_ports))
+        return any((isinstance(PortType, port) for port in self.get_out_ports()))
 
     def neigh_in_ports(self, out_port: OutPort) -> Sequence[InPort]:
         return self.edges.fwd(out_port)
@@ -74,9 +74,9 @@ class CompositeArrow(Arrow):
         out_port_fan = {}
         in_port_fan = {}
         # for sub_arrow in self.get_all_arrows():
-        #     for out_port in sub_arrow.out_ports:
+        #     for out_port in sub_arrow.get_out_ports():
         #         out_port_fan[out_port] = 0
-        #     for in_port in sub_arrow.in_ports:
+        #     for in_port in sub_arrow.get_in_ports():
         #         in_port_fan[in_port] = 0
         #     assert sub_arrow is not self
         #
@@ -116,10 +116,36 @@ class CompositeArrow(Arrow):
     def __str__(self):
         return "Comp_%s_%s" % (self.name, hex(id(self)))
 
+    def add_edge(self, left: Port, right: Port):
+        """Add an edge to the composite arrow
+        Args:
+            left: Projecting Port
+            right: receiving Port
+        """
+        assert left.arrow.parent is self or left.arrow.parent is None
+        assert right.arrow.parent is self or right.arrow.parent is None
+        left.arrow.parent = self
+        right.arrow.parent = self
+        self.edges.add(left, right)
+        assert self.is_wired_correctly(), "The arrow is wired incorrectly"
+
+    def get_in_ports(self) -> List[InPort]:
+        """Get InPorts of an Arrow
+        Returns:
+            List of InPorts"""
+        return [port for port in self.ports if isinstance(port, OutPort)]
+
+    def get_out_ports(self) -> List[OutPort]:
+        """Get OutPorts of an Arrow
+        Returns:
+            List of OutPorts"""
+        return [port for port in self.ports if isinstance(port, OutPort)]
+
+
     def __init__(self,
-                 edges: RelEdgeMap,
-                 in_ports: Sequence[InPort],
-                 out_ports: Sequence[OutPort],
+                 edges: RelEdgeMap=None,
+                 in_ports: Sequence[InPort]=None,
+                 out_ports: Sequence[OutPort]=None,
                  name: str=None,
                  parent=None,
                  port_attributes=None) -> None:
@@ -133,31 +159,41 @@ class CompositeArrow(Arrow):
             port_attributes: tags for ports
         Returns:
             Composite Arrow
+
+        Port indices are continugous 0 ... n_ports, but types are not.
         """
         super().__init__(name=name)
         n_ports = len(in_ports) + len(out_ports)
 
+        self.ports = []
         self.edges = Relation()
         for out_port, in_port in edges.items():
             self.edges.add(out_port, in_port)
 
         # InPorts are number 0, .., n, OutPorts n+1, ..., m
         out_port_0_id = len(in_ports)
-        self.in_ports = [InPort(self, i) for i in range(out_port_0_id)]
-        self.out_ports = [OutPort(self, i) for i in range(out_port_0_id,
-                                                          out_port_0_id + len(out_ports))]
+        if in_ports:
+            for in_port in in_ports:
+                assert isinstance(in_port, InPort)
+                self.ports.append(in_port)
+
+        if out_ports:
+            for out_port in out_ports:
+                assert isinstance(out_port, OutPort)
+                self.ports.append(out_port)
+
         if port_attributes is None:
             self.port_attributes = [set() for i in range(n_ports)]
         else:
             assert len(port_attributes) == n_ports
-        self.ports = self.in_ports + self.out_ports
+        self.ports = self.get_in_ports() + self.get_out_ports()
 
         # create new edges for composition
         for i, in_port in enumerate(in_ports):
-            self.edges.add(self.in_ports[i], in_port)
+            self.edges.add(self.get_in_ports()[i], in_port)
 
         for i, out_port in enumerate(out_ports):
-            self.edges.add(out_port, self.out_ports[i])
+            self.edges.add(out_port, self.get_out_ports()[i])
 
         assert self.is_wired_correctly(), "The arrow is wired incorrectly"
         assert self.are_sub_arrows_parentless(), "subarrows must be parentless"

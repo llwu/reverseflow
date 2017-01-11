@@ -6,7 +6,7 @@ from arrows.marking import mark
 def marking_test() -> None:
     """Verifies the output of mark()."""
     arrow = test_multicomb()
-    marked_inports, marked_outports = mark(arrow, set(arrow.in_ports[:-1]))
+    marked_inports, marked_outports = mark(arrow, set(arrow.get_in_ports()[:-1]))
     assert len(marked_inports) == 8
     assert len(marked_outports) == 3
 

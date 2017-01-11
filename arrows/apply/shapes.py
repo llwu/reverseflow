@@ -24,7 +24,7 @@ def same_to_n(shapes, n=1):
 
 def same_conv(a: Arrow, shapes: ShapeList) -> ShapeList:
     assert len(shapes) == a.num_in_ports()
-    return same_to_n(shapes, a.num_out_ports()), [(port, shapes[0]) for port in a.in_ports]
+    return same_to_n(shapes, a.num_out_ports()), [(port, shapes[0]) for port in a.get_in_ports()]
 
 
 @overload

@@ -9,10 +9,10 @@ class Arrow:
         self.parent = parent
 
     def num_in_ports(self) -> int:
-        return len(self.in_ports)
+        return len(self.get_in_ports())
 
     def num_out_ports(self) -> int:
-        return len(self.out_ports)
+        return len(self.get_out_ports())
 
     def is_primitive(self) -> bool:
         return False
@@ -33,10 +33,10 @@ class Arrow:
         return False
 
     # def inner_in_ports(self):
-    #     return self.in_ports
+    #     return self.get_in_ports()
     #
     # def inner_out_ports(self):
-    #     return self.out_ports
+    #     return self.get_out_ports()
 
     def inner_error_ports(self):
         return []

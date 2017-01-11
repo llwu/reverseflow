@@ -18,18 +18,18 @@ class ApproxIdentityArrow(CompositeArrow):
         varfrommean = VarFromMeanArrow(n_inputs)
         dupls = [DuplArrow() for i in range(n_inputs)]
         for i in range(n_inputs):
-            edges.add(dupls[i].out_ports[0], mean.in_ports[i])
-            edges.add(dupls[i].out_ports[1], varfrommean.in_ports[i+1])
+            edges.add(dupls[i].get_out_ports()[0], mean.get_in_ports()[i])
+            edges.add(dupls[i].get_out_ports()[1], varfrommean.get_in_ports()[i+1])
         mean_dupl = DuplArrow(n_duplications=n_inputs+1)
-        edges.add(mean.out_ports[0], mean_dupl.in_ports[0])
-        edges.add(mean_dupl.out_ports[n_inputs], varfrommean.in_ports[0])
-        out_ports = mean_dupl.out_ports[0:n_inputs]
-        error_ports = [varfrommean.out_ports[0]]
-        # x = varfrommean.out_ports[0]
+        edges.add(mean.get_out_ports()[0], mean_dupl.get_in_ports()[0])
+        edges.add(mean_dupl.get_out_ports()[n_inputs], varfrommean.get_in_ports()[0])
+        out_ports = mean_dupl.get_out_ports()[0:n_inputs]
+        error_ports = [varfrommean.get_out_ports()[0]]
+        # x = varfrommean.get_out_ports()[0]
         # error_ports = [ErrorPort(x.arrow, x.index)]
         out_ports = out_ports + error_ports
         super().__init__(edges=edges,
-                         in_ports=[dupl.in_ports[0] for dupl in dupls],
+                         in_ports=[dupl.get_in_ports()[0] for dupl in dupls],
                          out_ports=out_ports,
                          name=name)
         self.add_out_port_attribute(len(out_ports)-1, "Error")

@@ -85,8 +85,8 @@ def min_approx_error_arrow(arrow: CompositeArrow, input_data: List) -> Composite
     # assert arrow.num_in_ports() == len(input_data), "Arrow has %s in_ports but only %s input data feeds" % (arrow.num_in_ports(), len(input_data))
     input_tensors = gen_input_tensors(arrow)
     output_tensors = arrow_to_graph(arrow, input_tensors)
-    params = [t for i, t in enumerate(input_tensors) if isinstance(arrow.in_ports[i], ParamPort)]
-    errors = [t for i, t in enumerate(output_tensors) if isinstance(arrow.out_ports[i], ErrorPort)]
+    params = [t for i, t in enumerate(input_tensors) if isinstance(arrow.get_in_ports()[i], ParamPort)]
+    errors = [t for i, t in enumerate(output_tensors) if isinstance(arrow.get_out_ports()[i], ErrorPort)]
     assert len(params) > 0, "Must have parametric inports"
     assert len(errors) > 0, "Must have error outports"
     train_y_tf(params, errors, input_tensors, output_tensors, input_data)

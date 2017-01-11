@@ -19,7 +19,7 @@ from overloading import overload
 
 def gen_input_tensors(arrow: Arrow):
     input_tensors = []
-    for in_port in arrow.in_ports:
+    for in_port in arrow.get_in_ports():
         if "Param" in arrow.port_attributes[in_port.index]:
             # FIXME for right shape
             input_tensors.append(tf.Variable(np.random.rand(1), dtype=floatX()))

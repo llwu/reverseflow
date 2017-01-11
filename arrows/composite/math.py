@@ -21,11 +21,11 @@ class DimsBarBatchArrow(CompositeArrow):
         one_source = SourceArrow(1)
         range_arrow = RangeArrow()
         edges = Bimap()  #  type: EdgeMap
-        edges.add(one_source.out_ports[0], range_arrow.in_ports[0])
-        edges.add(rank_arrow.out_ports[0], range_arrow.in_ports[1])
+        edges.add(one_source.get_out_ports()[0], range_arrow.get_in_ports()[0])
+        edges.add(rank_arrow.get_out_ports()[0], range_arrow.get_in_ports()[1])
         super().__init__(edges=edges,
-                         in_ports=rank_arrow.in_ports,
-                         out_ports=range_arrow.out_ports,
+                         in_ports=rank_arrow.get_in_ports(),
+                         out_ports=range_arrow.get_out_ports(),
                          name=name)
 
 
@@ -41,12 +41,12 @@ class MeanArrow(CompositeArrow):
         nsource = SourceArrow(n_inputs)
         castarrow = CastArrow(floatX())
         div_arrow = DivArrow()
-        edges.add(nsource.out_ports[0], castarrow.in_ports[0])
-        edges.add(addn_arrow.out_ports[0], div_arrow.in_ports[0])
-        edges.add(castarrow.out_ports[0], div_arrow.in_ports[1])
+        edges.add(nsource.get_out_ports()[0], castarrow.get_in_ports()[0])
+        edges.add(addn_arrow.get_out_ports()[0], div_arrow.get_in_ports()[0])
+        edges.add(castarrow.get_out_ports()[0], div_arrow.get_in_ports()[1])
         super().__init__(edges=edges,
-                         in_ports=addn_arrow.in_ports,
-                         out_ports=div_arrow.out_ports,
+                         in_ports=addn_arrow.get_in_ports(),
+                         out_ports=div_arrow.get_out_ports(),
                          name=name)
 
 
@@ -66,22 +66,22 @@ class VarFromMeanArrow(CompositeArrow):
         addn = AddNArrow(n_inputs)
 
         edges = Bimap()  # type: EdgeMap
-        in_ports = [dupl.in_ports[0]] + [sub.in_ports[1] for sub in subs]
+        in_ports = [dupl.get_in_ports()[0]] + [sub.get_in_ports()[1] for sub in subs]
         for i in range(n_inputs):
-            edges.add(dupl.out_ports[i], subs[i].in_ports[0])
-            edges.add(subs[i].out_ports[0], abss[i].in_ports[0])
-            edges.add(abss[i].out_ports[0], addn.in_ports[i])
+            edges.add(dupl.get_out_ports()[i], subs[i].get_in_ports()[0])
+            edges.add(subs[i].get_out_ports()[0], abss[i].get_in_ports()[0])
+            edges.add(abss[i].get_out_ports()[0], addn.get_in_ports()[i])
 
         dupl2 = DuplArrow(n_duplications=2)
-        edges.add(addn.out_ports[0], dupl2.in_ports[0])
+        edges.add(addn.get_out_ports()[0], dupl2.get_in_ports()[0])
 
         reduce_mean = ReduceMeanArrow(n_inputs=2)
         dimsbarbatch = DimsBarBatchArrow()
 
-        edges.add(dupl2.out_ports[0], reduce_mean.in_ports[0])
-        edges.add(dupl2.out_ports[1], dimsbarbatch.in_ports[0])
-        edges.add(dimsbarbatch.out_ports[0], reduce_mean.in_ports[1])
-        out_ports = reduce_mean.out_ports
+        edges.add(dupl2.get_out_ports()[0], reduce_mean.get_in_ports()[0])
+        edges.add(dupl2.get_out_ports()[1], dimsbarbatch.get_in_ports()[0])
+        edges.add(dimsbarbatch.get_out_ports()[0], reduce_mean.get_in_ports()[1])
+        out_ports = reduce_mean.get_out_ports()
 
         super().__init__(edges=edges,
                          in_ports=in_ports,

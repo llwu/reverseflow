@@ -1,107 +1,113 @@
-"""Inversion implementation."""
+"""Parametric Inversion"""
 
-from typing import Dict, Callable, Set, Tuple
+from typing import Dict, Callable, Set, Tuple, Type, TypeVar, Any
 
-from arrows.compositearrow import CompositeArrow
-from arrows.arrow import Arrow
-from arrows.port import InPort, OutPort
+from arrows import Arrow, OutPort, Port, InPort
+from arrows.compositearrow import CompositeArrow, RelEdgeMap
+from arrows.std_arrows import *
 from reverseflow.defaults import default_dispatch
 from arrows.marking import mark_source
-from reverseflow.util.mapping import Bimap
+from reverseflow.util.mapping import Bimap, Relation
+from overloading import overload
+
+PortMap = Dict[int, int]
+U = TypeVar('U', bound=Arrow)
+# DispatchType = Dict[Any, Callable]
+# FIXME: Make this type tighter (and work)
+DispatchType = Any
+
+@overload
+def invert_sub_arrow(arrow: Arrow,
+                     const_in_ports,
+                     const_out_ports,
+                     dispatch: DispatchType):
+    invert_f = dispatch[arrow.__class__]
+    return invert_f(arrow, const_in_ports)
+
+@overload
+def invert_sub_arrow(source_arrow: SourceArrow,
+                     const_in_ports: Set[InPort],
+                     const_out_ports: Set[OutPort],
+                     dispatch: DispatchType):
+    return source_arrow, {0: 0}
+
+@overload
+def invert_sub_arrow(comp_arrow: CompositeArrow,
+                     const_in_ports: Set[InPort],
+                     const_out_ports: Set[OutPort],
+                     dispatch: DispatchType):
+    return inner_invert(comp_arrow, const_in_ports, const_out_ports, dispatch)
+
+@overload
+def link(out_port1: OutPort, in_port2: InPort, comp_arrow: CompositeArrow):
+    comp_arrow.add_edge(out_port1, in_port2)
+
+@overload
+def link(in_port1: InPort, out_port2: OutPort, comp_arrow: CompositeArrow):
+    comp_arrow.add_edge(out_port2, in_port1)
+
+@overload
+def link(in_port1: InPort, in_port2: InPort, comp_arrow: CompositeArrow):
+    assert False, "Can't connect in_port to in_port"
+
+@overload
+def link(out_port1: OutPort, out_port2: OutPort, comp_arrow: CompositeArrow):
+    assert False, "Can't connect out_port to out_port"
 
 
-def is_constant(arrow: Arrow, const_in_ports: Set[InPort]):
-    """Is the arrow purely a function of a source arrow"""
-    return all((in_port in const_in_ports for in_port in arrow.in_ports))
+def get_inv_port(port: Port,
+                 arrow_to_port_map: [Arrow, PortMap],
+                 arrow_to_inv: Dict[Arrow, Arrow]):
+    arrow = port.arrow
+    inv = arrow_to_inv[arrow]
+    port_map = arrow_to_port_map[arrow]
+    inv_port_index = port_map[port.index]
+    inv_port = inv.ports[inv_port_index]
+    return inv_port
 
-
-def get_inverse(arrow: Arrow,
-                const_in_ports: Set[InPort],
-                const_out_ports: Set[OutPort],
-                dispatch: Dict[Arrow, Callable],
-                arrow_to_inv: Dict[Arrow, Tuple[Arrow, Dict]]):
-    """Memoized inverse."""
-    if arrow in arrow_to_inv:
-        return arrow_to_inv[arrow]
-    elif arrow.is_composite():
-        return invert_const(arrow, const_in_ports, const_out_ports, dispatch)
-    else:
-        inv_arrow, port_map = dispatch[arrow.__class__](arrow, const_in_ports)
-        arrow_to_inv[arrow] = (inv_arrow, port_map)
-        return inv_arrow, port_map
-
-
-def invert_const(arrow: CompositeArrow,
+def inner_invert(comp_arrow: CompositeArrow,
                  const_in_ports: Set[InPort],
                  const_out_ports: Set[OutPort],
-                 dispatch: Dict[Arrow, Callable]) -> Arrow:
-    """Invert an arrow assuming constants are known"""
-    arrow_to_inv = dict()  # type: Dict[Arrow, Tuple[Arrow, Dict]]
-    edges = Bimap()  # type: EdgeMap
-    for out_port, in_port in arrow.edges.items():
-        # Edge is constant
-        if out_port.arrow is not arrow and in_port.arrow is not arrow:
-            if in_port in const_in_ports:
-                inverse_in_arrow, port_map = get_inverse(in_port.arrow,
-                                                         const_in_ports,
-                                                         const_out_ports,
-                                                         dispatch,
-                                                         arrow_to_inv)
-                new_in_port = port_map[in_port]
-                edges.add(OutPort, new_in_port)
-            else:
-                inverse_in_arrow, in_port_map = get_inverse(in_port.arrow,
-                                                            const_in_ports,
-                                                            const_out_ports,
-                                                            dispatch,
-                                                            arrow_to_inv)
-                inverse_out_arrow, out_port_map = get_inverse(out_port.arrow,
-                                                              const_in_ports,
-                                                              const_out_ports,
-                                                              dispatch,
-                                                              arrow_to_inv)
-                inv_in_port = out_port_map[out_port]
-                assert isinstance(inv_in_port, InPort)
+                 dispatch: Dict[Arrow, Callable]):
+    """Construct a parametric inverse of arrow
+    Args:
+        arrow: Arrow to invert
+        dispatch: Dict mapping arrow class to invert function
+    Returns:
+        A (approximate) parametric inverse of `arrow`"""
+    # Empty compositon for inverse
+    inv_comp_arrow = CompositeArrow(name="%s_inv" % comp_arrow.name)
 
-                inv_out_port = in_port_map[in_port]
-                assert isinstance(inv_out_port, OutPort)
+    # invert each sub_arrow
+    arrow_to_inv = dict()
+    arrow_to_port_map = dict()
+    for sub_arrow in comp_arrow.get_sub_arrows():
+        inv_sub_arrow, port_map = invert_sub_arrow(sub_arrow,
+                                                   const_in_ports,
+                                                   const_out_ports,
+                                                   dispatch)
+        arrow_to_port_map[sub_arrow] = port_map
+        arrow_to_inv[sub_arrow] = inv_sub_arrow
 
-                edges.add(inv_out_port, inv_in_port)
+    # Add comp_arrow to inv
+    arrow_to_inv[comp_arrow] = inv_comp_arrow
+    comp_port_map = {i: i for i in range(comp_arrow.num_ports())}
+    arrow_to_port_map[comp_arrow] = comp_port_map
 
-    # Every inport is an outport
-    inv_in_ports = []
-    inv_out_ports = []
+    # Then, rewire up all the edges
+    for out_port, in_port in comp_arrow.edges.items():
+        left_inv_port = get_inv_port(out_port, arrow_to_port_map, arrow_to_inv)
+        right_inv_port = get_inv_port(in_port, arrow_to_port_map, arrow_to_inv)
+        link(left_inv_port, right_inv_port, inv_comp_arrow)
 
-    # Every out_port of arrows should be an in_port of inv_arrow
-    for out_port in arrow.inner_out_ports():
-        inv_arrow, port_map = arrow_to_inv[out_port.arrow]
-        in_port = port_map[out_port]
-        assert isinstance(in_port, InPort)
-        inv_in_ports.append(in_port)
+    return inv_comp_arrow
 
-    # Every in_port of arrow should be an out_port of inv_arrow
-    for in_port in arrow.inner_in_ports():
-        inv_arrow, port_map = arrow_to_inv[in_port.arrow]
-        out_port = port_map[in_port]
-        assert isinstance(out_port, OutPort)
-        inv_out_ports.append(out_port)
-
-    # Every param_port should be an out_port of inv_arrow
-    for inv_tuple in arrow_to_inv.values():
-        for in_port in inv_tuple[0].in_ports:
-            if isinstance(in_port, ParamPort):
-                inv_in_ports.append(in_port)
-
-        for out_port in inv_tuple[0].out_ports:
-            if isinstance(out_port, ErrorPort):
-                inv_out_ports.append(out_port)
-
-
-    inv_name = "%s_inv" % arrow.name
-    return CompositeArrow(edges=edges,
-                          in_ports=inv_in_ports,
-                          out_ports=inv_out_ports,
-                          name=inv_name)
+## TODO:
+## How to switch the port type?
+## Inner Edge will fail, because it will be from in_port to in_port.
+## - The solution, I think, is to have edges just be maps from Port to Port.
+## And have whether a port is an out_port or an in_port (from the perspective) of the outside as a 'port property'
+## I think this approach will simplify other algorithms too.
 
 
 def invert(arrow: CompositeArrow,
@@ -109,6 +115,8 @@ def invert(arrow: CompositeArrow,
     """Construct a parametric inverse of arrow
     Args:
         arrow: Arrow to invert
-        dispatch: Dict mapping arrow class to invert function"""
+        dispatch: Dict mapping arrow class to invert function
+    Returns:
+        A (approximate) parametric inverse of `arrow`"""
     const_in_ports, const_out_ports = mark_source(arrow)
-    return invert_const(arrow, const_in_ports, const_out_ports, dispatch)
+    return inner_invert(arrow, const_in_ports, const_out_ports, dispatch)

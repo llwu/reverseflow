@@ -26,16 +26,16 @@ def compose_comb(l: Arrow, r: Arrow, out_to_in: Dict[int, int], name: str=None) 
     in_ports = copy(l.inner_in_ports())
     out_ports = copy(r.inner_out_ports())
 
-    r_in_connect = [False] * len(r.in_ports)
+    r_in_connect = [False] * len(r.get_in_ports())
     new_edges = Bimap()  # type: EdgeMap
-    for i in range(len(l.out_ports)):
+    for i in range(len(l.get_out_ports())):
         if i not in out_to_in:
             out_ports.append(l.inner_out_ports()[i])
         else:
             new_edges.add(l.inner_out_ports()[i], r.inner_in_ports()[out_to_in[i]])
             r_in_connect[out_to_in[i]] = True
 
-    for i in range(len(r.in_ports)):
+    for i in range(len(r.get_in_ports())):
         if not r_in_connect[i]:
             in_ports.append(r.inner_in_ports()[i])
 
@@ -58,21 +58,21 @@ def compose_comb_modular(l: Arrow,
 
     Edges are made between the outer ports of l and r.
     """
-    in_ports = copy(l.in_ports)
-    out_ports = copy(r.out_ports)
+    in_ports = copy(l.get_in_ports())
+    out_ports = copy(r.get_out_ports())
 
-    r_in_connect = [False] * len(r.in_ports)
+    r_in_connect = [False] * len(r.get_in_ports())
     edges = Bimap()
-    for i in range(len(l.out_ports)):
+    for i in range(len(l.get_out_ports())):
         if i not in out_to_in:
-            out_ports.append(l.out_ports[i])
+            out_ports.append(l.get_out_ports()[i])
         else:
-            edges.add(l.out_ports[i], r.in_ports[out_to_in[i]])
+            edges.add(l.get_out_ports()[i], r.get_in_ports()[out_to_in[i]])
             r_in_connect[out_to_in[i]] = True
 
-    for i in range(len(r.in_ports)):
+    for i in range(len(r.get_in_ports())):
         if not r_in_connect[i]:
-            in_ports.append(r.in_ports[i])
+            in_ports.append(r.get_in_ports()[i])
 
     # TODO: propagate paramport-ness
 

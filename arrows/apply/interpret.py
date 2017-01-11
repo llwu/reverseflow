@@ -46,7 +46,7 @@ def gen_arrow_inputs(comp_arrow: CompositeArrow,
 
     # Decrement priority of every arrow connected to the input
     for i, input_value in enumerate(inputs):
-        for in_port in comp_arrow.edges[comp_arrow.in_ports[i]]:
+        for in_port in comp_arrow.edges[comp_arrow.get_in_ports()[i]]:
             # in_port = comp_arrow.inner_in_ports()[i]
             sub_arrow = in_port.arrow
             arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
@@ -78,11 +78,11 @@ def inner_interpret(conv: Callable,
                 outputs, emit = outputs
                 emit_list += emit
 
-            assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
+            assert len(outputs) == len(sub_arrow.get_out_ports()), "diff num outputs"
 
             # Decrement the priority of each subarrow connected to this arrow
             # Unless of course it is connected to the outside word
-            for i, out_port in enumerate(sub_arrow.out_ports):
+            for i, out_port in enumerate(sub_arrow.get_out_ports()):
                 neigh_in_ports = comp_arrow.neigh_in_ports(out_port)
                 for neigh_in_port in neigh_in_ports:
                     neigh_arrow = neigh_in_port.arrow

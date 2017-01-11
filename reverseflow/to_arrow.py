@@ -32,7 +32,7 @@ def arrow_from_op(op: Operation,
     else:
         conv_op = Op_To_Arrow[op.type]
         arrow = conv_op(op)
-    assert len(arrow.in_ports) == len(op.inputs)
+    assert len(arrow.get_in_ports()) == len(op.inputs)
     return arrow
 
 
@@ -66,7 +66,7 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
 
     for tensor in output_tensors:
         arrow = arrow_from_op(tensor.op, op_to_arrow)
-        comp_out_ports.append(arrow.out_ports[tensor.value_index])
+        comp_out_ports.append(arrow.get_out_ports()[tensor.value_index])
 
     to_see_tensors = output_tensors[:]
     while len(to_see_tensors) > 0:
@@ -82,10 +82,10 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
                     in_port_id = i
                     right_arrow = arrow_from_op(rec_op, op_to_arrow)
                     if is_input_tensor(tensor):
-                        comp_in_ports.append(right_arrow.in_ports[in_port_id])
+                        comp_in_ports.append(right_arrow.get_in_ports()[in_port_id])
                     else:
-                        edges.add(left_arrow.out_ports[out_port_id],
-                                  right_arrow.in_ports[in_port_id])
+                        edges.add(left_arrow.get_out_ports()[out_port_id],
+                                  right_arrow.get_in_ports()[in_port_id])
 
     return CompositeArrow(edges=edges,
                           in_ports=comp_in_ports,

@@ -51,18 +51,18 @@ def mark(arrow: Arrow,
         sub_arrow, priority = to_mark.popitem()
         assert priority >= 0, "knowns > num_in_ports?"
         if priority == 0:
-            for out_port in sub_arrow.out_ports:
+            for out_port in sub_arrow.get_out_ports():
                 add(out_port)
         elif sub_arrow.is_composite():
             sub_knowns = set()
             for i, in_port in enumerate(sub_arrow.inner_in_ports()):
-                if sub_arrow.in_ports[i] in marked_inports:  # outer InPort
+                if sub_arrow.get_in_ports()[i] in marked_inports:  # outer InPort
                     sub_knowns.add(in_port)  # inner InPort
             # perhaps it is worth appending these?
             _, sub_marked_outports = mark(sub_arrow, sub_knowns)
             for i, out_port in enumerate(sub_arrow.inner_out_ports()):
                 if out_port in sub_marked_outports:  # inner OutPort
-                    add(sub_arrow.out_ports[i])  # outer OutPort
+                    add(sub_arrow.get_out_ports()[i])  # outer OutPort
 
     return marked_inports, marked_outports
 
@@ -72,8 +72,8 @@ def mark_source(arrow: Arrow):
     # FIXME: Assumes arrow is flat
     knowns = set()  # type: Set[InPort]
     for sub_arrow in arrow.get_sub_arrows():
-        if sub_arrow.is_source() and (sub_arrow.out_ports[0] in arrow.edges):
-            in_port = arrow.edges.fwd(sub_arrow.out_ports[0])
+        if sub_arrow.is_source() and (sub_arrow.get_out_ports()[0] in arrow.edges):
+            in_port = arrow.edges.fwd(sub_arrow.get_out_ports()[0])
             knowns.add(in_port)
 
     return mark(arrow, knowns)
