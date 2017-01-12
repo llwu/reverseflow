@@ -1,5 +1,4 @@
 """Immutable port classes, should be identified by arrow, index, and type."""
-
 from arrows.arrow import Arrow
 
 
@@ -11,10 +10,6 @@ class Port():
     function.
 
     A port is uniquely determined by the arrow it belongs to and a index.
-
-    On the boundary of a composite arrow, ports are simultaneously inports
-    (since they take input from outside world) and outputs (since inside they
-    project outward to
     """
 
     def __init__(self, arrow: Arrow, index: int) -> None:
@@ -27,50 +22,31 @@ class Port():
     def __repr__(self):
         return str(self)
 
-    # def __eq__(self, other):
-    #     if isinstance(self, Port) and isinstance(other, Port):
-    #         return ((self.arrow is other.arrow) and (self.index == other.index))
-    #     else:
-    #         return False
+    def __eq__(self, other):
+        return self.arrow == other.arrow and self.index == other.index
 
-    # def __ne__(self, other):
-    #     return not self.__eq__(other)
-    #
-    # def __hash__(self):
-    #     return hash(self.__repr__())
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(self.arrow) + hash(self.index)
 
 
 class InPort(Port):
-    """Input port"""
+    """Input port
+    Transfers data from the outside arrow to 'In' side"""
     def __str__(self):
         return "In%s" % super().__str__()
 
     def __repr__(self):
         return str(self)
 
-    # def __eq__(self, other):
-    #     return isinstance(other, InPort) and self.arrow == other.arrow and self.index == other.index
-    #
-    # def __ne__(self, other):
-    #     return not self.__eq__(other)
-    #
-    # def __hash__(self):
-    #     return hash("In%s" % super().__str__())
-
 
 class OutPort(Port):
-    """Output port"""
+    """Output port
+    Transfers data from the inside arrow to 'Out' side"""
     def __str__(self):
         return "Out%s" % super().__str__()
 
     def __repr__(self):
         return str(self)
-
-    # def __eq__(self, other):
-    #     return isinstance(other, OutPort) and self.arrow == other.arrow and self.index == other.index
-    #
-    # def __ne__(self, other):
-    #     return not self.__eq__(other)
-    #
-    # def __hash__(self):
-    #     return hash("Out%s" % super().__str__())
