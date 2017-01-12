@@ -1,24 +1,20 @@
 """Tests propagation of known ports."""
+import pdb
+
 from arrows.marking import mark
-# from util import random_arrow_test
+from arrows.primitive.math_arrows import AddArrow
+from arrows.compositearrow import CompositeArrow
+from arrows.sourcearrow import SourceArrow
+from test_arrows import test_mixed_knowns
 
 
-def marking_test() -> None:
-    """Verifies the output of mark()."""
-    arrow = test_multicomb()
-    marked_inports, marked_outports = mark(arrow, set(arrow.in_ports[:-1]))
-    assert len(marked_inports) == 8
-    assert len(marked_outports) == 3
+def manual_inspection():
+    """Manually inspect output with PDB."""
+    arrow = test_mixed_knowns()
+    marks = mark(arrow)
+    pdb.set_trace()
+    return marks
 
 
-def marking_visual_test() -> None:
-    from test_arrows import test_random_composite, test_multicomb
-    from reverseflow.util.viz import show_tensorboard
-    a = test_multicomb()
-    show_tensorboard(a)
-    b, c = mark(a, set(a.inner_in_ports()[:-1]))
-    import pdb; pdb.set_trace()
-
-
-#random_arrow_test(lambda arrow: mark(arrow, set(arrow.inner_in_ports()[:-1])), "mark")
-# marking_visual_test()
+if __name__ == '__main__':
+    manual_inspection()

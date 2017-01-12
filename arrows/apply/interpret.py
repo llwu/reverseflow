@@ -72,7 +72,7 @@ def inner_interpret(conv: Callable,
         if sub_arrow is not comp_arrow:
             assert priority == 0, "Must resolve all inputs to sub_arrow first"
 
-            inputs = list(arrow_inputs[sub_arrow].values())
+            inputs = [arrow_inputs[sub_arrow][i] for i in range(len(arrow_inputs[sub_arrow]))]
             outputs = conv(sub_arrow, inputs)
             if isinstance(outputs, tuple) and len(outputs) == 2:
                 outputs, emit = outputs
@@ -90,7 +90,7 @@ def inner_interpret(conv: Callable,
                     arrow_inputs[neigh_arrow][neigh_in_port.index] = outputs[i]
 
     outputs_dict = arrow_inputs[comp_arrow]
-    out_port_indices = list(outputs_dict.keys())
+    out_port_indices = sorted(list(outputs_dict.keys()))
     assert out_port_indices == list(range(comp_arrow.num_in_ports(), comp_arrow.num_ports()))
     return [outputs_dict[i] for i in out_port_indices], emit_list
 
