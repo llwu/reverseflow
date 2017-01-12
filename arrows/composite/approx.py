@@ -2,7 +2,7 @@ from arrows.composite.math import MeanArrow, VarFromMeanArrow
 from arrows.compositearrow import CompositeArrow
 from arrows.primitive.control_flow_arrows import DuplArrow
 from reverseflow.util.mapping import Bimap
-
+from arrows.port_attributes import make_error_port
 
 class ApproxIdentityArrow(CompositeArrow):
     """Approximate Identity Arrow
@@ -32,5 +32,4 @@ class ApproxIdentityArrow(CompositeArrow):
                          in_ports=[dupl.get_in_ports()[0] for dupl in dupls],
                          out_ports=out_ports,
                          name=name)
-        self.add_out_port_attribute(len(out_ports)-1, "Error")
-        # self.change_out_port_type(ErrorPort, len(out_ports)-1)
+        make_error_port(self.get_out_ports()[-1])

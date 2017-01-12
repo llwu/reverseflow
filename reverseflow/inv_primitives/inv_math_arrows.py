@@ -4,6 +4,7 @@ from arrows.compositearrow import CompositeArrow
 from reverseflow.util.mapping import Bimap
 from arrows.primitive.math_arrows import *
 from arrows.primitive.control_flow_arrows import DuplArrow
+from arrows.port_attributes import *
 
 
 class InvAddArrow(CompositeArrow):
@@ -26,8 +27,7 @@ class InvAddArrow(CompositeArrow):
                          in_ports=in_ports,
                          out_ports=out_ports,
                          name=name)
-        self.add_in_port_attribute(1, "Param")
-
+        make_param_port(self.get_ports()[1])
 
 class InvSubArrow(CompositeArrow):
     """
@@ -48,7 +48,7 @@ class InvSubArrow(CompositeArrow):
                          in_ports=in_ports,
                          out_ports=out_ports,
                          name=name)
-        self.add_in_port_attribute(1, "Param")
+        make_param_port(self.get_ports()[1])
 
 
 class InvMulArrow(CompositeArrow):
@@ -71,7 +71,7 @@ class InvMulArrow(CompositeArrow):
                          in_ports=in_ports,
                          out_ports=out_ports,
                          name=name)
-        self.add_in_port_attribute(1, "Param")
+        make_param_port(self.get_ports()[1])
 
 
 class InvDivArrow(CompositeArrow):
@@ -94,7 +94,7 @@ class InvDivArrow(CompositeArrow):
                          in_ports=in_ports,
                          out_ports=out_ports,
                          name=name)
-        self.add_in_port_attribute(1, "Param")
+        make_param_port(self.get_ports()[1])
 
 
 class InvPowArrow(CompositeArrow):
@@ -117,4 +117,4 @@ class InvPowArrow(CompositeArrow):
                          in_ports=in_ports,
                          out_ports=out_ports,
                          name=name)
-        self.add_in_port_attribute(1, "Param")
+        make_param_port(self.get_ports()[1])

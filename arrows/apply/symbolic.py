@@ -69,9 +69,9 @@ def conv(arrow: CastArrow, args: ExprList) -> ExprList:
         constraints.update(arg[1])
     return [(total, constraints)]
 
-@overload
-def conv(arrow: AddNArrow, args: ExprList) -> ExprList:
-    return sum(args)
+# @overload
+# def conv(arrow: AddNArrow, args: ExprList) -> ExprList:
+#     return [sum(args)]
 
 
 @overload

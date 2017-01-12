@@ -2,28 +2,25 @@
 import tensorflow as tf
 from tensorflow import Tensor, Graph, Variable
 import numpy as np
-from pqdict import pqdict
 from arrows.config import floatX
 from arrows.port import InPort
+from arrows.port_attributes import is_in_port, is_param_port
 from arrows.arrow import Arrow
 from arrows.sourcearrow import SourceArrow
 from arrows.compositearrow import CompositeArrow, EdgeMap
-from arrows.primitive.math_arrows import *
-from arrows.primitive.control_flow_arrows import *
-from arrows.primitive.cast_arrows import *
-from arrows.primitive.constant import *
-from reverseflow.inv_primitives.inv_control_flow_arrows import *
+from arrows.std_arrows import *
 from arrows.apply.interpret import interpret
-from typing import Tuple, List, Dict, MutableMapping, Union, Sequence
+from reverseflow.inv_primitives.inv_control_flow_arrows import *
+from typing import List, Dict, MutableMapping, Union, Sequence
 from overloading import overload
 
 def gen_input_tensors(arrow: Arrow):
     input_tensors = []
     for in_port in arrow.get_in_ports():
-        if "Param" in arrow.port_attributes[in_port.index]:
+        if is_param_port(in_port):
             # FIXME for right shape
             input_tensors.append(tf.Variable(np.random.rand(1), dtype=floatX()))
-        elif isinstance(in_port, InPort):
+        elif is_in_port(in_port):
             input_tensors.append(tf.placeholder(dtype=floatX()))
         else:
             assert False, "Don't know how to handle %s" % in_port

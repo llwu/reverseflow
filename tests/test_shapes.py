@@ -9,6 +9,7 @@ def input_gen(arrow: Arrow):
     ndim = 3
     maxdim = 100
     input_shape = tuple([np.random.randint(1, maxdim) for i in range(ndim)])
+    input_shape = ()
     return [input_shape for i in range(arrow.num_in_ports())]
 
 

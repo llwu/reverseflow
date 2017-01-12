@@ -74,9 +74,9 @@ def test_inv_twoxyplusx() -> CompositeArrow:
                         edges=edges,
                         name="InvTwoXPlusY")
 
-    op.add_in_port_attribute(1, "Param")
-    op.add_in_port_attribute(2, "Param")
-    op.add_out_port_attribute(2, "Error")
+    make_param_port(op.get_in_ports()[1])
+    make_param_port(op.get_in_ports()[2])
+    make_error_port(op.get_out_ports()[2])
     return op
 
 

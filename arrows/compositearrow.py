@@ -3,15 +3,14 @@ from typing import Set, Sequence, List
 from arrows import Arrow
 from reverseflow.util.mapping import Bimap, Relation
 from arrows.port import Port, InPort, OutPort
+from arrows.port_attributes import *
 
 EdgeMap = Bimap[OutPort, InPort]
 RelEdgeMap = Relation[Port, Port]
 
-
 def is_exposed(port: Port, context: "CompositeArrow") -> bool:
     """Is this Port exposed within this arrow, i.e. can it be connected
-       to an edge.
-       """
+       to an edge."""
     return context == port.arrow or port.arrow.parent == context
 
 
@@ -19,15 +18,16 @@ def is_projecting(port: Port, context: "CompositeArrow") -> bool:
     """Is this port projecting in this context"""
     # assert is_exposed(port, context), "Port not expsoed in this context"
     if port.arrow == context:
-        return isinstance(port, InPort)
+        return is_in_port(port)
+    elif port.arrow in context.get_sub_arrows():
+        return is_out_port(port)
     else:
-        return isinstance(port, OutPort)
+        assert False, "Port %s is not in context %s" % (port, context)
 
 
 def is_receiving(port: Port, context: "CompositeArrow") -> bool:
     # A port is receiving (in some context) if it is not projecting
     return not is_projecting(port, context)
-
 
 class CompositeArrow(Arrow):
     """Composite arrow
@@ -126,27 +126,6 @@ class CompositeArrow(Arrow):
         self.edges.add(left, right)
         assert self.is_wired_correctly(), "The arrow is wired incorrectly"
 
-    def get_in_ports(self) -> List[InPort]:
-        """Get InPorts of an Arrow
-        Returns:
-            List of InPorts"""
-        return [port for port in self.ports if isinstance(port, OutPort)]
-
-    def get_out_ports(self) -> List[OutPort]:
-        """Get OutPorts of an Arrow
-        Returns:
-            List of OutPorts"""
-        return [port for port in self.ports if isinstance(port, OutPort)]
-
-    # def get_ports(self) -> List[Port]:
-    #     ports = set()
-    #     for out_port, in_port in self.edges.items():
-    #         if out_port.arrow is self:
-    #             ports.add(out_port)
-    #         if in_port.arrow is self:
-    #             ports.add(in_port)
-    #     sorted_ports = sorted(list(ports), key=lambda port: port.index)
-    #     return sorted_ports
 
     def add_port(self, port_attributes=None) -> Port:
         """Add a port to the arrow"""
@@ -158,6 +137,18 @@ class CompositeArrow(Arrow):
         else:
             self.port_attributes.append({})
         return port
+
+    def get_in_ports(self) -> List[InPort]:
+        """Get InPorts of an Arrow
+        Returns:
+            List of InPorts"""
+        return [port for port in self.ports if is_in_port(port)]
+
+    def get_out_ports(self) -> List[OutPort]:
+        """Get OutPorts of an Arrow
+        Returns:
+            List of OutPorts"""
+        return [port for port in self.ports if is_out_port(port)]
 
     def get_ports(self) -> List[Port]:
         return self.ports
@@ -194,14 +185,12 @@ class CompositeArrow(Arrow):
 
         # create new edges for composition
         for in_port in in_ports:
-            port = self.add_port()
+            port = self.add_port({"InOut": "InPort"})
             self.edges.add(port, in_port)
-            # TODO Designate these ports as OutPorts (or whatever)
 
         for out_port in out_ports:
-            port = self.add_port()
+            port = self.add_port({"InOut": "OutPort"})
             self.edges.add(out_port, port)
-            # TODO Designate these ports as InPorts
 
         n_ports = self.num_ports()
         if port_attributes:
@@ -213,49 +202,3 @@ class CompositeArrow(Arrow):
         # Make this arrow the parent of each sub_arrow
         for sub_arrow in self.get_sub_arrows():
             sub_arrow.parent = self
-
-# Issues:
-# Should Edges be between InPort and OutPorts or just Por
-# - I say just Port
-# Should we keep an explicit list of the in_ports and out_ports or dynamically generate it
-## -- Dynamic means that we need to check that they are contiguous
-## -- Slower
-## Do I want to replace type with  In / Out attribute ?!?!?!?!?!
-
-
-## Port attributes
-## Right now I have it as just s set of things "Param, Error"
-## Could have "InPort" and "OutPort" too
-## the reason I wanted it at as an attribute as so that I could (1) not have this weird thing of an outport going to an inport
-## its a type failure
-## But effectively the same thing will still be true
-## Btu also to be able to cast a port into a particular type for its use
-## It doesn't feel satisfcatory.
-## Essentially it doesnt make sense to talk about a port as being an out port or an in port because it is both
-## At the SAME TIME, there is a polarity.  There are ports which take signal from the outside world and pass it to the inside world.
-## and ports which take signals and pass them from the inside world and pass them to the outside world.
-## What's valid OI -> OI, OI -> IO, IO -> IO, IO - OI.  Without concern for what the arrow is, all combinatiosn are possible
-## But whats not possible si a:OI -> a IO for example. That is, taking the arrow into account, not all projections are valid
-## What makes something invalid.
-
-
-## Question is how to handle port attributes
-## Could have a mapping from Ports to Attributes
-## First question is whether In/Out is an attribute or part of the type
-## Second is how to handle attributes in general
-
-## JMFD
-## An edge is between ports
-## its not from outport to inport
-
-
-
-## TODO:1
-## Have port attributes be list
-## What data structure, dict
-## {"InOut": "InPort", "name": "Blergh", "param": True}
-
-## Port attributes is a dict
-## The benefits of this as opposed to having a type hierarchy is that
-## 1. The type can be switched without breaking everything
-## 2.

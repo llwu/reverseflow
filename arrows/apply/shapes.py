@@ -1,21 +1,26 @@
-"""Decode an arrow into a tensoflow graph"""
-import tensorflow as tf
-from tensorflow import Tensor, Graph, Variable
-from pqdict import pqdict
+"""Compute shapes of outputs"""
 from arrows.arrow import Arrow
-from arrows.compositearrow import CompositeArrow, EdgeMap
-from arrows.primitive.math_arrows import *
-from arrows.primitive.control_flow_arrows import *
-from arrows.primitive.cast_arrows import *
-from arrows.primitive.constant import *
+from arrows.compositearrow import CompositeArrow
+from arrows.std_arrows import *
 from reverseflow.util.misc import same
-from typing import Tuple, List, Dict, MutableMapping, Union, Sequence
-from collections import OrderedDict
-from overloading import overload
+from typing import Tuple, List, Dict, MutableMapping, Sequence
 from arrows.apply.interpret import interpret
+from overloading import overload
+from numpy import ndarray
 
 ShapeList = Sequence[Tuple[int, ...]]
 
+@overload
+def constant_to_shape(x: int):
+    return [()]
+
+@overload
+def constant_to_shape(x: float):
+    return [()]
+
+@overload
+def constant_to_shape(x: ndarray):
+    return [x.shape]
 
 def same_to_n(shapes, n=1):
     assert same(shapes), "Shapes must be the same"
@@ -31,6 +36,10 @@ def same_conv(a: Arrow, shapes: ShapeList) -> ShapeList:
 def conv(a: Arrow, shapes: ShapeList) -> ShapeList:
     assert len(shapes) == a.num_in_ports()
     assert False, "Error, no conversion for %s implemented" % a.name
+
+@overload
+def conv(a: SourceArrow, shapes: ShapeList) -> ShapeList:
+    return constant_to_shape(a.value)
 
 
 @overload

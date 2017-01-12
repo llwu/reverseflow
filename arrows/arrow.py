@@ -35,5 +35,14 @@ class Arrow:
     def is_tf(self) -> bool:
         return False
 
+    # def inner_in_ports(self):
+    #     return self.get_in_ports()
+    #
+    # def inner_out_ports(self):
+    #     return self.get_out_ports()
+
+    def inner_error_ports(self):
+        return []
+
     def get_sub_arrows(self):
         return []

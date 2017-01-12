@@ -7,6 +7,7 @@ from arrows.compositearrow import CompositeArrow
 from arrows.sourcearrow import SourceArrow
 from arrows.primitivearrow import PrimitiveArrow
 from arrows.port import *
+from arrows.port_attributes import *
 
 from arrows.compose import *
 
