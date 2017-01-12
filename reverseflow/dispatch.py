@@ -1,8 +1,9 @@
 """Inverse Dispatches for Inverses"""
+from arrows import Arrow, Port, InPort
+from arrows.port_attributes import make_error_port, make_param_port
 from arrows.std_arrows import *
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.inv_primitives.inv_control_flow_arrows import *
-from arrows import Arrow, Port, InPort
 from reverseflow.util.mapping import Bimap
 from typing import Set, Tuple, Dict
 
@@ -51,13 +52,13 @@ def inv_add(arrow: AddArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMa
 #                               Port0ConstArrow=DivArrow, Port1ConstArrow=MulArrow)
 #
 
-def inv_dupl(arrow: DuplArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
-    assert arrow.get_in_ports()[0] not in const_in_ports, "Dupl is constant"
-    n_duplications = arrow.n_out_ports
-    inv_arrow = InvDuplArrow(n_duplications=n_duplications)
-    port_map = {arrow.get_in_ports()[0]: inv_arrow.get_out_ports()[0]}
-    port_map.update({arrow.get_out_ports()[i]: inv_arrow.get_in_ports()[i] for i in range(n_duplications)})
-    return inv_arrow, port_map
+# def inv_dupl(arrow: DuplArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
+#     assert arrow.get_in_ports()[0] not in const_in_ports, "Dupl is constant"
+#     n_duplications = arrow.n_out_ports
+#     inv_arrow = InvDuplArrow(n_duplications=n_duplications)
+#     port_map = {arrow.get_in_ports()[0].index: inv_arrow.get_out_ports()[0].index}
+#     port_map.update({arrow.get_out_ports()[i].index: inv_arrow.get_in_ports()[i].index for i in range(n_duplications)})
+#     return inv_arrow, port_map
 
 
 def inv_dupl_approx(arrow: DuplArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
@@ -74,10 +75,8 @@ def inv_dupl_approx(arrow: DuplArrow, const_in_ports: Set[InPort]) -> Tuple[Arro
                                in_ports=approx_id.get_in_ports(),
                                out_ports=out_ports,
                                name="InvDuplApprox")
-    inv_arrow.add_out_port_attribute(len(out_ports)-1, "Error")
-    # inv_arrow.change_out_port_type(ErrorPort, len(out_ports)-1)
-    # inv_arrow = compose_comb(approx_id, inv_dupl, {i: i for i in range(n_duplications)})
-    port_map = {arrow.get_in_ports()[0]: inv_arrow.get_out_ports()[0]}
-    port_map.update({arrow.get_out_ports()[i]: inv_arrow.get_in_ports()[i] for i in range(n_duplications)})
+    make_error_port(inv_arrow.get_out_ports()[-1])
+    port_map = {0: inv_arrow.get_ports()[-2].index}
+    port_map.update({i+1:i for i in range(n_duplications)})
     inv_arrow.name = "InvDuplApprox"
     return inv_arrow, port_map

@@ -29,6 +29,7 @@ def is_receiving(port: Port, context: "CompositeArrow") -> bool:
     # A port is receiving (in some context) if it is not projecting
     return not is_projecting(port, context)
 
+
 class CompositeArrow(Arrow):
     """Composite arrow
     A composite arrow is a composition of SubArrows
@@ -52,13 +53,16 @@ class CompositeArrow(Arrow):
         for (out_port, in_port) in self.edges.items():
             arrows.add(out_port.arrow)
             arrows.add(in_port.arrow)
+        if self not in arrows:
+            arrows.add(self)
 
         return arrows
 
     def get_sub_arrows(self) -> Set[Arrow]:
         """Return all the constituent arrows of composition"""
         arrows = self.get_all_arrows()
-        arrows.remove(self)
+        if self in arrows:
+            arrows.remove(self)
         return arrows
 
 
@@ -124,7 +128,7 @@ class CompositeArrow(Arrow):
         left.arrow.parent = self
         right.arrow.parent = self
         self.edges.add(left, right)
-        assert self.is_wired_correctly(), "The arrow is wired incorrectly"
+        # assert self.is_wired_correctly(), "The arrow is wired incorrectly"
 
 
     def add_port(self, port_attributes=None) -> Port:
@@ -184,13 +188,15 @@ class CompositeArrow(Arrow):
                 self.edges.add(out_port, in_port)
 
         # create new edges for composition
-        for in_port in in_ports:
-            port = self.add_port({"InOut": "InPort"})
-            self.edges.add(port, in_port)
+        if in_ports:
+            for in_port in in_ports:
+                port = self.add_port({"InOut": "InPort"})
+                self.edges.add(port, in_port)
 
-        for out_port in out_ports:
-            port = self.add_port({"InOut": "OutPort"})
-            self.edges.add(out_port, port)
+        if out_ports:
+            for out_port in out_ports:
+                port = self.add_port({"InOut": "OutPort"})
+                self.edges.add(out_port, port)
 
         n_ports = self.num_ports()
         if port_attributes:

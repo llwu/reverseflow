@@ -3,10 +3,11 @@
 from typing import Dict, Callable, Set, Tuple, Type, TypeVar, Any
 
 from arrows import Arrow, OutPort, Port, InPort
-from arrows.compositearrow import CompositeArrow, RelEdgeMap
+from arrows.compositearrow import CompositeArrow, RelEdgeMap, is_projecting, is_receiving
 from arrows.std_arrows import *
-from reverseflow.defaults import default_dispatch
+from arrows.port_attributes import *
 from arrows.marking import mark_source
+from reverseflow.defaults import default_dispatch
 from reverseflow.util.mapping import Bimap, Relation
 from overloading import overload
 
@@ -78,6 +79,14 @@ def inner_invert(comp_arrow: CompositeArrow,
     # Empty compositon for inverse
     inv_comp_arrow = CompositeArrow(name="%s_inv" % comp_arrow.name)
 
+    # Add a port on inverse arrow for every port on arrow
+    for port in comp_arrow.get_ports():
+        inv_port = inv_comp_arrow.add_port()
+        if is_in_port(port):
+            make_out_port(inv_port)
+        elif is_out_port(port):
+            make_in_port(inv_port)
+
     # invert each sub_arrow
     arrow_to_inv = dict()
     arrow_to_port_map = dict()
@@ -98,17 +107,50 @@ def inner_invert(comp_arrow: CompositeArrow,
     for out_port, in_port in comp_arrow.edges.items():
         left_inv_port = get_inv_port(out_port, arrow_to_port_map, arrow_to_inv)
         right_inv_port = get_inv_port(in_port, arrow_to_port_map, arrow_to_inv)
-        link(left_inv_port, right_inv_port, inv_comp_arrow)
+        if left_inv_port.arrow is inv_comp_arrow and right_inv_port.arrow is inv_comp_arrow:
+            assert is_out_port(left_inv_port)
+            assert is_in_port(right_inv_port)
+            inv_comp_arrow.add_edge(right_inv_port, left_inv_port)
+        elif left_inv_port.arrow is inv_comp_arrow:
+            assert is_out_port(left_inv_port)
+            assert is_out_port(right_inv_port)
+            inv_comp_arrow.add_edge(right_inv_port, left_inv_port)
+        elif right_inv_port.arrow is inv_comp_arrow:
+            assert is_in_port(right_inv_port)
+            assert is_in_port(left_inv_port)
+            inv_comp_arrow.add_edge(right_inv_port, left_inv_port)
+        else:
+            if is_out_port(left_inv_port) and is_in_port(right_inv_port):
+                inv_comp_arrow.add_edge(left_inv_port, right_inv_port)
+            elif is_in_port(left_inv_port) and is_out_port(right_inv_port):
+                inv_comp_arrow.add_edge(right_inv_port, left_inv_port)
+            else:
+                assert False, "One must be projecting and one receiving"
 
+    # Craete new ports on inverse compositions for parametric and error ports
+    for sub_arrow in inv_comp_arrow.get_sub_arrows():
+        for port in sub_arrow.get_ports():
+            if is_param_port(port):
+                assert port not in inv_comp_arrow.edges.keys()
+                assert port not in inv_comp_arrow.edges.values()
+                param_port = inv_comp_arrow.add_port()
+                inv_comp_arrow.add_edge(param_port, port)
+                make_in_port(param_port)
+                make_param_port(param_port)
+            elif is_error_port(port):
+                assert port not in inv_comp_arrow.edges.keys()
+                assert port not in inv_comp_arrow.edges.values()
+                error_port = inv_comp_arrow.add_port()
+                inv_comp_arrow.add_edge(port, error_port)
+                make_out_port(error_port)
+                make_error_port(error_port)
+
+    import pdb; pdb.set_trace()
     return inv_comp_arrow
 
-## TODO:
-## How to switch the port type?
-## Inner Edge will fail, because it will be from in_port to in_port.
-## - The solution, I think, is to have edges just be maps from Port to Port.
-## And have whether a port is an out_port or an in_port (from the perspective) of the outside as a 'port property'
-## I think this approach will simplify other algorithms too.
-
+# TODO
+# Issue is how to know whether a port in inverse arrow is projecting or not
+# and how to get all the parametric shit out
 
 def invert(arrow: CompositeArrow,
            dispatch: Dict[Arrow, Callable]=default_dispatch) -> Arrow:
