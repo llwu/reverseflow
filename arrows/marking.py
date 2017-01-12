@@ -1,79 +1,24 @@
-
 """Defines mark()."""
 
-from typing import Set, Tuple
+from typing import List
 
-from pqdict import pqdict
+from overloading import overload
 
-from arrows.port import InPort, OutPort
 from arrows.arrow import Arrow
-
-def mark(arrow: Arrow,
-         knowns: Set[InPort]) -> Tuple[Set[InPort], Set[OutPort]]:
-    """Propagates knowns throughout the arrow.
-    Won't propagate to outside of the arrow.
-    Won't return knowns within composite subarrows.
-
-    Args:
-        arrow (Arrow): The arrow to propagate throughout.
-        knowns (Set[InPort]): The in ports which we know to be known.
-            Generally wants to be a subset of arrow.inner_in_ports()
-
-    Returns:
-        Set[InPort]: The ports which are known as a result.
-    """
-    to_mark = pqdict()
-    marked_inports = set()
-    marked_outports = set()
-
-    def dec(sub_arrow):
-        """Bumps sub_arrow up in the queue."""
-        if sub_arrow in to_mark:
-            to_mark[sub_arrow] -= 1
-        else:
-            to_mark[sub_arrow] = sub_arrow.num_in_ports() - 1
-
-    def add(out_port):
-        """Marks out_port and (if it exists) the neighboring in port."""
-        marked_outports.add(out_port)
-        if not arrow.is_composite():
-            return
-        if out_port in arrow.edges:
-            in_port = arrow.neigh_in_port(out_port)
-            marked_inports.add(in_port)
-            dec(in_port.arrow)
-
-    for known in knowns:
-        marked_inports.add(known)
-        dec(known.arrow)
-
-    while len(to_mark) > 0:
-        sub_arrow, priority = to_mark.popitem()
-        assert priority >= 0, "knowns > num_in_ports?"
-        if priority == 0:
-            for out_port in sub_arrow.get_out_ports():
-                add(out_port)
-        elif sub_arrow.is_composite():
-            sub_knowns = set()
-            for i, in_port in enumerate(sub_arrow.inner_in_ports()):
-                if sub_arrow.get_in_ports()[i] in marked_inports:  # outer InPort
-                    sub_knowns.add(in_port)  # inner InPort
-            # perhaps it is worth appending these?
-            _, sub_marked_outports = mark(sub_arrow, sub_knowns)
-            for i, out_port in enumerate(sub_arrow.inner_out_ports()):
-                if out_port in sub_marked_outports:  # inner OutPort
-                    add(sub_arrow.get_out_ports()[i])  # outer OutPort
-
-    return marked_inports, marked_outports
+from arrows.compositearrow import CompositeArrow
+from arrows.apply.interpret import interpret
 
 
-def mark_source(arrow: Arrow):
-    """Propagates constants from source arrows throughout arrow"""
-    # FIXME: Assumes arrow is flat
-    knowns = set()  # type: Set[InPort]
-    for sub_arrow in arrow.get_sub_arrows():
-        if sub_arrow.is_source() and (sub_arrow.get_out_ports()[0] in arrow.edges):
-            in_port = arrow.edges.fwd(sub_arrow.get_out_ports()[0])
-            knowns.add(in_port)
+@overload
+def conv(a: Arrow, marked: List[bool]) -> List[bool]:
+    return [all(marked) for i in range(a.num_out_ports())]
 
-    return mark(arrow, knowns)
+
+@overload
+def conv(a: CompositeArrow, marked: List[bool]) -> List[bool]:
+    return interpret(conv, a, marked)
+
+
+def mark(arrow: Arrow, knowns=set()) -> List:
+    marks = interpret(conv, arrow, [port in knowns for port in arrow.in_ports])
+    return set([arrow.out_ports[i] for i in range(arrow.num_out_ports()) if marks[i]])
