@@ -49,6 +49,7 @@ def test_twoxyplusx() -> CompositeArrow:
                           edges=edges,
                           name="test_twoxyplusx")
 
+
 def test_inv_twoxyplusx() -> CompositeArrow:
     """approximate parametric inverse of twoxyplusx"""
     inv_add = InvAddArrow()
@@ -78,6 +79,20 @@ def test_inv_twoxyplusx() -> CompositeArrow:
     make_param_port(op.get_in_ports()[2])
     make_error_port(op.get_out_ports()[2])
     return op
+
+
+def test_mixed_knowns() -> CompositeArrow:
+    arrow = test_twoxyplusx()
+    c1 = SourceArrow(2)
+    c2 = SourceArrow(2)
+    a1 = AddArrow()
+    edges = Bimap()  # type: EdgeMap
+    edges.add(c1.out_ports[0], arrow.in_ports[0])
+    edges.add(c2.out_ports[0], arrow.in_ports[1])
+    return CompositeArrow(in_ports=[a1.in_ports[0], a1.in_ports[1]],
+                          out_ports=[arrow.out_ports[0], a1.out_ports[0]],
+                          edges=edges,
+                          name="test_mixed_knowns")
 
 
 # def test_multicomb() -> CompositeArrow:

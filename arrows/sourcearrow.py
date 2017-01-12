@@ -26,3 +26,11 @@ class SourceArrow(Arrow):
 
     def is_source(self):
         return True
+
+    def get_shape(self):
+        v = self.value
+        shape = []
+        while hasattr(v, '__len__'):
+            shape.append(len(v))
+            v = v[0]
+        return tuple(shape)
