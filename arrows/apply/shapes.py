@@ -114,9 +114,16 @@ def conv(a: ReduceMeanArrow, shapes: ShapeList) -> ShapeList:
 @overload
 def conv(a: CompositeArrow, shapes: ShapeList) -> ShapeList:
     assert len(shapes) == a.num_in_ports()
-    return interpret(conv, a, shapes, return_emit=True)
+    result, emit = interpret(conv, a, shapes, return_emit=True)
+    emit = dict(emit)
+    to_emit = [(port, emit[inner_port])
+               for port in a.ports
+               if port in a.edges
+               for inner_port in a.edges.fwd(port)
+               if inner_port in emit]
+    return result, to_emit
 
 def propagate_shapes(comp_arrow: CompositeArrow,
                      input_shapes: ShapeList):
-    result, emit = interpret(conv, comp_arrow, input_shapes, return_emit=True)
+    result, emit = conv(comp_arrow, input_shapes)
     return result, dict(emit)
