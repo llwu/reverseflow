@@ -3,9 +3,10 @@ from typing import Sequence, Callable
 
 def totality_test(f:Callable,
                   arrows: Sequence[Arrow],
-                  input_gen:Callable=None,
-                  ignore:Callable=None,
-                  test_name:str=None):
+                  input_gen: Callable=None,
+                  ignore: Callable=None,
+                  test_name: str=None,
+                  **kwargs):
     """Helper to check that arrow simply runs.
     args:
         f: a function which takes an arrow as its first input
@@ -25,4 +26,4 @@ def totality_test(f:Callable,
             f(arrow)
         else:
             inputs = input_gen(arrow)
-            f(arrow, inputs)
+            f(arrow, inputs, **kwargs)
