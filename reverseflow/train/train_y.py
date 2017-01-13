@@ -46,7 +46,24 @@ def train_loop(update_step,
                sfx='',
                compress=False,
                save_dir="./",
-               saver=None):
+               saver=None
+               **kwargs):
+    """Perform training
+    Args:
+        update_step:
+        sess: Tensorflow session
+        loss: tensor to minimize
+        input_tensors:
+        output_tensors:
+        input_data:
+        num_iterations: number of iterations to run
+        summary_gap:
+        save_every
+        sfx: String suffix to append to log data
+        compress: Using numpy compression for paramter saving
+        save_dir: Directory for saving logs
+        saver: Tensorflow saver for saving
+    """
 
     for i in range(num_iterations):
         feed_dict = gen_batch(input_tensors, input_data)
@@ -57,7 +74,8 @@ def train_y_tf(params: List[Tensor],
                losses: List[Tensor],
                input_tensors,
                output_tensors,
-               input_data) -> Graph:
+               input_data,
+               kwargs) -> Graph:
     """
     """
     loss = accumulate_losses(losses)
@@ -70,7 +88,8 @@ def train_y_tf(params: List[Tensor],
                loss,
                input_tensors,
                output_tensors,
-               input_data)
+               input_data,
+               **kwargs)
 
 def min_approx_error_arrow(arrow: CompositeArrow, input_data: List) -> CompositeArrow:
     """

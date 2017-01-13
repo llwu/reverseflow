@@ -148,17 +148,34 @@ def inner_invert(comp_arrow: CompositeArrow,
     import pdb; pdb.set_trace()
     return inv_comp_arrow
 
-# TODO
-# Issue is how to know whether a port in inverse arrow is projecting or not
-# and how to get all the parametric shit out
 
-def invert(arrow: CompositeArrow,
-           dispatch: Dict[Arrow, Callable]=default_dispatch) -> Arrow:
-    """Construct a parametric inverse of arrow
+def duplify(comp_arrow: CompositeArrow) -> CompositeArrow:
+    """Make every port project to single other port (using DuplArrow)
     Args:
-        arrow: Arrow to invert
-        dispatch: Dict mapping arrow class to invert function
+        comp_arrow: Composite arrow (potentially) with ports with many neigh
     Returns:
-        A (approximate) parametric inverse of `arrow`"""
-    const_in_ports, const_out_ports = mark_source(arrow)
-    return inner_invert(arrow, const_in_ports, const_out_ports, dispatch)
+        CompositeArrow where each port has a single neighbour"""
+    for sub_arrow in comp_arrow.get_all_arrows():
+        for port in sub_arrow.get_proj_ports():
+            neigh_ports = comp_arrow.get_neigh_ports(port)
+            if len(neigh_ports) > 1:
+                dupl = DuplArrow(n_duplications=len(neigh_ports))
+                comp_arrow.add_edge(port, dupl.get_in_ports()[0])
+                for i, neigh_port in enumerate(neigh_ports):
+                    comp_arrow.remove_edge(port, neigh_port)
+                    comp_arrow.add_edge(dupl.get_out_ports()[i], neigh_port)
+
+                assert len(comp_arrow.get_neigh_ports(port)) == 1
+
+
+def invert(comp_arrow: CompositeArrow,
+           dispatch: Dict[Arrow, Callable]=default_dispatch) -> Arrow:
+    """Construct a parametric inverse of comp_arrow
+    Args:
+        comp_arrow: Arrow to invert
+        dispatch: Dict mapping comp_arrow class to invert function
+    Returns:
+        A (approximate) parametric inverse of `comp_arrow`"""
+    const_in_ports, const_out_ports = mark_source(comp_arrow)
+    duplify(comp_arrow)
+    return inner_invert(comp_arrow, const_in_ports, const_out_ports, dispatch)

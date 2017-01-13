@@ -115,6 +115,12 @@ class AbsArrow(PrimitiveArrow):
         name = 'Abs'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
+    def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> Set[Rel]:
+        constraints = []
+        if 1 in input_expr:
+            constraints.append(Ge(input_expr[0], 0))
+        return constraints
+
 
 class ReduceMeanArrow(PrimitiveArrow):
     """Computes the mean of elements across dimensions of a tensor.

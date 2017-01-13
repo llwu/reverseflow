@@ -69,9 +69,25 @@ def conv(arrow: CastArrow, args: ExprList) -> ExprList:
         constraints.update(arg[1])
     return [(total, constraints)]
 
-# @overload
-# def conv(arrow: AddNArrow, args: ExprList) -> ExprList:
-#     return [sum(args)]
+
+@overload
+def conv(arrow: AddNArrow, args: ExprList) -> ExprList:
+    in_args = [arg[0] for arg in args]
+    total = sum(in_args)
+    constraints = set()
+    for arg in args:
+        constraints.update(arg[1])
+    return [(total, constraints)]
+
+
+@overload
+def conv(arrow: AbsArrow, args: ExprList) -> ExprList:
+    assert len(args) == 1
+    inp = args[0]
+    constraints = set()
+    constraints.update(arrow.gen_constraints())
+    constraints.update(args[1])
+    return [(sympy.Abs(inp[0]), constraints)]
 
 
 @overload
