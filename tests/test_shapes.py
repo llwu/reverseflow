@@ -27,7 +27,7 @@ def manual_inspection():
     given_shapes = input_gen(arrow)
     output_shapes, input_shapes = propagate_shapes(arrow, given_shapes)
     pdb.set_trace()
-    return shapes
+    return output_shapes
 
 
 if __name__ == '__main__':
