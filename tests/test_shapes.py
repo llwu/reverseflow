@@ -2,6 +2,7 @@ import pdb
 
 import numpy as np
 from arrows import Arrow
+from arrows.port_attributes import is_param_port
 from arrows.apply.shapes import propagate_shapes
 from reverseflow.inv_primitives.inv_math_arrows import InvAddArrow
 
@@ -14,7 +15,7 @@ def input_gen(arrow: Arrow):
     maxdim = 100
     input_shape = tuple([np.random.randint(1, maxdim) for i in range(ndim)])
     input_shape = ()
-    return [None if is_param_port(port) else input_shape for port in range(arrow.get_in_ports())]
+    return {port: input_shape for port in arrow.get_in_ports() if not is_param_port(port)}
 
 def test_shapes():
     all_test_arrows = [gen() for gen in all_test_arrow_gens]
@@ -25,9 +26,9 @@ def manual_inspection():
     """Manually inspect output with PDB."""
     arrow = InvAddArrow()
     given_shapes = input_gen(arrow)
-    output_shapes, input_shapes = propagate_shapes(arrow, given_shapes)
+    known_shapes = propagate_shapes(arrow, given_shapes)
     pdb.set_trace()
-    return output_shapes
+    return known_shapes
 
 
 if __name__ == '__main__':

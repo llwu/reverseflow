@@ -1,4 +1,4 @@
-from arrows.port import Port, InPort, OutPort
+from arrows.port import Port
 
 
 def make_in_port(port: Port) -> None:

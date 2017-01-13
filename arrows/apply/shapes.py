@@ -1,144 +1,139 @@
 """Compute shapes of outputs"""
-from arrows.arrow import Arrow
-from arrows.compositearrow import CompositeArrow
-from arrows.std_arrows import *
-from reverseflow.util.misc import same
-from typing import Tuple, List, Dict, MutableMapping, Sequence
-from arrows.apply.interpret import interpret
+from typing import Tuple, Dict, Sequence
+
 from overloading import overload
 from numpy import ndarray
 
+from arrows.arrow import Arrow
+from arrows.compositearrow import CompositeArrow
+from arrows.std_arrows import *
+from arrows.port import Port
+from arrows.apply.propagate import propagate
+from reverseflow.inv_primitives.inv_control_flow_arrows import *
+from reverseflow.inv_primitives.inv_math_arrows import *
+
 ShapeList = Sequence
+PortValues = Dict
+
 
 @overload
 def constant_to_shape(x: int):
-    return [()]
+    return ()
+
 
 @overload
 def constant_to_shape(x: float):
-    return [()]
+    return ()
+
 
 @overload
 def constant_to_shape(x: ndarray):
-    return [x.shape]
-
-def same_to_n(shapes, n=1):
-    assert same(shapes), "Shapes must be the same"
-    return [shapes[0] for i in range(n)]
+    return x.shape
 
 
-def same_conv(a: Arrow, shapes: ShapeList) -> ShapeList:
-    assert len(shapes) == a.num_in_ports()
-    shapes = [shape for shape in shapes if shape is not None]
-    assert len(shapes) > 0, "At least one input must have known shape"
-    return same_to_n(shapes, a.num_out_ports()), [(port, shapes[0]) for port in a.in_ports]
-
-
-@overload
-def conv(a: Arrow, shapes: ShapeList) -> ShapeList:
-    assert len(shapes) == a.num_in_ports()
-    assert False, "Error, no conversion for %s implemented" % a.__class__.__name__
-
-@overload
-def conv(a: SourceArrow, shapes: ShapeList) -> ShapeList:
-    return constant_to_shape(a.value)
+def generic_prop(a: Arrow, port_to_known: PortValues, state=None):
+    known_shape = None
+    for port, shape in port_to_known.items():
+        assert shape == known_shape or known_shape is None
+        known_shape = shape
+    if known_shape is None:
+        return {}
+    return {port: known_shape for port in a.get_ports()}
 
 
 @overload
-def conv(a: AddArrow, shapes: ShapeList) -> ShapeList:
-    return same_conv(a, shapes)
+def sub_propagate(a: Arrow, port_to_known: PortValues, state=None) -> ShapeList:
+    assert False, "Error, no sub_propagation for %s implemented" % a.__class__.__name__
 
 
 @overload
-def conv(a: SubArrow, shapes: ShapeList) -> ShapeList:
-    return same_conv(a, shapes)
+def sub_propagate(a: SourceArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    known_shape = constant_to_shape(a.value)
+    return {port: known_shape for port in a.get_ports()}
 
 
 @overload
-def conv(a: NegArrow, shapes: ShapeList) -> ShapeList:
-    return same_conv(a, shapes)
+def sub_propagate(a: AddArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
 
 
 @overload
-def conv(a: PowArrow, shapes: ShapeList) -> ShapeList:
-    return same_conv(a, shapes)
+def sub_propagate(a: SubArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
 
 
 @overload
-def conv(a: ExpArrow, shapes: ShapeList) -> ShapeList:
-    return same_conv(a, shapes)
+def sub_propagate(a: NegArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
 
 
 @overload
-def conv(a: LogArrow, shapes: ShapeList) -> ShapeList:
-    return same_conv(a, shapes)
+def sub_propagate(a: PowArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
 
 
 @overload
-def conv(a: LogBaseArrow, shapes: ShapeList) -> ShapeList:
-    return same_conv(a, shapes)
+def sub_propagate(a: ExpArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
 
 
 @overload
-def conv(a: MulArrow, shapes: ShapeList) -> ShapeList:
-    return same_conv(a, shapes)
+def sub_propagate(a: LogArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
 
 
 @overload
-def conv(a: DivArrow, shapes: ShapeList) -> ShapeList:
-    return same_conv(a, shapes)
+def sub_propagate(a: LogBaseArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
 
 
 @overload
-def conv(a: DuplArrow, shapes: ShapeList) -> ShapeList:
-    return same_conv(a, shapes)
+def sub_propagate(a: MulArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
+
 
 @overload
-def conv(a: AddNArrow, shapes: ShapeList) -> ShapeList:
-    return same_conv(a, shapes)
+def sub_propagate(a: DivArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
+
 
 @overload
-def conv(a: CastArrow, shapes: ShapeList) -> ShapeList:
-    return same_conv(a, shapes)
+def sub_propagate(a: DuplArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
 
 @overload
-def conv(a: AbsArrow, shapes: ShapeList) -> ShapeList:
-    return same_conv(a, shapes)
+def sub_propagate(a: AddNArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
 
 @overload
-def conv(a: RankArrow, shapes: ShapeList) -> ShapeList:
-    assert len(shapes) == a.num_in_ports()
-    assert shapes[0] is not None, "Input shape must be known"
-    return [()], [(a.in_ports[0], shapes[0])]
+def sub_propagate(a: CastArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
 
 @overload
-def conv(a: RangeArrow, shapes: ShapeList) -> ShapeList:
-    assert len(shapes) == a.num_in_ports()
+def sub_propagate(a: AbsArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
+
+@overload
+def sub_propagate(a: InvDuplArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return generic_prop(a, port_to_known)
+
+@overload
+def sub_propagate(a: RankArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return {port: () for port in a.get_out_ports()}
+
+@overload
+def sub_propagate(a: RangeArrow, port_to_known: PortValues, state=None) -> ShapeList:
     assert False
 
 @overload
-def conv(a: ReduceMeanArrow, shapes: ShapeList) -> ShapeList:
-    assert len(shapes) == a.num_in_ports()
+def sub_propagate(a: ReduceMeanArrow, port_to_known: PortValues, state=None) -> ShapeList:
     assert False
 
 
 @overload
-def conv(a: SourceArrow, shapes: ShapeList) -> ShapeList:
-    return [a.get_shape()]
+def sub_propagate(a: CompositeArrow, port_to_known: PortValues, state=None) -> ShapeList:
+    return propagate(sub_propagate, a, port_to_known, state=None)
 
 
-@overload
-def conv(a: CompositeArrow, shapes: ShapeList) -> ShapeList:
-    assert len(shapes) == a.num_in_ports()
-    result, emit = interpret(conv, a, shapes, return_emit=True)
-    emit = dict(emit)
-    to_emit = [(port, emit[inner_port]) for port in a.ports
-               if port in a.edges
-               for inner_port in a.edges.fwd(port)
-               if inner_port in emit]
-    return result, to_emit
-
-def propagate_shapes(comp_arrow: CompositeArrow,
-                     input_shapes: ShapeList):
-    result, emit = conv(comp_arrow, input_shapes)
-    return result, dict(emit)
+def propagate_shapes(comp_arrow: CompositeArrow, port_to_known: PortValues):
+    return propagate(sub_propagate, comp_arrow, port_to_known)

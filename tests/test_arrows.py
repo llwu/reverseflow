@@ -87,10 +87,10 @@ def test_mixed_knowns() -> CompositeArrow:
     c2 = SourceArrow(2)
     a1 = AddArrow()
     edges = Bimap()  # type: EdgeMap
-    edges.add(c1.out_ports[0], arrow.in_ports[0])
-    edges.add(c2.out_ports[0], arrow.in_ports[1])
-    return CompositeArrow(in_ports=[a1.in_ports[0], a1.in_ports[1]],
-                          out_ports=[arrow.out_ports[0], a1.out_ports[0]],
+    edges.add(c1.get_out_ports()[0], arrow.get_in_ports()[0])
+    edges.add(c2.get_out_ports()[0], arrow.get_in_ports()[1])
+    return CompositeArrow(in_ports=[a1.get_in_ports()[0], a1.get_in_ports()[1]],
+                          out_ports=[arrow.get_out_ports()[0], a1.get_out_ports()[0]],
                           edges=edges,
                           name="test_mixed_knowns")
 

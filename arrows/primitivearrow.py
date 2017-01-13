@@ -1,6 +1,6 @@
 from arrows.arrow import Arrow
 from arrows.port import Port, InPort, OutPort
-from arrows.port_attributes import make_in_port, make_out_port, is_out_port, is_in_port
+from arrows.port_attributes import make_in_port, make_out_port
 from typing import Dict, List, MutableMapping, Set
 from sympy import Expr, Rel
 
@@ -11,18 +11,6 @@ class PrimitiveArrow(Arrow):
 
     def get_ports(self) -> List[Port]:
         return self.ports
-
-    def get_in_ports(self) -> List[InPort]:
-        """Get InPorts of an Arrow
-        Returns:
-            List of InPorts"""
-        return [port for port in self.ports if is_in_port(port)]
-
-    def get_out_ports(self) -> List[OutPort]:
-        """Get OutPorts of an Arrow
-        Returns:
-            List of OutPorts"""
-        return [port for port in self.ports if is_out_port(port)]
 
     def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> Set[Rel]:
         return []

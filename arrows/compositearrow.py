@@ -1,12 +1,14 @@
 """Compositions of Primitive Arrows"""
 from typing import Set, Sequence, List
-from arrows import Arrow
-from reverseflow.util.mapping import Bimap, Relation
-from arrows.port import Port, InPort, OutPort
-from arrows.port_attributes import *
 
-EdgeMap = Bimap[OutPort, InPort]
+from arrows import Arrow
+from arrows.port import Port
+from arrows.port_attributes import is_in_port, is_out_port
+from reverseflow.util.mapping import Bimap, Relation
+
+EdgeMap = Bimap[Port, Port]
 RelEdgeMap = Relation[Port, Port]
+
 
 def is_exposed(port: Port, context: "CompositeArrow") -> bool:
     """Is this Port exposed within this arrow, i.e. can it be connected
@@ -16,7 +18,6 @@ def is_exposed(port: Port, context: "CompositeArrow") -> bool:
 
 def is_projecting(port: Port, context: "CompositeArrow") -> bool:
     """Is this port projecting in this context"""
-    # assert is_exposed(port, context), "Port not expsoed in this context"
     if port.arrow == context:
         return is_in_port(port)
     elif port.arrow in context.get_sub_arrows():
@@ -26,7 +27,7 @@ def is_projecting(port: Port, context: "CompositeArrow") -> bool:
 
 
 def is_receiving(port: Port, context: "CompositeArrow") -> bool:
-    # A port is receiving (in some context) if it is not projecting
+    """A port is receiving (in some context) if it is not projecting."""
     return not is_projecting(port, context)
 
 
@@ -41,11 +42,19 @@ class CompositeArrow(Arrow):
     def has_out_port_type(self, PortType) -> bool:
         return any((isinstance(PortType, port) for port in self.get_out_ports()))
 
-    def neigh_in_ports(self, out_port: OutPort) -> Sequence[InPort]:
+    def neigh_in_ports(self, out_port: Port) -> Sequence[Port]:
         return self.edges.fwd(out_port)
 
-    def neigh_out_ports(self, in_port: InPort) -> Sequence[OutPort]:
+    def neigh_out_ports(self, in_port: Port) -> Sequence[Port]:
         return self.edges.inv(in_port)
+
+    def neigh_ports(self, port: Port) -> Sequence[Port]:
+        if port in self.edges:
+            return self.edges.fwd(port)
+        elif port in self.edges.right_to_left:
+            return self.edges.inv(port)
+        else:
+            return []
 
     def get_all_arrows(self) -> Set[Arrow]:
         """Return all arrows including self"""
@@ -64,7 +73,6 @@ class CompositeArrow(Arrow):
         if self in arrows:
             arrows.remove(self)
         return arrows
-
 
     def is_wired_correctly(self) -> bool:
         """Is this composite arrow wired up correctly"""
@@ -136,31 +144,19 @@ class CompositeArrow(Arrow):
         idx = self.num_ports()
         port = Port(self, idx)
         self.ports.append(port)
-        if port_attributes:
+        if port_attributes is not None:
             self.port_attributes.append(port_attributes)
         else:
             self.port_attributes.append({})
         return port
-
-    def get_in_ports(self) -> List[InPort]:
-        """Get InPorts of an Arrow
-        Returns:
-            List of InPorts"""
-        return [port for port in self.ports if is_in_port(port)]
-
-    def get_out_ports(self) -> List[OutPort]:
-        """Get OutPorts of an Arrow
-        Returns:
-            List of OutPorts"""
-        return [port for port in self.ports if is_out_port(port)]
 
     def get_ports(self) -> List[Port]:
         return self.ports
 
     def __init__(self,
                  edges: RelEdgeMap=None,
-                 in_ports: Sequence[InPort]=None,
-                 out_ports: Sequence[OutPort]=None,
+                 in_ports: Sequence[Port]=None,
+                 out_ports: Sequence[Port]=None,
                  name: str=None,
                  parent=None,
                  port_attributes=None) -> None:

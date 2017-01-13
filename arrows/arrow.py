@@ -1,5 +1,6 @@
 """Major classes for Arrow data structures"""
 
+import arrows.port_attributes as pa
 
 class Arrow:
     """Abstract arrow class"""
@@ -7,6 +8,33 @@ class Arrow:
     def __init__(self, name: str, parent=None) -> None:
         self.name = name
         self.parent = parent
+
+    def get_ports(self):
+        return self.ports
+
+    def get_in_ports(self):
+        """
+        Get InPorts of an Arrow.
+        Returns:
+            List of InPorts
+        """
+        return [port for port in self.ports if pa.is_in_port(port)]
+
+    def get_param_ports(self):
+        """
+        Get ParamPorts of an Arrow.
+        Returns:
+            List of ParamPorts
+        """
+        return [port for port in self.ports if pa.is_param_port(port)]
+
+    def get_out_ports(self):
+        """
+        Get OutPorts of an Arrow.
+        Returns:
+            List of OutPorts
+        """
+        return [port for port in self.ports if pa.is_out_port(port)]
 
     def num_ports(self):
         return len(self.get_ports())
@@ -34,15 +62,6 @@ class Arrow:
 
     def is_tf(self) -> bool:
         return False
-
-    # def inner_in_ports(self):
-    #     return self.get_in_ports()
-    #
-    # def inner_out_ports(self):
-    #     return self.get_out_ports()
-
-    def inner_error_ports(self):
-        return []
 
     def get_sub_arrows(self):
         return []

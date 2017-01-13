@@ -1,5 +1,4 @@
 """Immutable port classes, should be identified by arrow, index, and type."""
-from arrows.arrow import Arrow
 
 
 class Port():
@@ -12,7 +11,7 @@ class Port():
     A port is uniquely determined by the arrow it belongs to and a index.
     """
 
-    def __init__(self, arrow: Arrow, index: int) -> None:
+    def __init__(self, arrow, index: int) -> None:
         self.arrow = arrow
         self.index = index
 
