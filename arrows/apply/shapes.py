@@ -1,16 +1,13 @@
 """Compute shapes of outputs"""
-from typing import Tuple, Dict, Sequence
-
-from overloading import overload
-from numpy import ndarray
-
 from arrows.arrow import Arrow
 from arrows.compositearrow import CompositeArrow
 from arrows.std_arrows import *
 from arrows.port import Port
 from arrows.apply.propagate import propagate
-from reverseflow.inv_primitives.inv_control_flow_arrows import *
-from reverseflow.inv_primitives.inv_math_arrows import *
+
+from overloading import overload
+from numpy import ndarray
+from typing import Tuple, Dict, Sequence
 
 ShapeList = Sequence
 PortValues = Dict
