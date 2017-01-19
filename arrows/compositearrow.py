@@ -30,11 +30,23 @@ def is_receiving(port: Port, context: "CompositeArrow") -> bool:
     """A port is receiving (in some context) if it is not projecting."""
     return not is_projecting(port, context)
 
+# from arrows.primitive.controlflow import DuplArrow
 
 class CompositeArrow(Arrow):
     """Composite arrow
     A composite arrow is a composition of SubArrows
     """
+    def duplify(self) -> None:
+        for out_port in self.edges.keys():
+            in_ports = self.neigh_in_ports(out_port)
+            if len(in_ports) > 1:
+                dupl = DuplArrow(n_duplications=len(in_ports))
+                # add edge from to dupl and remove all other edges
+                self.add_edge(out_port, dupl.get_in_ports()[0])
+                for i, neigh_port in enumerate(in_ports):
+                    self.remove_edge(out_port, neigh_port)
+                    self.add_edge(dupl.get_out_ports()[i], neigh_port)
+                assert len(self.neigh_in_ports(out_port)) == 1
 
     def has_in_port_type(self, PortType) -> bool:
         return any((isinstance(PortType, port) for port in self.get_in_ports()))
@@ -136,7 +148,14 @@ class CompositeArrow(Arrow):
         left.arrow.parent = self
         right.arrow.parent = self
         self.edges.add(left, right)
-        # assert self.is_wired_correctly(), "The arrow is wired incorrectly"
+
+    def remove_edge(self, left: Port, right: Port):
+        """Add an edge to the composite arrow
+        Args:
+            left: Projecting Port
+            right: receiving Port
+        """
+        self.edges.remove(left, right)
 
 
     def add_port(self, port_attributes=None) -> Port:

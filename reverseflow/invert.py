@@ -20,7 +20,7 @@ def invert_sub_arrow(arrow: Arrow,
                      port_values: PortValues,
                      dispatch: DispatchType):
     invert_f = dispatch[arrow.__class__]
-    return invert_f(arrow, const_in_ports)
+    return invert_f(arrow, port_values)
 
 @overload
 def invert_sub_arrow(source_arrow: SourceArrow,
@@ -32,7 +32,7 @@ def invert_sub_arrow(source_arrow: SourceArrow,
 def invert_sub_arrow(comp_arrow: CompositeArrow,
                      port_values: PortValues,
                      dispatch: DispatchType):
-    return inner_invert(comp_arrow, const_in_ports, const_out_ports, dispatch)
+    return inner_invert(comp_arrow, port_values, dispatch)
 
 @overload
 def link(out_port1: OutPort, in_port2: InPort, comp_arrow: CompositeArrow):
@@ -86,8 +86,7 @@ def inner_invert(comp_arrow: CompositeArrow,
     arrow_to_port_map = dict()
     for sub_arrow in comp_arrow.get_sub_arrows():
         inv_sub_arrow, port_map = invert_sub_arrow(sub_arrow,
-                                                   const_in_ports,
-                                                   const_out_ports,
+                                                   port_values,
                                                    dispatch)
         arrow_to_port_map[sub_arrow] = port_map
         arrow_to_inv[sub_arrow] = inv_sub_arrow
@@ -139,27 +138,8 @@ def inner_invert(comp_arrow: CompositeArrow,
                 make_out_port(error_port)
                 make_error_port(error_port)
 
-    import pdb; pdb.set_trace()
     return inv_comp_arrow
 
-
-def duplify(comp_arrow: CompositeArrow) -> CompositeArrow:
-    """Make every port project to single other port (using DuplArrow)
-    Args:
-        comp_arrow: Composite arrow (potentially) with ports with many neigh
-    Returns:
-        CompositeArrow where each port has a single neighbour"""
-    for sub_arrow in comp_arrow.get_all_arrows():
-        for port in sub_arrow.get_proj_ports():
-            neigh_ports = comp_arrow.get_neigh_ports(port)
-            if len(neigh_ports) > 1:
-                dupl = DuplArrow(n_duplications=len(neigh_ports))
-                comp_arrow.add_edge(port, dupl.get_in_ports()[0])
-                for i, neigh_port in enumerate(neigh_ports):
-                    comp_arrow.remove_edge(port, neigh_port)
-                    comp_arrow.add_edge(dupl.get_out_ports()[i], neigh_port)
-
-                assert len(comp_arrow.get_neigh_ports(port)) == 1
 
 
 def invert(comp_arrow: CompositeArrow,
@@ -171,5 +151,5 @@ def invert(comp_arrow: CompositeArrow,
     Returns:
         A (approximate) parametric inverse of `comp_arrow`"""
     port_values = propagate_constants(comp_arrow)
-    duplify(comp_arrow)
+    comp_arrow.duplify()
     return inner_invert(comp_arrow, port_values, dispatch)

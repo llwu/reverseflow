@@ -2,6 +2,7 @@
 from arrows import Arrow, Port, InPort
 from arrows.port_attributes import make_error_port, make_param_port
 from arrows.std_arrows import *
+from arrows.apply.constants import PortValues, CONST, VAR
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.util.mapping import Bimap
 from typing import Set, Tuple, Dict
@@ -9,12 +10,12 @@ from typing import Set, Tuple, Dict
 PortMap = Dict[int, int]
 
 def generic_binary_inv(arrow: Arrow,
-                       const_in_ports: Set[InPort],
+                       port_values: PortValues,
                        PInverseArrow,
                        Port0ConstArrow,
                        Port1ConstArrow) -> Tuple[Arrow, PortMap]:
-    port_0_const = arrow.get_in_ports()[0] in const_in_ports
-    port_1_const = arrow.get_in_ports()[1] in const_in_ports
+    port_0_const = port_values[arrow.get_in_ports()[0]] == CONST
+    port_1_const = port_values[arrow.get_in_ports()[1]] == CONST
 
     if port_0_const and port_1_const:
         # If both ports constant just return arrow as is
@@ -34,8 +35,8 @@ def generic_binary_inv(arrow: Arrow,
     return inv_arrow, port_map
 
 
-def inv_add(arrow: AddArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
-    return generic_binary_inv(arrow, const_in_ports, PInverseArrow=InvAddArrow,
+def inv_add(arrow: AddArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+    return generic_binary_inv(arrow, port_values, PInverseArrow=InvAddArrow,
                               Port0ConstArrow=SubArrow, Port1ConstArrow=SubArrow)
 
 # def inv_sub(arrow: SubArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
@@ -60,8 +61,8 @@ def inv_add(arrow: AddArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMa
 #     return inv_arrow, port_map
 
 
-def inv_dupl_approx(arrow: DuplArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
-    assert arrow.get_in_ports()[0] not in const_in_ports, "Dupl is constant"
+def inv_dupl_approx(arrow: DuplArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+    assert port_values[arrow.get_in_ports()[0]] == VAR, "Dupl is constant"
     n_duplications = arrow.n_out_ports
     inv_dupl = InvDuplArrow(n_duplications=n_duplications)
     approx_id = ApproxIdentityArrow(n_inputs=n_duplications)
