@@ -3,7 +3,6 @@ from arrows import Arrow, Port, InPort
 from arrows.port_attributes import make_error_port, make_param_port
 from arrows.std_arrows import *
 from reverseflow.inv_primitives.inv_math_arrows import *
-from reverseflow.inv_primitives.inv_control_flow_arrows import *
 from reverseflow.util.mapping import Bimap
 from typing import Set, Tuple, Dict
 

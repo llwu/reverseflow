@@ -1,14 +1,12 @@
 """Parametric Inversion"""
-
-from typing import Dict, Callable, Set, Tuple, Type, TypeVar, Any
-
 from arrows import Arrow, OutPort, Port, InPort
 from arrows.compositearrow import CompositeArrow, RelEdgeMap, is_projecting, is_receiving
+from arrows.apply.constants import PortValues, CONST, VAR
 from arrows.std_arrows import *
 from arrows.port_attributes import *
-from arrows.apply.constant import propagate_constants
+from arrows.apply.constants import propagate_constants
 from reverseflow.defaults import default_dispatch
-from reverseflow.util.mapping import Bimap, Relation
+from typing import Dict, Callable, Set, Tuple, Type, TypeVar, Any
 from overloading import overload
 
 PortMap = Dict[int, int]
@@ -19,23 +17,20 @@ DispatchType = Any
 
 @overload
 def invert_sub_arrow(arrow: Arrow,
-                     const_in_ports,
-                     const_out_ports,
+                     port_values: PortValues,
                      dispatch: DispatchType):
     invert_f = dispatch[arrow.__class__]
     return invert_f(arrow, const_in_ports)
 
 @overload
 def invert_sub_arrow(source_arrow: SourceArrow,
-                     const_in_ports: Set[InPort],
-                     const_out_ports: Set[OutPort],
+                     port_values: PortValues,
                      dispatch: DispatchType):
     return source_arrow, {0: 0}
 
 @overload
 def invert_sub_arrow(comp_arrow: CompositeArrow,
-                     const_in_ports: Set[InPort],
-                     const_out_ports: Set[OutPort],
+                     port_values: PortValues,
                      dispatch: DispatchType):
     return inner_invert(comp_arrow, const_in_ports, const_out_ports, dispatch)
 
@@ -67,8 +62,7 @@ def get_inv_port(port: Port,
     return inv_port
 
 def inner_invert(comp_arrow: CompositeArrow,
-                 const_in_ports: Set[InPort],
-                 const_out_ports: Set[OutPort],
+                 port_values: PortValues,
                  dispatch: Dict[Arrow, Callable]):
     """Construct a parametric inverse of arrow
     Args:
@@ -176,6 +170,6 @@ def invert(comp_arrow: CompositeArrow,
         dispatch: Dict mapping comp_arrow class to invert function
     Returns:
         A (approximate) parametric inverse of `comp_arrow`"""
-    const_in_ports, const_out_ports = mark_source(comp_arrow)
+    port_values = propagate_constants(comp_arrow)
     duplify(comp_arrow)
-    return inner_invert(comp_arrow, const_in_ports, const_out_ports, dispatch)
+    return inner_invert(comp_arrow, port_values, dispatch)

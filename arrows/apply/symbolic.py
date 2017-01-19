@@ -4,7 +4,6 @@ from typing import Dict, MutableMapping, Tuple, List, Set, Sequence
 from arrows import Arrow, CompositeArrow, InPort, OutPort
 from arrows.std_arrows import *
 from reverseflow.inv_primitives.inv_math_arrows import *
-from reverseflow.inv_primitives.inv_control_flow_arrows import *
 from arrows.apply.interpret import interpret
 
 

@@ -9,7 +9,6 @@ from arrows import (Arrow, CompositeArrow, compose_comb_modular, compose_comb)
 from arrows.std_arrows import *
 
 from reverseflow.inv_primitives.inv_math_arrows import *
-from reverseflow.inv_primitives.inv_control_flow_arrows import *
 from reverseflow.defaults import default_dispatch
 from reverseflow.util.mapping import Bimap
 from arrows.config import floatX

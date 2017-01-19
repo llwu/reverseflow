@@ -10,7 +10,6 @@ from arrows.sourcearrow import SourceArrow
 from arrows.compositearrow import CompositeArrow, EdgeMap
 from arrows.std_arrows import *
 from arrows.apply.interpret import interpret
-from reverseflow.inv_primitives.inv_control_flow_arrows import *
 from typing import List, Dict, MutableMapping, Union, Sequence
 from overloading import overload
 
