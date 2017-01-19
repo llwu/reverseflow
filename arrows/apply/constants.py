@@ -25,7 +25,7 @@ def const_iff_const(a: Arrow, port_values: PortValues, state=None):
         if all((value == CONST for value in port_values.values())):
             return {port: CONST for port in a.get_ports()}
         else:
-            return {port: VAR if port in port_values else VAR for port in a.get_ports()}
+            return {port: port_values[port] if port in port_values else VAR for port in a.get_ports()}
     else:
         # no change
         return port_values

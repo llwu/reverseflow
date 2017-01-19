@@ -26,7 +26,7 @@ def invert_sub_arrow(arrow: Arrow,
 def invert_sub_arrow(source_arrow: SourceArrow,
                      port_values: PortValues,
                      dispatch: DispatchType):
-    return source_arrow, {0: 0}
+    return SourceArrow(value=source_arrow.value), {0: 0}
 
 @overload
 def invert_sub_arrow(comp_arrow: CompositeArrow,
@@ -88,10 +88,13 @@ def inner_invert(comp_arrow: CompositeArrow,
         inv_sub_arrow, port_map = invert_sub_arrow(sub_arrow,
                                                    port_values,
                                                    dispatch)
+        assert sub_arrow is not None
+        assert inv_sub_arrow.parent is None
         arrow_to_port_map[sub_arrow] = port_map
         arrow_to_inv[sub_arrow] = inv_sub_arrow
 
     # Add comp_arrow to inv
+    assert comp_arrow is not None
     arrow_to_inv[comp_arrow] = inv_comp_arrow
     comp_port_map = {i: i for i in range(comp_arrow.num_ports())}
     arrow_to_port_map[comp_arrow] = comp_port_map
