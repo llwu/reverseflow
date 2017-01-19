@@ -6,7 +6,7 @@ from arrows import Arrow, OutPort, Port, InPort
 from arrows.compositearrow import CompositeArrow, RelEdgeMap, is_projecting, is_receiving
 from arrows.std_arrows import *
 from arrows.port_attributes import *
-from arrows.marking import mark_source
+from arrows.apply.constant import propagate_constants
 from reverseflow.defaults import default_dispatch
 from reverseflow.util.mapping import Bimap, Relation
 from overloading import overload

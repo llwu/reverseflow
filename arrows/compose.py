@@ -9,14 +9,14 @@ from arrows.port import InPort, OutPort
 from arrows.compositearrow import CompositeArrow, EdgeMap
 from reverseflow.util.mapping import Bimap
 
-@overload
-def compose(l: PrimitiveArrow,
-            r:PrimitiveArrow):
-    c = CompositeArrow()
-
-@overload
-def compose(l: CompositeArrow, r: PrimitiveArrow):
-
+# @overload
+# def compose(l: PrimitiveArrow,
+#             r:PrimitiveArrow):
+#     c = CompositeArrow()
+#
+# @overload
+# def compose(l: CompositeArrow, r: PrimitiveArrow):
+#
 
 
 def edges(a: Arrow) -> EdgeMap:
