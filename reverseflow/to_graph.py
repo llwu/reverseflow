@@ -128,4 +128,5 @@ def conv(a: CompositeArrow, args: TensorVarList) -> Sequence[Tensor]:
 
 def arrow_to_graph(comp_arrow: CompositeArrow,
                    input_tensors: Sequence[Tensor]):
-    return interpret(conv, comp_arrow, input_tensors)
+    input_tensors_wrapped = list(map(tf.identity, input_tensors))
+    return interpret(conv, comp_arrow, input_tensors_wrapped)
