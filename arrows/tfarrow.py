@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 
-from arrows.arrow import PrimitiveArrow
+from arrows.primitivearrow import PrimitiveArrow
 
 
 class TfArrow(PrimitiveArrow):
