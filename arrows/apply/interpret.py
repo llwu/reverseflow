@@ -90,7 +90,6 @@ def inner_interpret(conv: Callable,
 
     outputs_dict = arrow_inputs[comp_arrow]
     out_port_indices = sorted(list(outputs_dict.keys()))
-    assert out_port_indices == list(range(comp_arrow.num_in_ports(), comp_arrow.num_ports()))
     return [outputs_dict[i] for i in out_port_indices], emit_list
 
 def interpret(conv: Callable,
