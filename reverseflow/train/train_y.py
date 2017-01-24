@@ -2,10 +2,10 @@ from arrows import (Arrow, CompositeArrow, compose_comb_modular, compose_comb)
 from arrows import InPort
 from arrows.port_attributes import is_param_port, is_error_port
 from arrows.std_arrows import *
+from arrows.config import floatX
 
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.to_graph import arrow_to_graph, gen_input_tensors
-from arrows.config import floatX
 
 from typing import List
 import tensorflow as tf
@@ -43,7 +43,7 @@ def train_loop(update_step,
                input_tensors,
                output_tensors,
                input_data,
-               num_iterations=1000,
+               num_iterations=10,
                summary_gap=500,
                save_every=10,
                sfx='',
@@ -67,10 +67,10 @@ def train_loop(update_step,
         save_dir: Directory for saving logs
         saver: Tensorflow saver for saving
     """
-
+    check = tf.add_check_numerics_ops()
     for i in range(num_iterations):
         feed_dict = gen_batch(input_tensors, input_data)
-        loss_res = sess.run([loss, update_step] + output_tensors, feed_dict=feed_dict)
+        loss_res = sess.run([check, loss, update_step] + output_tensors, feed_dict=feed_dict)
         print("Loss is ", loss_res)
 
 def train_y_tf(params: List[Tensor],

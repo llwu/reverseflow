@@ -42,6 +42,8 @@ def gen_robot(lengths: Sequence, angles: Sequence):
     return sum(x_terms), sum(y_terms)
 
 
+import tensorflow as tf
+
 def test_robot_arm():
     lengths = [1, 2]
     angles = [tf.placeholder(floatX(), name="theta") for i in range(len(lengths))]
