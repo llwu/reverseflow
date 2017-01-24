@@ -1,10 +1,23 @@
 """Convert a tensoflow graph into an arrow"""
-from tensorflow import Tensor, Operation
-from typing import List, Tuple, Dict, Sequence
 from arrows import (Arrow, CompositeArrow,)
 from arrows import InPort, OutPort
 from arrows.std_arrows import *
 from reverseflow.util.mapping import Relation
+
+from tensorflow import Tensor, Operation
+import tensorflow as tf
+from typing import List, Tuple, Dict, Sequence
+
+
+def get_const_op_value(const_op: Operation):
+    """Get the constant output of a Const op as a numpy array/number"""
+    sess = tf.Session()
+    outputs = const_op.outputs
+    assert len(outputs) == 1
+    output = outputs[0]
+    val = output.eval(session=sess)
+    sess.close()
+    return val
 
 
 def conv_Add(add_op: Operation):
@@ -15,13 +28,24 @@ def conv_Mul(mul_op: Operation):
     return MulArrow()
 
 
+def conv_Sin(sin_op: Operation):
+    return SinArrow()
+
+
+def conv_Cos(sin_op: Operation):
+    return CosArrow()
+
+
 def conv_Const(const_op: Operation):
-    assert False
+    value = get_const_op_value(const_op)
+    return SourceArrow(value=value)
 
 # Mapping between op types and arrows
 # Cannot use multimethods because different ops not distinguished by type
 Op_To_Arrow = {'Add': conv_Add,  # type: Dict[string, Arrow]
                'Mul': conv_Mul,
+               'Sin': conv_Sin,
+               'Cos': conv_Cos,
                'Const': conv_Const}
 
 def arrow_from_op(op: Operation,

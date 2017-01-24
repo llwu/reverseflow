@@ -3,7 +3,7 @@ from pqdict import pqdict
 from arrows.arrow import Arrow
 from arrows.compositearrow import CompositeArrow, EdgeMap
 from arrows.primitive.math_arrows import *
-from arrows.primitive.control_flow_arrows import *
+from arrows.primitive.control_flow import *
 from arrows.primitive.cast_arrows import *
 from arrows.primitive.constant import *
 from typing import List, Dict, MutableMapping, Union, Callable

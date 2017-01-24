@@ -13,3 +13,5 @@ def test_partition():
     totality_test(attachNN,
                   all_test_arrows,
                   test_name="attachNN")
+
+test_partition()

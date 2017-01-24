@@ -4,6 +4,7 @@ from typing import Sequence
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from arrows.config import floatX
+from reverseflow.train.train_y import min_approx_error_arrow
 
 
 def accum_sum(xs: Sequence):
@@ -47,5 +48,7 @@ def test_robot_arm():
     x, y = gen_robot(lengths, angles)
     arrow = graph_to_arrow([x, y])
     inv_arrow = invert(arrow)
+    min_approx_error_arrow(arrow)
+
 
 test_robot_arm()

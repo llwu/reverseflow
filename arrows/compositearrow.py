@@ -4,6 +4,7 @@ from typing import Set, Sequence, List
 from arrows import Arrow
 from arrows.port import Port
 from arrows.port_attributes import is_in_port, is_out_port
+from arrows.primitive.control_flow import DuplArrow
 from reverseflow.util.mapping import Bimap, Relation
 
 EdgeMap = Bimap[Port, Port]
@@ -37,11 +38,13 @@ class CompositeArrow(Arrow):
     A composite arrow is a composition of SubArrows
     """
     def duplify(self) -> None:
-        for out_port in self.edges.keys():
+        out_ports = list(self.edges.keys())
+        for out_port in out_ports:
             in_ports = self.neigh_in_ports(out_port)
             if len(in_ports) > 1:
                 dupl = DuplArrow(n_duplications=len(in_ports))
                 # add edge from to dupl and remove all other edges
+                # import pdb; pdb.set_trace()
                 self.add_edge(out_port, dupl.get_in_ports()[0])
                 for i, neigh_port in enumerate(in_ports):
                     self.remove_edge(out_port, neigh_port)
@@ -55,16 +58,16 @@ class CompositeArrow(Arrow):
         return any((isinstance(PortType, port) for port in self.get_out_ports()))
 
     def neigh_in_ports(self, out_port: Port) -> Sequence[Port]:
-        return self.edges.fwd(out_port)
+        return list(self.edges.fwd(out_port))
 
     def neigh_out_ports(self, in_port: Port) -> Sequence[Port]:
-        return self.edges.inv(in_port)
+        return list(self.edges.inv(in_port))
 
     def neigh_ports(self, port: Port) -> Sequence[Port]:
         if port in self.edges:
-            return self.edges.fwd(port)
+            return list(self.edges.fwd(port))
         elif port in self.edges.right_to_left:
-            return self.edges.inv(port)
+            return list(self.edges.inv(port))
         else:
             return []
 

@@ -3,7 +3,7 @@
 from arrows.compositearrow import CompositeArrow
 from reverseflow.util.mapping import Bimap
 from arrows.primitive.math_arrows import *
-from arrows.primitive.control_flow_arrows import DuplArrow
+from arrows.primitive.control_flow import DuplArrow
 from arrows.port_attributes import *
 
 

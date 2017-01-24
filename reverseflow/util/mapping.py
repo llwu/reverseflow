@@ -100,10 +100,8 @@ class Relation(Generic[L, R]):
             self.right_to_left[right] = [left]
 
     def remove(self, left: L, right: R) -> None:
-        if left in self.left_to_right:
-            del self.left_to_right[left]
-        if right in self.right_to_left:
-            del self.right_to_left[right]
+        self.left_to_right[left].remove(right)
+        self.right_to_left[right].remove(left)
 
     def items(self) -> ItemsView[L, R]:
         def items_gen():
