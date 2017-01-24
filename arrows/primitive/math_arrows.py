@@ -116,11 +116,27 @@ class SinArrow(PrimitiveArrow):
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
 
-class CosArrow(PrimitiveArrow):
+class ASinArrow(PrimitiveArrow):
     """Sin"""
 
     def __init__(self):
-        name = 'Sin'
+        name = 'ASin'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+
+class CosArrow(PrimitiveArrow):
+    """Cos"""
+
+    def __init__(self):
+        name = 'Cos'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+
+class ACosArrow(PrimitiveArrow):
+    """ACos"""
+
+    def __init__(self):
+        name = 'ACos'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
 

@@ -39,6 +39,19 @@ def inv_add(arrow: AddArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
     return generic_binary_inv(arrow, port_values, PInverseArrow=InvAddArrow,
                               Port0ConstArrow=SubArrow, Port1ConstArrow=SubArrow)
 
+
+def inv_mul(arrow: AddArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+    return generic_binary_inv(arrow, port_values, PInverseArrow=InvMulArrow,
+                              Port0ConstArrow=DivArrow, Port1ConstArrow=DivArrow)
+
+
+def inv_sin(arrow: SinArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+    return ASinArrow(), {0: 1, 1: 0}
+
+def inv_cos(arrow: CosArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+    return ACosArrow(), {0: 1, 1: 0}
+
+
 # def inv_sub(arrow: SubArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
 #     return generic_binary_inv(arrow, const_in_ports, PInverseArrow=InvSubArrow,
 #                               Port0ConstArrow=SubArrow, Port1ConstArrow=AddArrow)

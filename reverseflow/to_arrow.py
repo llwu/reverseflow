@@ -42,7 +42,7 @@ def conv_Const(const_op: Operation):
 
 # Mapping between op types and arrows
 # Cannot use multimethods because different ops not distinguished by type
-Op_To_Arrow = {'Add': conv_Add,  # type: Dict[string, Arrow]
+Op_Type_To_Arrow = {'Add': conv_Add,  # type: Dict[string, Arrow]
                'Mul': conv_Mul,
                'Sin': conv_Sin,
                'Cos': conv_Cos,
@@ -54,8 +54,9 @@ def arrow_from_op(op: Operation,
     if op in op_to_arrow:
         arrow = op_to_arrow[op]
     else:
-        conv_op = Op_To_Arrow[op.type]
+        conv_op = Op_Type_To_Arrow[op.type]
         arrow = conv_op(op)
+        op_to_arrow[op] = arrow
     assert len(arrow.get_in_ports()) == len(op.inputs)
     return arrow
 
@@ -95,6 +96,7 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
     to_see_tensors = output_tensors[:]
     while len(to_see_tensors) > 0:
         tensor = to_see_tensors.pop()
+        seen_tensors.add(tensor)
         if not is_input_tensor(tensor):
             out_port_id = tensor.value_index
             left_arrow = arrow_from_op(tensor.op, op_to_arrow)
