@@ -153,6 +153,6 @@ def invert(comp_arrow: CompositeArrow,
         dispatch: Dict mapping comp_arrow class to invert function
     Returns:
         A (approximate) parametric inverse of `comp_arrow`"""
-    port_values = propagate_constants(comp_arrow)
     comp_arrow.duplify()
+    port_values = propagate_constants(comp_arrow)
     return inner_invert(comp_arrow, port_values, dispatch)
