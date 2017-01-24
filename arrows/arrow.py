@@ -45,6 +45,9 @@ class Arrow:
     def num_out_ports(self) -> int:
         return len(self.get_out_ports())
 
+    def num_param_ports(self) -> int:
+        return len(self.get_param_ports())
+
     def is_primitive(self) -> bool:
         return False
 
