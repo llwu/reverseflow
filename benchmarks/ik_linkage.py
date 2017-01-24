@@ -46,9 +46,10 @@ def test_robot_arm():
     lengths = [1, 2]
     angles = [tf.placeholder(floatX(), name="theta") for i in range(len(lengths))]
     x, y = gen_robot(lengths, angles)
-    arrow = graph_to_arrow([x, y])
+    arrow = graph_to_arrow([x, y], name="robot_fwd_kinematics")
     inv_arrow = invert(arrow)
-    min_approx_error_arrow(arrow)
+    import pdb; pdb.set_trace()
+    min_approx_error_arrow(inv_arrow, [[9.5],[9.5]])
 
 
 test_robot_arm()

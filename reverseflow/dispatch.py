@@ -14,6 +14,7 @@ def generic_binary_inv(arrow: Arrow,
                        PInverseArrow,
                        Port0ConstArrow,
                        Port1ConstArrow) -> Tuple[Arrow, PortMap]:
+    # FIXME: Is this actually correct for mul/add/sub
     port_0_const = port_values[arrow.get_in_ports()[0]] == CONST
     port_1_const = port_values[arrow.get_in_ports()[1]] == CONST
 
@@ -55,10 +56,6 @@ def inv_cos(arrow: CosArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
 # def inv_sub(arrow: SubArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
 #     return generic_binary_inv(arrow, const_in_ports, PInverseArrow=InvSubArrow,
 #                               Port0ConstArrow=SubArrow, Port1ConstArrow=AddArrow)
-#
-# def inv_mul(arrow: MulArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
-#     return generic_binary_inv(arrow, const_in_ports, PInverseArrow=InvMulArrow,
-#                               Port0ConstArrow=DivArrow, Port1ConstArrow=DivArrow)
 #
 # def inv_div(arrow: DivArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
 #     return generic_binary_inv(arrow, const_in_ports, PInverseArrow=InvDivArrow,

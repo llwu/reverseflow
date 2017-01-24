@@ -71,6 +71,7 @@ def update_seen(op: Operation,
 def is_input_tensor(tensor: Tensor) -> bool:
     return tensor.op.type == 'Placeholder'
 
+from arrows.port_attributes import make_in_port, make_out_port
 
 def graph_to_arrow(output_tensors: Sequence[Tensor],
                    name:str=None) -> Arrow:
@@ -82,24 +83,29 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
     Returns:
         A 'CompositeArrow' equivalent to graph which computes 'output_tensors'
     """
-    edges = Relation()
     op_to_arrow = dict()
-    comp_out_ports = []  # type: List[OutPort]
-    comp_in_ports = []  # type: List[InPort]
     seen_tensors = set()
     to_see_tensors = []
+    comp_arrow = CompositeArrow(name=name)
 
     for tensor in output_tensors:
+        out_port = comp_arrow.add_port()
+        make_out_port(out_port)
         arrow = arrow_from_op(tensor.op, op_to_arrow)
-        comp_out_ports.append(arrow.get_out_ports()[tensor.value_index])
+        left = arrow.get_out_ports()[tensor.value_index]
+        comp_arrow.add_edge(left, out_port)
 
     to_see_tensors = output_tensors[:]
     while len(to_see_tensors) > 0:
         tensor = to_see_tensors.pop()
         seen_tensors.add(tensor)
-        if not is_input_tensor(tensor):
+        if is_input_tensor(tensor):
+            left_port = comp_arrow.add_port()
+            make_in_port(left_port)
+        else:
             out_port_id = tensor.value_index
             left_arrow = arrow_from_op(tensor.op, op_to_arrow)
+            left_port = left_arrow.get_out_ports()[out_port_id]
             update_seen(tensor.op, seen_tensors, to_see_tensors)
 
         for rec_op in tensor.consumers():
@@ -107,13 +113,8 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
                 if tensor == input_tensor:
                     in_port_id = i
                     right_arrow = arrow_from_op(rec_op, op_to_arrow)
-                    if is_input_tensor(tensor):
-                        comp_in_ports.append(right_arrow.get_in_ports()[in_port_id])
-                    else:
-                        edges.add(left_arrow.get_out_ports()[out_port_id],
-                                  right_arrow.get_in_ports()[in_port_id])
+                    comp_arrow.add_edge(left_port,
+                                        right_arrow.get_in_ports()[in_port_id])
 
-    return CompositeArrow(edges=edges,
-                          in_ports=comp_in_ports,
-                          out_ports=comp_out_ports,
-                          name=name)
+    assert comp_arrow.is_wired_correctly()
+    return comp_arrow

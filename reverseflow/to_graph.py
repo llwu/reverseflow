@@ -78,6 +78,22 @@ def conv(a: MulArrow, args: TensorVarList) -> Sequence[Tensor]:
 def conv(a: DivArrow, args: TensorVarList) -> Sequence[Tensor]:
     return [tf.div(*args)]
 
+@overload
+def conv(a: SinArrow, args: TensorVarList) -> Sequence[Tensor]:
+    return [tf.sin(*args)]
+
+@overload
+def conv(a: CosArrow, args: TensorVarList) -> Sequence[Tensor]:
+    return [tf.cos(*args)]
+
+@overload
+def conv(a: ASinArrow, args: TensorVarList) -> Sequence[Tensor]:
+    return [tf.asin(*args)]
+
+@overload
+def conv(a: ACosArrow, args: TensorVarList) -> Sequence[Tensor]:
+    return [tf.acos(*args)]
+
 
 @overload
 def conv(a: DuplArrow, args: TensorVarList) -> Sequence[Tensor]:
