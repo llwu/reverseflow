@@ -63,7 +63,6 @@ def inner_interpret(conv: Callable,
     """Convert an comp_arrow to a tensorflow graph and add to graph"""
     assert len(inputs) == comp_arrow.num_in_ports(), "wrong # inputs"
 
-    output_tensors_dict = dict()
     emit_list = []
     while len(arrow_colors) > 0:
         # print_arrow_colors(arrow_colors)
