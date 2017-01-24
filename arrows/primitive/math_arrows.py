@@ -125,7 +125,8 @@ class AbsArrow(PrimitiveArrow):
 class ReduceMeanArrow(PrimitiveArrow):
     """Computes the mean of elements across dimensions of a tensor.
     Port0: input
-    Port1: reduction_indices"""
+    Port1: reduction_indices
+    """
 
     def __init__(self,
                  n_inputs,
