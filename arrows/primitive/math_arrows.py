@@ -132,6 +132,13 @@ class CosArrow(PrimitiveArrow):
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
 
+class ClipArrow(PrimitiveArrow):
+    """Cos"""
+
+    def __init__(self):
+        name = 'Clip'
+        super().__init__(n_in_ports=3, n_out_ports=1, name=name)
+
 class ACosArrow(PrimitiveArrow):
     """ACos"""
 
@@ -152,6 +159,14 @@ class AbsArrow(PrimitiveArrow):
         if 1 in input_expr:
             constraints.append(Ge(input_expr[0], 0))
         return constraints
+
+
+class MaxArrow(PrimitiveArrow):
+    """Returns the max of x and y (i.e. x > y ? x : y) element-wise."""
+
+    def __init__(self):
+        name = 'Max'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
 
 class ReduceMeanArrow(PrimitiveArrow):

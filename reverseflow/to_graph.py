@@ -132,7 +132,7 @@ def conv(a: ReduceMeanArrow, args: TensorVarList) -> Sequence[Tensor]:
 @overload
 def conv(a: SourceArrow, args: TensorVarList) -> Sequence[Tensor]:
     assert len(args) == 0, "Source arrow has no inputs"
-    return [tf.Variable(a.value)]
+    return [tf.constant(a.value)]
 
 @overload
 def conv(a: CompositeArrow, args: TensorVarList) -> Sequence[Tensor]:

@@ -1,8 +1,11 @@
+from arrows.primitive.math_arrows import SubArrow, MaxArrow, ClipArrow
 from arrows.composite.math import MeanArrow, VarFromMeanArrow
 from arrows.compositearrow import CompositeArrow
 from arrows.primitive.control_flow import DuplArrow
 from reverseflow.util.mapping import Bimap
-from arrows.port_attributes import make_error_port
+from arrows.sourcearrow import SourceArrow
+from arrows.port_attributes import make_error_port, make_in_port, make_out_port
+
 
 class ApproxIdentityArrow(CompositeArrow):
     """Approximate Identity Arrow
@@ -33,3 +36,39 @@ class ApproxIdentityArrow(CompositeArrow):
                          out_ports=out_ports,
                          name=name)
         make_error_port(self.get_out_ports()[-1])
+
+
+class IntervalBound(CompositeArrow):
+
+    def __init__(self, l, u):
+        """
+        Restricts f(x; a,b) = max(x-y, l-x, 0)
+        """
+        super().__init__(name="IntervalBound")
+        comp_arrow = self
+        comp_arrow = CompositeArrow()
+        in_port = comp_arrow.add_port()
+        make_in_port(in_port)
+        out_port = comp_arrow.add_port()
+        make_out_port(out_port)
+        l_src = SourceArrow(l)
+        u_src = SourceArrow(u)
+
+        x_min_u = SubArrow()
+        comp_arrow.add_edge(in_port, x_min_u.get_in_ports()[0])
+        comp_arrow.add_edge(u_src.get_out_ports()[0], x_min_u.get_in_ports()[1])
+
+        l_min_x = SubArrow()
+        comp_arrow.add_edge(l_src.get_out_ports()[0], l_min_x.get_in_ports()[0])
+        comp_arrow.add_edge(in_port, l_min_x.get_in_ports()[1])
+
+        zero = SourceArrow(0.0)
+        max1 = MaxArrow()
+        comp_arrow.add_edge(l_min_x.get_out_ports()[0], max1.get_in_ports()[0])
+        comp_arrow.add_edge(x_min_u.get_out_ports()[0], max1.get_in_ports()[1])
+
+        max2 = MaxArrow()
+        comp_arrow.add_edge(zero.get_out_ports()[0], max2.get_in_ports()[0])
+        comp_arrow.add_edge(max1.get_out_ports()[0], max2.get_in_ports()[1])
+        comp_arrow.add_edge(max2.get_out_ports()[0], out_port)
+        assert comp_arrow.is_wired_correctly()
