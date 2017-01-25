@@ -142,8 +142,10 @@ class CompositeArrow(Arrow):
         """
         assert left.arrow.parent is self or left.arrow.parent is None
         assert right.arrow.parent is self or right.arrow.parent is None
-        left.arrow.parent = self
-        right.arrow.parent = self
+        if left.arrow is not self:
+            left.arrow.parent = self
+        if right.arrow is not self:
+            right.arrow.parent = self
         self.edges.add(left, right)
 
     def remove_edge(self, left: Port, right: Port):

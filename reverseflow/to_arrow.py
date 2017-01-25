@@ -24,6 +24,10 @@ def conv_Add(add_op: Operation):
     return AddArrow()
 
 
+def conv_AddN(addm_op: Operation):
+    return AddNArrow(len(addm_op.inputs))
+
+
 def conv_Mul(mul_op: Operation):
     return MulArrow()
 
@@ -38,15 +42,17 @@ def conv_Cos(sin_op: Operation):
 
 def conv_Const(const_op: Operation):
     value = get_const_op_value(const_op)
+    import pdb; pdb.set_trace()
     return SourceArrow(value=value)
 
 # Mapping between op types and arrows
 # Cannot use multimethods because different ops not distinguished by type
 Op_Type_To_Arrow = {'Add': conv_Add,  # type: Dict[string, Arrow]
-               'Mul': conv_Mul,
-               'Sin': conv_Sin,
-               'Cos': conv_Cos,
-               'Const': conv_Const}
+                    'AddN': conv_AddN,
+                    'Mul': conv_Mul,
+                    'Sin': conv_Sin,
+                    'Cos': conv_Cos,
+                    'Const': conv_Const}
 
 def arrow_from_op(op: Operation,
                   op_to_arrow: Dict[Operation, Arrow]) -> Arrow:

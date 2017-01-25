@@ -94,6 +94,7 @@ def train_y_tf(params: List[Tensor],
                input_data,
                **kwargs)
 
+from arrows.util.viz import show_tensorboard_graph
 
 def min_approx_error_arrow(arrow: Arrow, input_data: List) -> CompositeArrow:
     """
@@ -105,8 +106,11 @@ def min_approx_error_arrow(arrow: Arrow, input_data: List) -> CompositeArrow:
     Returns:
         parametric_arrow with parameters fixed
     """
-    input_tensors = gen_input_tensors(arrow)
-    output_tensors = arrow_to_graph(arrow, input_tensors)
+    with tf.name_scope("%s_inv" % arrow.name):
+        input_tensors = gen_input_tensors(arrow)
+        output_tensors = arrow_to_graph(arrow, input_tensors)
+    show_tensorboard_graph()
+
     param_tensors = [t for i, t in enumerate(input_tensors) if is_param_port(arrow.get_in_ports()[i])]
     error_tensors = [t for i, t in enumerate(output_tensors) if is_error_port(arrow.get_out_ports()[i])]
     assert len(param_tensors) > 0, "Must have parametric inports"
