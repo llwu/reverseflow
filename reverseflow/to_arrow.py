@@ -1,10 +1,23 @@
 """Convert a tensoflow graph into an arrow"""
-from tensorflow import Tensor, Operation
-from typing import List, Tuple, Dict, Sequence
 from arrows import (Arrow, CompositeArrow,)
 from arrows import InPort, OutPort
 from arrows.std_arrows import *
 from reverseflow.util.mapping import Relation
+
+from tensorflow import Tensor, Operation
+import tensorflow as tf
+from typing import List, Tuple, Dict, Sequence
+
+
+def get_const_op_value(const_op: Operation):
+    """Get the constant output of a Const op as a numpy array/number"""
+    sess = tf.Session()
+    outputs = const_op.outputs
+    assert len(outputs) == 1
+    output = outputs[0]
+    val = output.eval(session=sess)
+    sess.close()
+    return val
 
 
 def conv_Add(add_op: Operation):
@@ -15,13 +28,24 @@ def conv_Mul(mul_op: Operation):
     return MulArrow()
 
 
+def conv_Sin(sin_op: Operation):
+    return SinArrow()
+
+
+def conv_Cos(sin_op: Operation):
+    return CosArrow()
+
+
 def conv_Const(const_op: Operation):
-    assert False
+    value = get_const_op_value(const_op)
+    return SourceArrow(value=value)
 
 # Mapping between op types and arrows
 # Cannot use multimethods because different ops not distinguished by type
-Op_To_Arrow = {'Add': conv_Add,  # type: Dict[string, Arrow]
+Op_Type_To_Arrow = {'Add': conv_Add,  # type: Dict[string, Arrow]
                'Mul': conv_Mul,
+               'Sin': conv_Sin,
+               'Cos': conv_Cos,
                'Const': conv_Const}
 
 def arrow_from_op(op: Operation,
@@ -30,8 +54,9 @@ def arrow_from_op(op: Operation,
     if op in op_to_arrow:
         arrow = op_to_arrow[op]
     else:
-        conv_op = Op_To_Arrow[op.type]
+        conv_op = Op_Type_To_Arrow[op.type]
         arrow = conv_op(op)
+        op_to_arrow[op] = arrow
     assert len(arrow.get_in_ports()) == len(op.inputs)
     return arrow
 
@@ -46,6 +71,7 @@ def update_seen(op: Operation,
 def is_input_tensor(tensor: Tensor) -> bool:
     return tensor.op.type == 'Placeholder'
 
+from arrows.port_attributes import make_in_port, make_out_port
 
 def graph_to_arrow(output_tensors: Sequence[Tensor],
                    name:str=None) -> Arrow:
@@ -57,23 +83,29 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
     Returns:
         A 'CompositeArrow' equivalent to graph which computes 'output_tensors'
     """
-    edges = Relation()
     op_to_arrow = dict()
-    comp_out_ports = []  # type: List[OutPort]
-    comp_in_ports = []  # type: List[InPort]
     seen_tensors = set()
     to_see_tensors = []
+    comp_arrow = CompositeArrow(name=name)
 
     for tensor in output_tensors:
+        out_port = comp_arrow.add_port()
+        make_out_port(out_port)
         arrow = arrow_from_op(tensor.op, op_to_arrow)
-        comp_out_ports.append(arrow.get_out_ports()[tensor.value_index])
+        left = arrow.get_out_ports()[tensor.value_index]
+        comp_arrow.add_edge(left, out_port)
 
     to_see_tensors = output_tensors[:]
     while len(to_see_tensors) > 0:
         tensor = to_see_tensors.pop()
-        if not is_input_tensor(tensor):
+        seen_tensors.add(tensor)
+        if is_input_tensor(tensor):
+            left_port = comp_arrow.add_port()
+            make_in_port(left_port)
+        else:
             out_port_id = tensor.value_index
             left_arrow = arrow_from_op(tensor.op, op_to_arrow)
+            left_port = left_arrow.get_out_ports()[out_port_id]
             update_seen(tensor.op, seen_tensors, to_see_tensors)
 
         for rec_op in tensor.consumers():
@@ -81,13 +113,8 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
                 if tensor == input_tensor:
                     in_port_id = i
                     right_arrow = arrow_from_op(rec_op, op_to_arrow)
-                    if is_input_tensor(tensor):
-                        comp_in_ports.append(right_arrow.get_in_ports()[in_port_id])
-                    else:
-                        edges.add(left_arrow.get_out_ports()[out_port_id],
-                                  right_arrow.get_in_ports()[in_port_id])
+                    comp_arrow.add_edge(left_port,
+                                        right_arrow.get_in_ports()[in_port_id])
 
-    return CompositeArrow(edges=edges,
-                          in_ports=comp_in_ports,
-                          out_ports=comp_out_ports,
-                          name=name)
+    assert comp_arrow.is_wired_correctly()
+    return comp_arrow

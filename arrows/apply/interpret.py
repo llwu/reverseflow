@@ -3,7 +3,7 @@ from pqdict import pqdict
 from arrows.arrow import Arrow
 from arrows.compositearrow import CompositeArrow, EdgeMap
 from arrows.primitive.math_arrows import *
-from arrows.primitive.control_flow_arrows import *
+from arrows.primitive.control_flow import *
 from arrows.primitive.cast_arrows import *
 from arrows.primitive.constant import *
 from typing import List, Dict, MutableMapping, Union, Callable
@@ -90,7 +90,6 @@ def inner_interpret(conv: Callable,
 
     outputs_dict = arrow_inputs[comp_arrow]
     out_port_indices = sorted(list(outputs_dict.keys()))
-    assert out_port_indices == list(range(comp_arrow.num_in_ports(), comp_arrow.num_ports()))
     return [outputs_dict[i] for i in out_port_indices], emit_list
 
 def interpret(conv: Callable,

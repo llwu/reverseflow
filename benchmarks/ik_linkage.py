@@ -4,6 +4,7 @@ from typing import Sequence
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from arrows.config import floatX
+from reverseflow.train.train_y import min_approx_error_arrow
 
 
 def accum_sum(xs: Sequence):
@@ -41,11 +42,15 @@ def gen_robot(lengths: Sequence, angles: Sequence):
     return sum(x_terms), sum(y_terms)
 
 
+import tensorflow as tf
+
 def test_robot_arm():
-    lengths = [1, 2, 3]
+    lengths = [1, 2]
     angles = [tf.placeholder(floatX(), name="theta") for i in range(len(lengths))]
     x, y = gen_robot(lengths, angles)
-    arrow = graph_to_arrow([x, y])
+    arrow = graph_to_arrow([x, y], name="robot_fwd_kinematics")
     inv_arrow = invert(arrow)
+    min_approx_error_arrow(inv_arrow, [[9.5],[9.5]])
+
 
 test_robot_arm()

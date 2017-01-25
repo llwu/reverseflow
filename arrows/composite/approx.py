@@ -1,6 +1,6 @@
 from arrows.composite.math import MeanArrow, VarFromMeanArrow
 from arrows.compositearrow import CompositeArrow
-from arrows.primitive.control_flow_arrows import DuplArrow
+from arrows.primitive.control_flow import DuplArrow
 from reverseflow.util.mapping import Bimap
 from arrows.port_attributes import make_error_port
 

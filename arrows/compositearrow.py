@@ -5,6 +5,7 @@ from copy import deepcopy, copy
 from arrows import Arrow
 from arrows.port import Port
 from arrows.port_attributes import is_in_port, is_out_port
+from arrows.primitive.control_flow import DuplArrow
 from reverseflow.util.mapping import Bimap, Relation
 
 EdgeMap = Bimap[Port, Port]
@@ -31,14 +32,15 @@ def is_receiving(port: Port, context: "CompositeArrow") -> bool:
     """A port is receiving (in some context) if it is not projecting."""
     return not is_projecting(port, context)
 
-# from arrows.primitive.controlflow import DuplArrow
 
 class CompositeArrow(Arrow):
     """Composite arrow
     A composite arrow is a composition of SubArrows
     """
     def duplify(self) -> None:
-        for out_port in self.edges.keys():
+        #FIXME:: Make this recurisve for case when subarrow is comp
+        out_ports = list(self.edges.keys())
+        for out_port in out_ports:
             in_ports = self.neigh_in_ports(out_port)
             if len(in_ports) > 1:
                 dupl = DuplArrow(n_duplications=len(in_ports))
@@ -48,6 +50,7 @@ class CompositeArrow(Arrow):
                     self.remove_edge(out_port, neigh_port)
                     self.add_edge(dupl.get_out_ports()[i], neigh_port)
                 assert len(self.neigh_in_ports(out_port)) == 1
+        assert self.is_wired_correctly()
 
     def has_in_port_type(self, PortType) -> bool:
         return any((isinstance(PortType, port) for port in self.get_in_ports()))
@@ -56,16 +59,16 @@ class CompositeArrow(Arrow):
         return any((isinstance(PortType, port) for port in self.get_out_ports()))
 
     def neigh_in_ports(self, out_port: Port) -> Sequence[Port]:
-        return self.edges.fwd(out_port)
+        return list(self.edges.fwd(out_port))
 
     def neigh_out_ports(self, in_port: Port) -> Sequence[Port]:
-        return self.edges.inv(in_port)
+        return list(self.edges.inv(in_port))
 
     def neigh_ports(self, port: Port) -> Sequence[Port]:
         if port in self.edges:
-            return self.edges.fwd(port)
+            return list(self.edges.fwd(port))
         elif port in self.edges.right_to_left:
-            return self.edges.inv(port)
+            return list(self.edges.inv(port))
         else:
             return []
 
@@ -89,36 +92,29 @@ class CompositeArrow(Arrow):
 
     def is_wired_correctly(self) -> bool:
         """Is this composite arrow wired up correctly"""
+        sub_arrows = self.get_all_arrows()
+        proj_ports = {}
+        rec_ports = {}
 
-        # Ensure that each left hand node is projecting and right receiving
+        for sub_arrow in sub_arrows:
+            for port in sub_arrow.get_ports():
+                if is_projecting(port, self):
+                    proj_ports[port] = 0
+                elif is_receiving(port, self):
+                    rec_ports[port] = 0
+
         for left, right in self.edges.items():
-            assert is_projecting(left, self), "port %s not projecting" % left
-            assert is_receiving(right, self), "port %s not receiving" % right
+            assert left in proj_ports
+            assert right in rec_ports
+            proj_ports[left] += 1
+            rec_ports[right] += 1
 
-        # Ensure no dangling ports
-        out_port_fan = {}
-        in_port_fan = {}
-        # for sub_arrow in self.get_all_arrows():
-        #     for out_port in sub_arrow.get_out_ports():
-        #         out_port_fan[out_port] = 0
-        #     for in_port in sub_arrow.get_in_ports():
-        #         in_port_fan[in_port] = 0
-        #     assert sub_arrow is not self
-        #
-        # for out_port, in_port in self.edges.items():
-        #     out_port_fan[out_port] += 1
-        #     in_port_fan[in_port] += 1
-        #
-        # for out_port, fan in out_port_fan.items():
-        #     if not fan > 0:
-        #         print("%s unused" % out_port)
-        #         return False
-        #
-        # for in_port, fan in in_port_fan.items():
-        #     if not fan == 1:
-        #         print("%s has %s inp, expected 1" % (in_port, fan))
-        #         return False
-        #
+        for port, num in proj_ports.items():
+            assert num > 0, "No projection from %s" % port
+
+        for port, num in rec_ports.items():
+            assert num == 1, "Non inputs to %s is not 1" % port
+
         return True
 
     def are_sub_arrows_parentless(self) -> bool:

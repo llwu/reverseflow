@@ -21,7 +21,7 @@ def totality_test(f:Callable,
             if ignore(arrow):
                 print("Skipping arrow:", arrow.name)
                 continue
-        print("Arrow %s of %s: %s" % (i, len(arrows), arrow.name))
+        print("Arrow %s of %s: %s" % (i+1, len(arrows), arrow.name))
         if input_gen is None:
             f(arrow)
         else:

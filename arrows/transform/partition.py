@@ -2,15 +2,16 @@
 Partition an arrow into layers of sub_arrows
 Attach function approximators (NN) to each layer
 """
-from pqdict import pqdict
-from copy import deepcopy
 from arrows.arrow import Arrow
 from arrows.tfarrow import TfArrow
 from arrows.compositearrow import CompositeArrow
 from arrows.port_attributes import is_in_port, is_param_port, is_out_port
 from typing import List, Set
 
+from pqdict import pqdict
+from copy import deepcopy
 import tensorflow as tf
+
 
 def partition(comp_arrow: CompositeArrow) -> List[Set[Arrow]]:
 	"""Partitions the comp_arrow into sequential layers of its sub_arrows"""
@@ -48,6 +49,7 @@ def partition(comp_arrow: CompositeArrow) -> List[Set[Arrow]]:
 						arrow_colors[in_port.arrow] -= 1
 
 	return partition_arrows
+
 
 def attachNN(comp_arrow: CompositeArrow) -> CompositeArrow:
 	"""

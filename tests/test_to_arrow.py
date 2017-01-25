@@ -6,4 +6,4 @@ from test_graphs import test_xyplusx_graph
 def test_xyplusx() -> None:
     """f(x,y) = x * y + x"""
     graph, inputs, outputs = test_xyplusx_graph()
-    graph_to_arrow(outputs)
+    arrow = graph_to_arrow(outputs)

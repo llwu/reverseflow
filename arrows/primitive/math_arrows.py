@@ -108,6 +108,38 @@ class AddNArrow(PrimitiveArrow):
         super().__init__(n_in_ports=n, n_out_ports=1, name=name)
 
 
+class SinArrow(PrimitiveArrow):
+    """Sin"""
+
+    def __init__(self):
+        name = 'Sin'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+
+class ASinArrow(PrimitiveArrow):
+    """Sin"""
+
+    def __init__(self):
+        name = 'ASin'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+
+class CosArrow(PrimitiveArrow):
+    """Cos"""
+
+    def __init__(self):
+        name = 'Cos'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+
+class ACosArrow(PrimitiveArrow):
+    """ACos"""
+
+    def __init__(self):
+        name = 'ACos'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+
 class AbsArrow(PrimitiveArrow):
     """Abs(x)"""
 
