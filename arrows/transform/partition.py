@@ -46,7 +46,7 @@ def partition(comp_arrow: CompositeArrow) -> List[Set[Arrow]]:
 					if in_port.arrow != comp_arrow:
 						assert in_port.arrow in arrow_colors, "sub_arrow not in arrow_colors"
 						arrow_colors[in_port.arrow] -= 1
-	#print('hi')
+
 	return partition_arrows
 
 def attachNN(comp_arrow: CompositeArrow) -> CompositeArrow:
@@ -54,10 +54,9 @@ def attachNN(comp_arrow: CompositeArrow) -> CompositeArrow:
 	Returns a composite arrow with the neural networks already
 	attached to each layer of sub_arrows
 	"""
-	#new_arrow = deepcopy(comp_arrow)
-	new_arrow = comp_arrow
+	new_arrow = deepcopy(comp_arrow)
 	partition_arrows = partition(new_arrow)
-	
+
 	for (i, layer) in enumerate(partition_arrows):
 		in_ports = []
 		param_ports = []

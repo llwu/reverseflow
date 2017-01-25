@@ -68,3 +68,6 @@ class Arrow:
 
     def get_sub_arrows(self):
         return []
+
+    def __deepcopy__(self, memo):
+        return None
