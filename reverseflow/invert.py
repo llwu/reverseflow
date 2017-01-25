@@ -155,5 +155,4 @@ def invert(comp_arrow: CompositeArrow,
         A (approximate) parametric inverse of `comp_arrow`"""
     comp_arrow.duplify()
     port_values = propagate_constants(comp_arrow)
-    import pdb; pdb.set_trace()
     return inner_invert(comp_arrow, port_values, dispatch)

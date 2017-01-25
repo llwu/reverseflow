@@ -14,7 +14,7 @@ from tensorflow import Graph, Tensor, Session
 
 def gen_update_step(loss: Tensor) -> Tensor:
     with tf.name_scope('optimization'):
-        optimizer = tf.train.MomentumOptimizer(0.001,
+        optimizer = tf.train.MomentumOptimizer(0.0001,
                                                momentum=0.1)
         update_step = optimizer.minimize(loss)
         return update_step
@@ -43,7 +43,7 @@ def train_loop(update_step,
                input_tensors,
                output_tensors,
                input_data,
-               num_iterations=10,
+               num_iterations=10000,
                summary_gap=500,
                save_every=10,
                sfx='',
@@ -71,7 +71,7 @@ def train_loop(update_step,
     for i in range(num_iterations):
         feed_dict = gen_batch(input_tensors, input_data)
         loss_res = sess.run([check, loss, update_step] + output_tensors, feed_dict=feed_dict)
-        print("Loss is ", loss_res)
+        print("Loss is ", loss_res[1])
 
 def train_y_tf(params: List[Tensor],
                losses: List[Tensor],
