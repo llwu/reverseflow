@@ -17,6 +17,12 @@ class SourceArrow(Arrow):
     def get_in_ports(self) -> List[InPort]:
         return []
 
+    def __deepcopy__(self, memo):
+        new_name = None
+        if self.name != None:
+            new_name = self.name + "_copy"
+        return SourceArrow(value=self.value, name=new_name)
+
     def __init__(self, value, name: str = None) -> None:
         super().__init__(name=name)
         self.ports = [Port(self, 0)]

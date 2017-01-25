@@ -1,5 +1,6 @@
 """Compositions of Primitive Arrows"""
 from typing import Set, Sequence, List
+from copy import deepcopy, copy
 
 from arrows import Arrow
 from arrows.port import Port
@@ -146,7 +147,7 @@ class CompositeArrow(Arrow):
         self.edges.add(left, right)
 
     def remove_edge(self, left: Port, right: Port):
-        """Add an edge to the composite arrow
+        """Remove an edge from the composite arrow
         Args:
             left: Projecting Port
             right: receiving Port
@@ -167,6 +168,46 @@ class CompositeArrow(Arrow):
 
     def get_ports(self) -> List[Port]:
         return self.ports
+
+    def __deepcopy__(self, memo):
+        new_arrow = copy(self)
+        new_edges = Relation()
+        new_name = None
+        if self.name != None:
+            new_name = self.name + "_copy"
+        new_arrow.name = new_name
+        new_arrow.parent = None
+
+        new_port_attributes = [] # type: List[Dict]
+        for attribute in self.port_attributes:
+            new_port_attributes.append(deepcopy(attribute))
+        new_arrow.port_attributes = new_port_attributes
+
+        new_arrow.ports = [Port(new_arrow, i) for i in range(self.num_ports())]
+
+        copies = {self: new_arrow}
+        for sub_arrow in self.get_sub_arrows():
+            copies[sub_arrow] = deepcopy(sub_arrow)
+            assert copies[sub_arrow].parent == None, "sub_arrow can't have a parent yet"
+
+        for out_port, in_port in self.edges.items():
+            assert out_port.arrow in copies, "sub_arrow not copied"
+            assert in_port.arrow in copies, "sub_arrow not copied"
+            new_out = copies[out_port.arrow].get_ports()[out_port.index]
+            new_in = copies[in_port.arrow].get_ports()[in_port.index]
+            assert new_out.arrow == copies[out_port.arrow], "port not copied properly"
+            assert new_in.arrow == copies[in_port.arrow], "port not copied properly"
+            new_edges.add(new_out, new_in)
+
+        new_arrow.edges = new_edges
+        assert new_arrow.num_ports() == len(new_arrow.port_attributes), "incorrect number of attributes"
+        assert new_arrow.is_wired_correctly(), "arrow copy is wired incorrectly"
+        assert new_arrow.are_sub_arrows_parentless(), "sub_arrows can't have a parent yet"
+        for sub_arrow in new_arrow.get_sub_arrows():
+            sub_arrow.parent = new_arrow
+
+        return new_arrow
+
 
     def __init__(self,
                  edges: RelEdgeMap=None,
