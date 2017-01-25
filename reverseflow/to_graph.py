@@ -114,8 +114,17 @@ def conv(a: CastArrow, args: TensorVarList) -> Sequence[Tensor]:
     return [tf.cast(args[0], dtype=a.to_dtype)]
 
 @overload
+def conv(a: ClipArrow, args: TensorVarList) -> Sequence[Tensor]:
+    return [tf.clip_by_value(*args)]
+
+
+@overload
 def conv(a: AbsArrow, args: TensorVarList) -> Sequence[Tensor]:
     return [tf.abs(args[0])]
+
+@overload
+def conv(a: MaxArrow, args: TensorVarList) -> Sequence[Tensor]:
+    return [tf.maximum(args[0], args[1])]
 
 @overload
 def conv(a: RankArrow, args: TensorVarList) -> Sequence[Tensor]:

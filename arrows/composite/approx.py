@@ -46,7 +46,6 @@ class IntervalBound(CompositeArrow):
         """
         super().__init__(name="IntervalBound")
         comp_arrow = self
-        comp_arrow = CompositeArrow()
         in_port = comp_arrow.add_port()
         make_in_port(in_port)
         out_port = comp_arrow.add_port()
@@ -72,3 +71,36 @@ class IntervalBound(CompositeArrow):
         comp_arrow.add_edge(max1.get_out_ports()[0], max2.get_in_ports()[1])
         comp_arrow.add_edge(max2.get_out_ports()[0], out_port)
         assert comp_arrow.is_wired_correctly()
+
+
+class IntervalBoundIdentity(CompositeArrow):
+    """
+    Identity on input but returns error for those outside bounds
+    """
+
+    def __init__(self, l, u):
+        super().__init__(name="IntervalBoundIdentity")
+        comp_arrow = self
+        in_port = comp_arrow.add_port()
+        make_in_port(in_port)
+        out_port = comp_arrow.add_port()
+        make_out_port(out_port)
+        error_port = comp_arrow.add_port()
+        make_out_port(error_port)
+        make_error_port(error_port)
+
+        l_src = SourceArrow(l)
+        u_src = SourceArrow(u)
+        interval_bound = IntervalBound(l, u)
+        clip = ClipArrow()
+
+        comp_arrow.add_edge(in_port, clip.get_in_ports()[0])
+        comp_arrow.add_edge(l_src.get_out_ports()[0], clip.get_in_ports()[1])
+        comp_arrow.add_edge(u_src.get_out_ports()[0], clip.get_in_ports()[2])
+        comp_arrow.add_edge(clip.get_out_ports()[0], out_port)
+
+        comp_arrow.add_edge(in_port, interval_bound.get_in_ports()[0])
+        comp_arrow.add_edge(interval_bound.get_out_ports()[0], error_port)
+        assert comp_arrow.is_wired_correctly()
+
+IntervalBoundIdentity(-1.0,1.0)
