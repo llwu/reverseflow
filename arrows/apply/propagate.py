@@ -1,4 +1,6 @@
 """"Generic Propagation of values around a composite arrow"""
+
+from copy import copy
 from typing import Dict, Callable, TypeVar
 
 from arrows.port import Port
@@ -12,11 +14,10 @@ PortValues = Dict[Port, T]
 def update_neigh(in_dict, out_dict, context, working_set):
     for port, value in in_dict.items():
         for neigh_port in context.neigh_ports(port):
-            if neigh_port not in out_dict:
-                out_dict[neigh_port] = value
+            if (neigh_port.arrow != context) and (neigh_port not in out_dict or out_dict[neigh_port] != value):
                 working_set.add(neigh_port.arrow)
-            else:
-                assert value == out_dict[neigh_port], "Inconsistent"
+            out_dict[neigh_port] = copy(value)
+        out_dict[port] = copy(value)
 
 
 def propagate(sub_propagate: Callable,
@@ -37,7 +38,6 @@ def propagate(sub_propagate: Callable,
         port->value map for all ports in composite arrow
     """
     _port_values = {}
-    _port_values.update(port_values)
     updated = set(comp_arrow.get_sub_arrows())
     update_neigh(port_values, _port_values, comp_arrow, updated)
     while len(updated) > 0:
