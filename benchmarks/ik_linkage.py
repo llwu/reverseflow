@@ -46,8 +46,10 @@ def gen_robot(lengths: Sequence, angles: Sequence):
     y_accum, y = accum_sum(y_terms)
     return x, y
 
+
+
 def test_robot_arm():
-    lengths = [1, 2]
+    lengths = [0.9397378938990306, 1.7201786764100944]
     with tf.name_scope("fwd_kinematics"):
         angles = [tf.placeholder(floatX(), name="theta") for i in range(len(lengths))]
         x, y = gen_robot(lengths, angles)
@@ -55,7 +57,7 @@ def test_robot_arm():
     show_tensorboard_graph()
     tf.reset_default_graph()
     inv_arrow = invert(arrow)
-    min_approx_error_arrow(inv_arrow, [[9.5], [9.5]])
+    min_approx_error_arrow(inv_arrow, [[0.9397378938990306], [1.7201786764100944]])
 
 
 test_robot_arm()

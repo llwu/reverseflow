@@ -47,7 +47,7 @@ def inv_mul(arrow: AddArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
 
 
 def inv_sin(arrow: SinArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
-    ibi = IntervalBoundIdentity(-1.0, 1.0)
+    ibi = IntervalBoundIdentity(-0.99, 0.99)
     asin = ASinArrow()
 
     comp_arrow = CompositeArrow(name="approx_asin")
@@ -68,7 +68,7 @@ def inv_sin(arrow: SinArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
 
 
 def inv_cos(arrow: CosArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
-    ibi = IntervalBoundIdentity(-1.0, 1.0)
+    ibi = IntervalBoundIdentity(-0.99, 0.99)
     acos = ACosArrow()
 
     comp_arrow = CompositeArrow(name="approx_acos")
