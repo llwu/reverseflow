@@ -47,10 +47,45 @@ def inv_mul(arrow: AddArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
 
 
 def inv_sin(arrow: SinArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
-    return ASinArrow(), {0: 1, 1: 0}
+    ibi = IntervalBoundIdentity(-1.0, 1.0)
+    asin = ASinArrow()
+
+    comp_arrow = CompositeArrow(name="approx_asin")
+    in_port = comp_arrow.add_port()
+    make_in_port(in_port)
+    out_port = comp_arrow.add_port()
+    make_out_port(out_port)
+    error_port = comp_arrow.add_port()
+    make_out_port(error_port)
+    make_error_port(error_port)
+
+    comp_arrow.add_edge(in_port, ibi.get_in_ports()[0])
+    comp_arrow.add_edge(ibi.get_out_ports()[0], asin.get_in_ports()[0])
+    comp_arrow.add_edge(asin.get_out_ports()[0], out_port)
+    comp_arrow.add_edge(ibi.get_out_ports()[1], error_port)
+    comp_arrow.is_wired_correctly()
+    return comp_arrow, {0: 1, 1: 0}
+
 
 def inv_cos(arrow: CosArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
-    return ACosArrow(), {0: 1, 1: 0}
+    ibi = IntervalBoundIdentity(-1.0, 1.0)
+    acos = ACosArrow()
+
+    comp_arrow = CompositeArrow(name="approx_acos")
+    in_port = comp_arrow.add_port()
+    make_in_port(in_port)
+    out_port = comp_arrow.add_port()
+    make_out_port(out_port)
+    error_port = comp_arrow.add_port()
+    make_out_port(error_port)
+    make_error_port(error_port)
+
+    comp_arrow.add_edge(in_port, ibi.get_in_ports()[0])
+    comp_arrow.add_edge(ibi.get_out_ports()[0], acos.get_in_ports()[0])
+    comp_arrow.add_edge(acos.get_out_ports()[0], out_port)
+    comp_arrow.add_edge(ibi.get_out_ports()[1], error_port)
+    comp_arrow.is_wired_correctly()
+    return comp_arrow, {0: 1, 1: 0}
 
 
 # def inv_sub(arrow: SubArrow, const_in_ports: Set[InPort]) -> Tuple[Arrow, PortMap]:
