@@ -1,10 +1,11 @@
-"""Inverse Kinematics of a 5 Dimensional Linkage Robot Arm in Two Dimensions"""
+"""Inverse kinematics of a linkage Robot Arm in Two Dimensions"""
 import tensorflow as tf
-from typing import Sequence
+from arrows.util.viz import show_tensorboard_graph
+from arrows.config import floatX
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
-from arrows.config import floatX
 from reverseflow.train.train_y import min_approx_error_arrow
+from typing import Sequence
 
 
 def accum_sum(xs: Sequence):
@@ -20,8 +21,7 @@ def accum_sum(xs: Sequence):
     for i in range(1, len(xs)):
         total = total + xs[i]
         accum.append(total)
-    return accum
-
+    return accum, total
 
 def gen_robot(lengths: Sequence, angles: Sequence):
     """
@@ -36,21 +36,28 @@ def gen_robot(lengths: Sequence, angles: Sequence):
     """
     assert len(lengths) == len(angles)
     n_links = len(lengths)
-    accum_angles = accum_sum(angles)
-    x_terms = [lengths[i]*tf.cos(accum_angles[i]) for i in range(n_links)]
-    y_terms = [lengths[i]*tf.sin(accum_angles[i]) for i in range(n_links)]
-    return sum(x_terms), sum(y_terms)
+    accum_angles, total_angles = accum_sum(angles)
+    # x_terms = [lengths[i]*tf.cos(accum_angles[i]) for i in range(n_links)]
+    # y_terms = [lengths[i]*tf.sin(accum_angles[i]) for i in range(n_links)]
+    x_terms = [tf.cos(accum_angles[i]) for i in range(n_links)]
+    y_terms = [tf.sin(accum_angles[i]) for i in range(n_links)]
+    # return tf.add_n(x_terms, name='x_cord'), tf.add_n(y_terms, name='y_cord')
+    x_accum, x = accum_sum(x_terms)
+    y_accum, y = accum_sum(y_terms)
+    return x, y
 
 
-import tensorflow as tf
 
 def test_robot_arm():
-    lengths = [1, 2]
-    angles = [tf.placeholder(floatX(), name="theta") for i in range(len(lengths))]
-    x, y = gen_robot(lengths, angles)
+    lengths = [0.9397378938990306, 1.7201786764100944]
+    with tf.name_scope("fwd_kinematics"):
+        angles = [tf.placeholder(floatX(), name="theta") for i in range(len(lengths))]
+        x, y = gen_robot(lengths, angles)
     arrow = graph_to_arrow([x, y], name="robot_fwd_kinematics")
+    show_tensorboard_graph()
+    tf.reset_default_graph()
     inv_arrow = invert(arrow)
-    min_approx_error_arrow(inv_arrow, [[9.5],[9.5]])
+    min_approx_error_arrow(inv_arrow, [[0.9397378938990306], [1.7201786764100944]])
 
 
 test_robot_arm()
