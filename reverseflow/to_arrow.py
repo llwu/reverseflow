@@ -28,6 +28,19 @@ def conv_AddN(addm_op: Operation):
     return AddNArrow(len(addm_op.inputs))
 
 
+def conv_Const(const_op: Operation):
+    value = get_const_op_value(const_op)
+    return SourceArrow(value=value)
+
+
+def conv_Cos(sin_op: Operation):
+    return CosArrow()
+
+
+def conv_Gather(gather_op: Operation):
+    return GatheerArrow()
+
+
 def conv_Mul(mul_op: Operation):
     return MulArrow()
 
@@ -36,14 +49,9 @@ def conv_Sin(sin_op: Operation):
     return SinArrow()
 
 
-def conv_Cos(sin_op: Operation):
-    return CosArrow()
+def conv_Reshape(sin_op: Operation):
+    return ReshapeArrow()
 
-
-def conv_Const(const_op: Operation):
-    value = get_const_op_value(const_op)
-    import pdb; pdb.set_trace()
-    return SourceArrow(value=value)
 
 # Mapping between op types and arrows
 # Cannot use multimethods because different ops not distinguished by type
