@@ -161,7 +161,7 @@ class SinArrow(PrimitiveArrow):
 
 
 class ASinArrow(PrimitiveArrow):
-    """Sin"""
+    """ASin"""
 
     def __init__(self):
         name = 'ASin'
@@ -177,7 +177,7 @@ class CosArrow(PrimitiveArrow):
 
 
 class ClipArrow(PrimitiveArrow):
-    """Cos"""
+    """Clip"""
 
     def __init__(self):
         name = 'Clip'

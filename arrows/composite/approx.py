@@ -102,5 +102,3 @@ class IntervalBoundIdentity(CompositeArrow):
         comp_arrow.add_edge(in_port, interval_bound.get_in_ports()[0])
         comp_arrow.add_edge(interval_bound.get_out_ports()[0], error_port)
         assert comp_arrow.is_wired_correctly()
-
-IntervalBoundIdentity(-1.0,1.0)

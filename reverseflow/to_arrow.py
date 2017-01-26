@@ -20,6 +20,7 @@ def get_const_op_value(const_op: Operation):
     return val
 
 
+#FIXME: DRY
 def conv_Add(add_op: Operation):
     return AddArrow()
 
@@ -37,12 +38,20 @@ def conv_Cos(sin_op: Operation):
     return CosArrow()
 
 
+def conv_Exp(exp_op: Operation):
+    return ExpArrow()
+
+
 def conv_Gather(gather_op: Operation):
-    return GatheerArrow()
+    return GatherArrow()
 
 
 def conv_Mul(mul_op: Operation):
     return MulArrow()
+
+
+def conv_Neg(neg_op: Operation):
+    return NegArrow()
 
 
 def conv_Sin(sin_op: Operation):
@@ -57,9 +66,13 @@ def conv_Reshape(sin_op: Operation):
 # Cannot use multimethods because different ops not distinguished by type
 Op_Type_To_Arrow = {'Add': conv_Add,  # type: Dict[string, Arrow]
                     'AddN': conv_AddN,
+                    'Gather': conv_Gather,
+                    'Exp': conv_Exp,
                     'Mul': conv_Mul,
+                    'Neg': conv_Neg,
                     'Sin': conv_Sin,
                     'Cos': conv_Cos,
+                    'Reshape': conv_Reshape,
                     'Const': conv_Const}
 
 def arrow_from_op(op: Operation,

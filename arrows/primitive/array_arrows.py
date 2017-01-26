@@ -2,7 +2,7 @@
 from arrows.primitivearrow import PrimitiveArrow
 
 
-class Gather(PrimitiveArrow):
+class GatherArrow(PrimitiveArrow):
     """
     Gather slices from `params` according to `indices`.
 
@@ -42,4 +42,16 @@ class Gather(PrimitiveArrow):
 
     def __init__(self):
         name = 'Gather'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+
+class ReshapeArrow(PrimitiveArrow):
+    """
+    Port0:  Tensor
+    Port1:  Shape
+    Port1: Reshaped Tensor
+    """
+
+    def __init__(self):
+        name = 'Reshape'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)

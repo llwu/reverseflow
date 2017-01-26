@@ -34,22 +34,6 @@ def invert_sub_arrow(comp_arrow: CompositeArrow,
                      dispatch: DispatchType):
     return inner_invert(comp_arrow, port_values, dispatch)
 
-@overload
-def link(out_port1: OutPort, in_port2: InPort, comp_arrow: CompositeArrow):
-    comp_arrow.add_edge(out_port1, in_port2)
-
-@overload
-def link(in_port1: InPort, out_port2: OutPort, comp_arrow: CompositeArrow):
-    comp_arrow.add_edge(out_port2, in_port1)
-
-@overload
-def link(in_port1: InPort, in_port2: InPort, comp_arrow: CompositeArrow):
-    assert False, "Can't connect in_port to in_port"
-
-@overload
-def link(out_port1: OutPort, out_port2: OutPort, comp_arrow: CompositeArrow):
-    assert False, "Can't connect out_port to out_port"
-
 
 def get_inv_port(port: Port,
                  arrow_to_port_map: [Arrow, PortMap],
