@@ -66,7 +66,7 @@ class IfArrow(PrimitiveArrow):
     """
 
     def __init__(self) -> None:
-        name = "If"
+        name = 'If'
         super().__init__(n_in_ports=3, n_out_ports=1, name=name)
 
     def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
@@ -76,4 +76,24 @@ class IfArrow(PrimitiveArrow):
             constraints.append(Eq(output_expr[0], input_expr[1]))
         else:
             constraints.append(Eq(output_expr[0], input_expr[2]))
+        return constraints
+
+
+class GreaterThanArrow(PrimitiveArrow):
+    """
+    Bool valued arrow for the operation '>':
+    output[0] = (input[0] > input[1])
+    """
+
+    def __init__(self) -> None:
+        name = 'GreaterThan'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+    def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
+        assert 0 in output_expr
+        constraints = []
+        if output_expr[0]:
+            constraints.append(Gt(input_expr[0], input_expr[1]))
+        else:
+            constraints.append(Ge(input_expr[1], input_expr[0]))
         return constraints
