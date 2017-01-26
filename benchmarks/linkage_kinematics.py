@@ -1,4 +1,4 @@
-"""Inverse kinematics of a linkage Robot Arm in Two Dimensions"""
+"""(Inverse) kinematics of a linkage robot arm  in two dimensions"""
 import tensorflow as tf
 from arrows.util.viz import show_tensorboard_graph
 from arrows.config import floatX
