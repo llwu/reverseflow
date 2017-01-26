@@ -1,6 +1,6 @@
 """These are arrows for control flow of input"""
 from arrows.primitivearrow import PrimitiveArrow
-from typing import List, MutableMapping, Set
+from typing import List, MutableMapping, Set, Dict
 from sympy import Expr, Eq, Rel
 
 
@@ -21,6 +21,16 @@ class DuplArrow(PrimitiveArrow):
                 if i != j:
                     constraints.append(Eq(output_expr[i], output_expr[j]))
         return constraints
+
+    def eval(self, port_to_value):
+        known_value = None
+        for port, value in port_to_value.items():
+            known_value = value
+            break
+        if known_value is not None:
+            for port in self.get_ports():
+                port_to_value[port] = known_value
+        return port_to_value
 
 
 class InvDuplArrow(PrimitiveArrow):
