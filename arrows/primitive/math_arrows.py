@@ -12,6 +12,17 @@ class AddArrow(PrimitiveArrow):
         name = 'Add'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
+    def eval(self, ptv: Dict):
+        i = self.get_in_ports()
+        o = self.get_out_ports()
+        if i[0] in ptv and i[1] in ptv:
+            ptv[o[0]] = ptv[i[0]] + ptv[i[1]]
+        if i[0] in ptv and o[0] in ptv:
+            ptv[i[1]] = ptv[o[0]] - ptv[i[0]]
+        if i[1] in ptv and o[0] in ptv:
+            ptv[i[0]] = ptv[o[0]] - ptv[i[1]]
+        return ptv
+
 
 class SubArrow(PrimitiveArrow):
     """Subtraction. Out[1] = In[0] - In[1]"""
@@ -20,6 +31,17 @@ class SubArrow(PrimitiveArrow):
         name = 'Sub'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
+    def eval(self, ptv: Dict):
+        i = self.get_in_ports()
+        o = self.get_out_ports()
+        if i[0] in ptv and i[1] in ptv:
+            ptv[o[0]] = ptv[i[0]] - ptv[i[1]]
+        if i[0] in ptv and o[0] in ptv:
+            ptv[i[1]] = ptv[i[0]] - ptv[o[0]]
+        if i[1] in ptv and o[0] in ptv:
+            ptv[i[0]] = ptv[i[1]] + ptv[o[0]]
+        return ptv
+
 
 class MulArrow(PrimitiveArrow):
     """Multiplication"""
@@ -27,6 +49,17 @@ class MulArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Mul'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+    def eval(self, ptv: Dict):
+        i = self.get_in_ports()
+        o = self.get_out_ports()
+        if i[0] in ptv and i[1] in ptv:
+            ptv[o[0]] = ptv[i[0]] * ptv[i[1]]
+        if i[0] in ptv and o[0] in ptv:
+            ptv[i[1]] = ptv[o[0]] / ptv[i[0]]
+        if i[1] in ptv and o[0] in ptv:
+            ptv[i[0]] = ptv[o[0]] / ptv[i[1]]
+        return ptv
 
 
 class DivArrow(PrimitiveArrow):
@@ -41,6 +74,17 @@ class DivArrow(PrimitiveArrow):
         if 1 in input_expr:
             constraints.append(Ne(input_expr[1], 0))
         return constraints
+
+    def eval(self, ptv: Dict):
+        i = self.get_in_ports()
+        o = self.get_out_ports()
+        if i[0] in ptv and i[1] in ptv:
+            ptv[o[0]] = ptv[i[0]] / ptv[i[1]]
+        if i[0] in ptv and o[0] in ptv:
+            ptv[i[1]] = ptv[i[0]] / ptv[o[0]]
+        if i[1] in ptv and o[0] in ptv:
+            ptv[i[0]] = ptv[i[1]] * ptv[o[0]]
+        return ptv
 
 
 class PowArrow(PrimitiveArrow):

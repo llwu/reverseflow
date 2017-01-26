@@ -36,8 +36,8 @@ def eval_predicate(a: Arrow, port_values: PortValues, state=None) -> bool:
 
 
 def eval_dispatch(a: Arrow, port_values: PortValues, state=None):
-    flattened = dict([(port, value['value']) for port, value in port_values.items()])
-    for port, value in a.eval(flattened):
+    flattened = dict([(port, value['value']) for port, value in port_values.items() if 'value' in value])
+    for port, value in a.eval(flattened).items():
         port_values[port]['value'] = value
 
 
@@ -66,6 +66,17 @@ def rank_dispatch_shape(a: Arrow, port_values: PortValues, state=None):
     port_values[a.get_out_ports()[0]]['shape'] = ()
 
 
+def source_predicate(a: Arrow, port_values: PortValues, state=None) -> bool:
+    assert len(a.get_in_ports()) == 0
+    return True
+
+
+def source_dispatch(a: Arrow, port_values: PortValues, state=None):
+    assert len(a.get_out_ports()) == 1
+    port_values[a.get_out_ports()[0]]['shape'] = constant_to_shape(a.value)
+    port_values[a.get_out_ports()[0]]['value'] = a.value
+
+
 @overload
 def constant_to_shape(x: int):
     return ()
@@ -85,7 +96,7 @@ def generic_predicate(a: Arrow, port_values: PortValues, state=None):
     known_shape = None
     for port, value in port_values.items():
         if 'value' in value:
-            value['shape'] = constant_to_shape[value['value']]
+            value['shape'] = constant_to_shape(value['value'])
         if 'shape' not in value:
             continue
         assert value['shape'] == known_shape or known_shape is None
@@ -109,6 +120,7 @@ def generic_dispatch(a: Arrow, port_values: PortValues, state=None):
 def register_dispatches():
     pred_to_dispatch = {}
     register_dispatch(pred_to_dispatch, RankArrow, rank_predicate_shape, rank_dispatch_shape)
+    register_dispatch(pred_to_dispatch, SourceArrow, source_predicate, source_dispatch)
     for arrow_type in [AddArrow,
                     SubArrow,
                     NegArrow,
@@ -126,66 +138,6 @@ def register_dispatches():
         register_dispatch(pred_to_dispatch, arrow_type, generic_predicate, generic_dispatch)
     return pred_to_dispatch
 
-# @overload
-# def constant_to_shape(x: int):
-#     return ()
-
-
-# @overload
-# def constant_to_shape(x: float):
-#     return ()
-
-
-# @overload
-# def constant_to_shape(x: ndarray):
-#     return x.shape
-
-
-# def all_same_shape(a: Arrow, port_values: PortValues, state=None):
-#     # All ports have the same shape
-#     # if any port has a known shape then propagate that to others
-#     known_shape = None
-#     for port, shape in port_values.items():
-#         assert constant_to_shape(shape) == known_shape or known_shape is None
-#         known_shape = shape
-#     if known_shape is None:
-#         return {}
-#     return {port: known_shape for port in a.get_ports()}
-
-
-# @overload
-# def sub_propagate(a: Arrow, port_values: PortValues, state=None) -> PortValues:
-#     assert False, "Error, no sub_propagation for %s implemented" % a.__class__.__name__
-
-
-# @overload
-# def sub_propagate(a: SourceArrow, port_values: PortValues, state=None) -> PortValues:
-#     shape = constant_to_shape(a.value)
-#     val = Value(shape=shape, value=a.value)
-#     return {port: val for port in a.get_ports()}
-
-
-# @overload
-# def sub_propagate(a: AllSame, port_values: PortValues, state=None) -> PortValues:
-#     return all_same_shape(a, port_values)
-
-
-# @overload
-# def sub_propagate(a: RankArrow, port_values: PortValues, state=None) -> PortValues:
-#     return {port: () for port in a.get_out_ports()}
-
-
-# @overload
-# def sub_propagate(a: RangeArrow, port_values: PortValues, state=None) -> PortValues:
-#     assert False
-
-
-# @overload
-# def sub_propagate(a: ReduceMeanArrow, port_values: PortValues, state=None) -> PortValues:
-#     # The shape depends on the values
-#     if set(a.get_ports()) == set(port_values.keys()):
-#         ...
-#     # There's no way to do this without propagating the shapes
 
 @overload
 def sub_propagate(a: CompositeArrow, port_values: PortValues, state=None) -> PortValues:

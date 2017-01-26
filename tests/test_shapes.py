@@ -14,8 +14,7 @@ def input_gen(arrow: Arrow):
     ndim = 3
     maxdim = 100
     input_shape = tuple([np.random.randint(1, maxdim) for i in range(ndim)])
-    input_shape = ()
-    return {port: {'shape': input_shape} for port in arrow.get_in_ports() if not is_param_port(port)}
+    return {port: {'shape': (), 'value': 5} for port in arrow.get_in_ports()}  # if not is_param_port(port)}
 
 def test_shapes():
     all_test_arrows = [gen() for gen in all_test_arrow_gens]
