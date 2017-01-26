@@ -57,7 +57,7 @@ def test_robot_arm():
     show_tensorboard_graph()
     tf.reset_default_graph()
     inv_arrow = invert(arrow)
-    min_approx_error_arrow(inv_arrow, [[0.9397378938990306], [1.7201786764100944]])
+    min_approx_error_arrow(inv_arrow, [0.9397378938990306, 1.7201786764100944])
 
 
 test_robot_arm()

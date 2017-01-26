@@ -2,7 +2,7 @@
 from arrows.primitivearrow import PrimitiveArrow
 
 
-class Gather(PrimitiveArrow):
+class GatherArrow(PrimitiveArrow):
     """
     Gather slices from `params` according to `indices`.
 

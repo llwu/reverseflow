@@ -1,7 +1,7 @@
 from arrows.primitive.math_arrows import SubArrow, MaxArrow, ClipArrow, PowArrow
 from arrows.composite.math_arrows import MeanArrow, VarFromMeanArrow
 from arrows.compositearrow import CompositeArrow
-from arrows.primitive.control_flow import DuplArrow, IfArrow, GreaterThanArrow
+from arrows.primitive.control_flow import DuplArrow, IfArrow, GreaterArrow
 from reverseflow.util.mapping import Bimap
 from arrows.sourcearrow import SourceArrow
 from arrows.port_attributes import make_error_port, make_in_port, make_out_port
@@ -91,14 +91,14 @@ class SmoothIntervalBound(CompositeArrow):
         l_src = SourceArrow(l)
         u_src = SourceArrow(u)
 
-        l_gt_x = GreaterThanArrow()
+        l_gt_x = GreaterArrow()
         comp_arrow.add_edge(l_src.get_out_ports()[0], l_gt_x.get_in_ports()[0])
         comp_arrow.add_edge(in_port, l_gt_x.get_in_ports()[1])
-        x_gt_u = GreaterThanArrow()
+        x_gt_u = GreaterArrow()
         comp_arrow.add_edge(in_port, x_gt_u.get_in_ports()[0])
         comp_arrow.add_edge(u_src.get_out_ports()[0], x_gt_u.get_in_ports()[1])
 
-        two = SourceArrow(2)
+        two = SourceArrow(2.0)
         x_min_u = SubArrow()
         comp_arrow.add_edge(in_port, x_min_u.get_in_ports()[0])
         comp_arrow.add_edge(u_src.get_out_ports()[0], x_min_u.get_in_ports()[1])

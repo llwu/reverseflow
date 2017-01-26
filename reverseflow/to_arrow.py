@@ -38,7 +38,7 @@ def conv_Cos(sin_op: Operation):
 
 
 def conv_Gather(gather_op: Operation):
-    return GatheerArrow()
+    return GatherArrow()
 
 
 def conv_Mul(mul_op: Operation):
@@ -52,6 +52,9 @@ def conv_Sin(sin_op: Operation):
 def conv_Reshape(sin_op: Operation):
     return ReshapeArrow()
 
+def conv_Greater(gt_op: Operation):
+    return GreaterArrow()
+
 
 # Mapping between op types and arrows
 # Cannot use multimethods because different ops not distinguished by type
@@ -60,7 +63,8 @@ Op_Type_To_Arrow = {'Add': conv_Add,  # type: Dict[string, Arrow]
                     'Mul': conv_Mul,
                     'Sin': conv_Sin,
                     'Cos': conv_Cos,
-                    'Const': conv_Const}
+                    'Const': conv_Const,
+                    'Greater': conv_Greater}
 
 def arrow_from_op(op: Operation,
                   op_to_arrow: Dict[Operation, Arrow]) -> Arrow:
