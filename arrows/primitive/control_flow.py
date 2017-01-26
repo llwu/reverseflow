@@ -57,3 +57,23 @@ class IdentityArrow(PrimitiveArrow):
     def __init__(self) -> None:
         name = 'Identity'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+
+class IfArrow(PrimitiveArrow):
+    """
+    IfArrow with 3 inputs: input[0] is a boolean indicating which one
+    of input[1] (True), input[2] (False) will be propogated to the output.
+    """
+
+    def __init__(self) -> None:
+        name = "If"
+        super().__init__(n_in_ports=3, n_out_ports=1, name=name)
+
+    def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> List[Rel]:
+        assert 0 in input_expr
+        constraints = []
+        if input_expr[0]:
+            constraints.append(Eq(output_expr[0], input_expr[1]))
+        else:
+            constraints.append(Eq(output_expr[0], input_expr[2]))
+        return constraints
