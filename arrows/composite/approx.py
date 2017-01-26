@@ -1,7 +1,7 @@
-from arrows.primitive.math_arrows import SubArrow, MaxArrow, ClipArrow
-from arrows.composite.math import MeanArrow, VarFromMeanArrow
+from arrows.primitive.math_arrows import SubArrow, MaxArrow, ClipArrow, PowArrow
+from arrows.composite.math_arrows import MeanArrow, VarFromMeanArrow
 from arrows.compositearrow import CompositeArrow
-from arrows.primitive.control_flow import DuplArrow
+from arrows.primitive.control_flow import DuplArrow, IfArrow, GreaterArrow
 from reverseflow.util.mapping import Bimap
 from arrows.sourcearrow import SourceArrow
 from arrows.port_attributes import make_error_port, make_in_port, make_out_port
@@ -42,7 +42,7 @@ class IntervalBound(CompositeArrow):
 
     def __init__(self, l, u):
         """
-        Restricts f(x; a,b) = max(x-y, l-x, 0)
+        Restricts f(x; l,u) = max(x-u, l-x, 0)
         """
         super().__init__(name="IntervalBound")
         comp_arrow = self
@@ -72,13 +72,67 @@ class IntervalBound(CompositeArrow):
         comp_arrow.add_edge(max2.get_out_ports()[0], out_port)
         assert comp_arrow.is_wired_correctly()
 
+class SmoothIntervalBound(CompositeArrow):
+
+    def __init__(self, l, u):
+        """
+        Smooth version of the class IntervalBound.
+
+        f(x; l, u) = (l - x)^2,  if x < l
+        f(x; l, u) = 0,          if l <= x <= u
+        f(x; l, u) = (x - u)^2,  if x > u
+        """
+        super().__init__(name="SmoothIntervalBound")
+        comp_arrow = self
+        in_port = comp_arrow.add_port()
+        make_in_port(in_port)
+        out_port = comp_arrow.add_port()
+        make_out_port(out_port)
+        l_src = SourceArrow(l)
+        u_src = SourceArrow(u)
+
+        l_gt_x = GreaterArrow()
+        comp_arrow.add_edge(l_src.get_out_ports()[0], l_gt_x.get_in_ports()[0])
+        comp_arrow.add_edge(in_port, l_gt_x.get_in_ports()[1])
+        x_gt_u = GreaterArrow()
+        comp_arrow.add_edge(in_port, x_gt_u.get_in_ports()[0])
+        comp_arrow.add_edge(u_src.get_out_ports()[0], x_gt_u.get_in_ports()[1])
+
+        two = SourceArrow(2.0)
+        x_min_u = SubArrow()
+        comp_arrow.add_edge(in_port, x_min_u.get_in_ports()[0])
+        comp_arrow.add_edge(u_src.get_out_ports()[0], x_min_u.get_in_ports()[1])
+        x_min_u_sqr = PowArrow()
+        comp_arrow.add_edge(x_min_u.get_out_ports()[0], x_min_u_sqr.get_in_ports()[0])
+        comp_arrow.add_edge(two.get_out_ports()[0], x_min_u_sqr.get_in_ports()[1])
+
+        l_min_x = SubArrow()
+        comp_arrow.add_edge(l_src.get_out_ports()[0], l_min_x.get_in_ports()[0])
+        comp_arrow.add_edge(in_port, l_min_x.get_in_ports()[1])
+        l_min_x_sqr = PowArrow()
+        comp_arrow.add_edge(l_min_x.get_out_ports()[0], l_min_x_sqr.get_in_ports()[0])
+        comp_arrow.add_edge(two.get_out_ports()[0], l_min_x_sqr.get_in_ports()[1])
+
+        zero = SourceArrow(0.0)
+        if1 = IfArrow()
+        comp_arrow.add_edge(l_gt_x.get_out_ports()[0], if1.get_in_ports()[0])
+        comp_arrow.add_edge(l_min_x_sqr.get_out_ports()[0], if1.get_in_ports()[1])
+        comp_arrow.add_edge(zero.get_out_ports()[0], if1.get_in_ports()[2])
+
+        if2 = IfArrow()
+        comp_arrow.add_edge(x_gt_u.get_out_ports()[0], if2.get_in_ports()[0])
+        comp_arrow.add_edge(x_min_u_sqr.get_out_ports()[0], if2.get_in_ports()[1])
+        comp_arrow.add_edge(if1.get_out_ports()[0], if2.get_in_ports()[2])
+
+        comp_arrow.add_edge(if2.get_out_ports()[0], out_port)
+        assert comp_arrow.is_wired_correctly()
 
 class IntervalBoundIdentity(CompositeArrow):
     """
     Identity on input but returns error for those outside bounds
     """
 
-    def __init__(self, l, u):
+    def __init__(self, l, u, intervalbound=SmoothIntervalBound):
         super().__init__(name="IntervalBoundIdentity")
         comp_arrow = self
         in_port = comp_arrow.add_port()
@@ -91,7 +145,7 @@ class IntervalBoundIdentity(CompositeArrow):
 
         l_src = SourceArrow(l)
         u_src = SourceArrow(u)
-        interval_bound = IntervalBound(l, u)
+        interval_bound = intervalbound(l, u)
         clip = ClipArrow()
 
         comp_arrow.add_edge(in_port, clip.get_in_ports()[0])

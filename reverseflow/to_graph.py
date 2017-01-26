@@ -18,7 +18,7 @@ def gen_input_tensors(arrow: Arrow):
     for in_port in arrow.get_in_ports():
         if is_param_port(in_port):
             # FIXME for right shape
-            input_tensors.append(tf.Variable(np.random.rand(1), dtype=floatX()))
+            input_tensors.append(tf.Variable(0.124, name="blerg", dtype=floatX()))
         elif is_in_port(in_port):
             input_tensors.append(tf.placeholder(dtype=floatX()))
         else:
@@ -142,6 +142,15 @@ def conv(a: ReduceMeanArrow, args: TensorVarList) -> Sequence[Tensor]:
 def conv(a: SourceArrow, args: TensorVarList) -> Sequence[Tensor]:
     assert len(args) == 0, "Source arrow has no inputs"
     return [tf.constant(a.value)]
+
+@overload
+def conv(a: GreaterArrow, args: TensorVarList) -> Sequence[Tensor]:
+    return [tf.greater(args[0], args[1])]
+
+@overload
+def conv(a: IfArrow, args: TensorVarList) -> Sequence[Tensor]:
+    #import pdb; pdb.set_trace()
+    return [tf.where(*args)]
 
 @overload
 def conv(a: CompositeArrow, args: TensorVarList) -> Sequence[Tensor]:
