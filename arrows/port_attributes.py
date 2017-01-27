@@ -1,5 +1,5 @@
 from arrows.port import Port
-
+from typing import Sequence
 
 def make_in_port(port: Port) -> None:
     """Make 'port' an InPort"""
@@ -45,3 +45,18 @@ def is_error_port(port: Port) -> bool:
     """Is `port` an error port"""
     port_attributes = port.arrow.port_attributes[port.index]
     return "error" in port_attributes and port_attributes["error"] is True
+
+
+Shape = Sequence[int]
+
+
+def get_port_shape(port: Port) -> Shape:
+    """Get the shape of `port"""
+    port_attributes = port.arrow.port_attributes[port.index]
+    return port_attributes["shape"]
+
+
+def set_port_shape(port: Port, shape: Shape):
+    """Set the shape of `port` to `shape`"""
+    port_attributes = port.arrow.port_attributes[port.index]
+    port_attributes["shape"] = shape
