@@ -32,7 +32,7 @@ def register_dispatch(out_dict: Dict, a: Type, pred: Callable, dispatch: Callabl
 
 
 def eval_predicate(a: Arrow, port_values: PortValues, state=None) -> bool:
-    return all([port_has(port_values, port, 'value') for port in a.get_in_ports()])
+    return True
 
 
 def eval_dispatch(a: Arrow, port_values: PortValues, state=None):

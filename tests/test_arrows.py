@@ -13,7 +13,7 @@ from reverseflow.defaults import default_dispatch
 from reverseflow.util.mapping import Bimap
 from arrows.config import floatX
 import reverseflow.inv_primitives.inv_math_arrows
-import arrows.composite.math
+import arrows.composite.math_arrows
 
 def test_xyplusx_flat() -> CompositeArrow:
     """f(x,y) = x * y + x"""
