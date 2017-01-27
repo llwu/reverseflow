@@ -1,12 +1,14 @@
 """Convert a tensoflow graph into an arrow"""
 from arrows import (Arrow, CompositeArrow,)
 from arrows import InPort, OutPort
+from arrows.port_attributes import make_in_port, make_out_port, set_port_shape
 from arrows.std_arrows import *
 from reverseflow.util.mapping import Relation
 
 from tensorflow import Tensor, Operation
 import tensorflow as tf
 from typing import List, Tuple, Dict, Sequence
+
 
 
 def get_const_op_value(const_op: Operation):
@@ -99,10 +101,10 @@ def update_seen(op: Operation,
         if tensor not in seen_tensors:
             to_see_tensors.append(tensor)
 
+
 def is_input_tensor(tensor: Tensor) -> bool:
     return tensor.op.type == 'Placeholder'
 
-from arrows.port_attributes import make_in_port, make_out_port
 
 def graph_to_arrow(output_tensors: Sequence[Tensor],
                    name:str=None) -> Arrow:
@@ -121,6 +123,7 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
 
     for tensor in output_tensors:
         out_port = comp_arrow.add_port()
+        # set_port_shape(out_port, tensor.get_shape().as_list())
         make_out_port(out_port)
         arrow = arrow_from_op(tensor.op, op_to_arrow)
         left = arrow.get_out_ports()[tensor.value_index]
@@ -133,6 +136,9 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
         if is_input_tensor(tensor):
             left_port = comp_arrow.add_port()
             make_in_port(left_port)
+            # FIXME: We are only taking shapes from placeholder inputs
+            # is this sufficient?
+            set_port_shape(out_port, tensor.get_shape().as_list())
         else:
             out_port_id = tensor.value_index
             left_arrow = arrow_from_op(tensor.op, op_to_arrow)
