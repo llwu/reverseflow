@@ -128,6 +128,7 @@ def inner_invert(comp_arrow: CompositeArrow,
     return inv_comp_arrow
 
 
+from arrows.apply.shapesbk import propagate_shapes
 
 def invert(comp_arrow: CompositeArrow,
            dispatch: Dict[Arrow, Callable]=default_dispatch) -> Arrow:
@@ -138,5 +139,13 @@ def invert(comp_arrow: CompositeArrow,
     Returns:
         A (approximate) parametric inverse of `comp_arrow`"""
     comp_arrow.duplify()
-    port_values = propagate_constants(comp_arrow)
+    # FIXME: These should be unified
+    port_values = {}
+    port_constants = propagate_constants(comp_arrow)
+    for port, const in port_constants.items():
+        port_values[port]['constant'] = const
+    port_shapes = propagate_shapes(comp_arrow)
+    for port, values in port_shapes.items():
+        port_values[port].update(values)
+
     return inner_invert(comp_arrow, port_values, dispatch)
