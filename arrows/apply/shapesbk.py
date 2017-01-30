@@ -2,12 +2,18 @@
 from arrows.arrow import Arrow
 from arrows.compositearrow import CompositeArrow
 from arrows.std_arrows import *
-from arrows.port import Port
 from arrows.apply.propagate import propagate
 
 from overloading import overload
 from numpy import ndarray
 from typing import Tuple, Dict, Sequence, Union, TypeVar, Type, Callable
+
+
+# so if I understand correctly?
+# for the test we load up a dict
+# There's some overlap between what lwu is doing in eval and what inversion si doing
+# - split up the predicates in eval. i.e. if all inputs are known should be one predicate
+# The terminiation condition needs reviewing
 
 
 Shape = Sequence[int]
@@ -21,7 +27,7 @@ def get_dispatches(a: Arrow):
     global pred_to_dispatch
     if pred_to_dispatch == {}:
         pred_to_dispatch = register_dispatches()
-    return pred_to_dispatch.get(a.__class__, [])
+    return pred_to_dispatch[a.__class__]
 
 
 def register_dispatch(out_dict: Dict, a: Type, pred: Callable, dispatch: Callable):
@@ -38,10 +44,7 @@ def eval_predicate(a: Arrow, port_values: PortValues, state=None) -> bool:
 def eval_dispatch(a: Arrow, port_values: PortValues, state=None):
     flattened = dict([(port, value['value']) for port, value in port_values.items() if 'value' in value])
     for port, value in a.eval(flattened).items():
-        if port not in port_values:
-            port_values[port] = {}
         port_values[port]['value'] = value
-        port_values[port]['shape'] = constant_to_shape(value)
 
 
 @overload
@@ -55,10 +58,6 @@ def sub_propagate(a: Arrow, port_values: PortValues, state=None):
     return port_values
 
 
-def port_has(port_values: Dict[Port, Dict], port: Port, type: str) -> bool:
-    return port in port_values and type in port_values[port]
-
-
 def rank_predicate_shape(a: Arrow, port_values: PortValues, state=None) -> bool:
     assert len(a.get_in_ports()) == 1
     return True
@@ -66,10 +65,18 @@ def rank_predicate_shape(a: Arrow, port_values: PortValues, state=None) -> bool:
 
 def rank_dispatch_shape(a: Arrow, port_values: PortValues, state=None):
     assert len(a.get_out_ports()) == 1
-    if a.get_out_ports()[0] not in port_values:
-        port_values[a.get_out_ports()[0]] = {'shape': ()}
-    else:
-        port_values[a.get_out_ports()[0]]['shape'] = ()
+    port_values[a.get_out_ports()[0]]['shape'] = ()
+
+
+def source_predicate(a: Arrow, port_values: PortValues, state=None) -> bool:
+    assert len(a.get_in_ports()) == 0
+    return True
+
+
+def source_dispatch(a: Arrow, port_values: PortValues, state=None):
+    assert len(a.get_out_ports()) == 1
+    port_values[a.get_out_ports()[0]]['shape'] = constant_to_shape(a.value)
+    port_values[a.get_out_ports()[0]]['value'] = a.value
 
 
 @overload
@@ -115,6 +122,7 @@ def generic_dispatch(a: Arrow, port_values: PortValues, state=None):
 def register_dispatches():
     pred_to_dispatch = {}
     register_dispatch(pred_to_dispatch, RankArrow, rank_predicate_shape, rank_dispatch_shape)
+    register_dispatch(pred_to_dispatch, SourceArrow, source_predicate, source_dispatch)
     for arrow_type in [AddArrow,
                     SubArrow,
                     NegArrow,
