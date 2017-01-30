@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 from arrows.arrow import Arrow
 from arrows.port import Port, InPort, OutPort
 from arrows.port_attributes import make_out_port
@@ -32,3 +32,9 @@ class SourceArrow(Arrow):
 
     def is_source(self):
         return True
+
+    def eval(self, ptv: Dict):
+        o = self.get_out_ports()
+        assert len(o) == 1
+        ptv[o[0]] = self.value
+        return ptv
