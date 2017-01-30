@@ -47,6 +47,16 @@ class InvDuplArrow(PrimitiveArrow):
             constraints.append(Eq(output_expr[0], input_expr[i]))
         return constraints
 
+    def eval(self, port_to_value):
+        known_value = None
+        for port, value in port_to_value.items():
+            known_value = value
+            break
+        if known_value is not None:
+            for port in self.get_ports():
+                port_to_value[port] = known_value
+        return port_to_value
+
 
 class IdentityArrow(PrimitiveArrow):
     """
@@ -57,6 +67,15 @@ class IdentityArrow(PrimitiveArrow):
     def __init__(self) -> None:
         name = 'Identity'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+    def eval(self, ptv: Dict):
+        i = self.get_in_ports()
+        o = self.get_out_ports()
+        if i[0] in ptv:
+            ptv[o[0]] = ptv[i[0]]
+        if o[0] in ptv:
+            ptv[i[0]] = ptv[o[0]]
+        return ptv
 
 
 class IfArrow(PrimitiveArrow):

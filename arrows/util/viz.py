@@ -23,5 +23,5 @@ def show_tensorboard(arrow: Arrow) -> None:
     graph = tf.Graph()
     with graph.as_default():
         input_tensors = [tf.placeholder(dtype='float32') for i in range(arrow.num_in_ports())]
-        arrow_to_graph(arrow, input_tensors, graph)
+        arrow_to_graph(arrow, input_tensors)
         show_tensorboard_graph()

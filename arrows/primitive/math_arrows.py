@@ -193,7 +193,7 @@ class NegArrow(PrimitiveArrow):
         if i[0] in ptv:
             ptv[o[0]] = -ptv[i[0]]
         if o[0] in ptv:
-            ptv[i[1]] = -ptv[o[0]]
+            ptv[i[0]] = -ptv[o[0]]
         return ptv
 
 
@@ -279,6 +279,7 @@ class ClipArrow(PrimitiveArrow):
 
     def eval(self, ptv: Dict):
         i = self.get_in_ports()
+        o = self.get_out_ports()
         if i[0] in ptv and i[1] in ptv and i[2] in ptv:
             ptv[o[0]] = np.clip(ptv[i[0]], ptv[i[1]], ptv[i[2]])
         return ptv
@@ -315,6 +316,7 @@ class AbsArrow(PrimitiveArrow):
 
     def eval(self, ptv: Dict):
         i = self.get_in_ports()
+        o = self.get_out_ports()
         if i[0] in ptv:
             ptv[o[0]] = abs(ptv[i[0]])
         return ptv
@@ -329,6 +331,7 @@ class MaxArrow(PrimitiveArrow):
 
     def eval(self, ptv: Dict):
         i = self.get_in_ports()
+        o = self.get_out_ports()
         if i[0] in ptv and i[1] in ptv:
             ptv[o[0]] = np.max(ptv[i[0]], ptv[i[1]])
         return ptv
@@ -354,6 +357,7 @@ class ReduceMeanArrow(PrimitiveArrow):
 
     def eval(self, ptv: Dict):
         i = self.get_in_ports()
+        o = self.get_out_ports()
         if i[0] in ptv and i[1] in ptv:
             i1 = tuple(ptv[i[1]]) if isinstance(ptv[i[1]], np.ndarray) else ptv[i[1]]
             ptv[o[0]] = np.mean(ptv[i[0]], i1)
