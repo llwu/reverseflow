@@ -5,6 +5,7 @@ from typing import Dict, Callable, TypeVar
 
 from arrows.port import Port
 from arrows.compositearrow import CompositeArrow
+from arrows.port_attributes import get_port_attributes
 
 
 T = TypeVar('T')
@@ -38,14 +39,26 @@ def propagate(sub_propagate: Callable,
         port->value map for all ports in composite arrow
     """
     _port_values = {}
+    # update port_values with values stored on port
+    for sub_arrow in comp_arrow.get_all_arrows():
+        for port in sub_arrow.get_ports():
+            attributes = get_port_attributes(port)
+            _port_values[port] = attributes
+
     updated = set(comp_arrow.get_sub_arrows())
     update_neigh(port_values, _port_values, comp_arrow, updated)
     while len(updated) > 0:
+        print(len(updated))
         sub_arrow = updated.pop()
         sub_port_values = {port: _port_values[port]
                            for port in sub_arrow.get_ports()
                            if port in _port_values}
-        new_sub_port_values = sub_propagate(sub_arrow, sub_port_values,
-                                            state)
+        new_sub_port_values = sub_propagate(sub_arrow, sub_port_values, state)
         update_neigh(new_sub_port_values, _port_values, comp_arrow, updated)
     return _port_values
+
+# 1. What is the correct termination condition
+# 2. Is this going to take in a sub_propagate function or not
+# - we might not aant to always propagate everything
+# 3. lwu put in this kind of inverse propagation to handle the case of value propagation
+# 4. How to reuse that from symbolic apply
