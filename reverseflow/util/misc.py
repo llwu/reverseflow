@@ -1,5 +1,6 @@
 """Assortment of utilities without dependencies"""
 import tensorflow as tf  # TODO: Remove this dependency from this file
+import numpy as np
 from typing import Sequence, TypeVar
 
 T = TypeVar('T')
@@ -24,6 +25,17 @@ def same(xs) -> bool:
                 return False
 
     return True
+
+
+def complement(indices: Sequence, shape: tuple) -> Sequence:
+    bools = np.zeros(shape)
+    output = []
+    for index in indices:
+        bools[index] = 1
+    for index, value in np.ndenumerate(bools):
+        if value == 0:
+            output.append(index)
+    return output
 
 
 # Generators
