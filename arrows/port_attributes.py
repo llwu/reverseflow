@@ -60,3 +60,8 @@ def set_port_shape(port: Port, shape: Shape):
     """Set the shape of `port` to `shape`"""
     port_attributes = port.arrow.port_attributes[port.index]
     port_attributes["shape"] = shape
+
+
+def get_port_attributes(port: Port):
+    """Get the attributes of the port"""
+    return port.arrow.get_port_attributes(port)
