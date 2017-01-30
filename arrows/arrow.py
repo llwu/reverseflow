@@ -9,6 +9,10 @@ class Arrow:
         self.name = name
         self.parent = parent
 
+    def get_port_attributes(self, port):
+        assert port.arrow is self
+        return self.port_attributes[port.index]
+
     def get_ports(self):
         return self.ports
 
