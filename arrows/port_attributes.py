@@ -1,5 +1,6 @@
 from arrows.port import Port
-from typing import Sequence
+from typing import Sequence, Dict, Any
+PortAttributes = Dict[Port, Dict[str, Any]]
 
 def make_in_port(port: Port) -> None:
     """Make 'port' an InPort"""
@@ -65,3 +66,16 @@ def set_port_shape(port: Port, shape: Shape):
 def get_port_attributes(port: Port):
     """Get the attributes of the port"""
     return port.arrow.get_port_attributes(port)
+
+def port_has(port: Port, attribute: str, port_attr: PortAttributes) -> bool:
+    """Does port have `attribute` in port_attr"""
+    return port in port_attr and attribute in port_attr[port]
+
+
+def ports_has(ports: Sequence[Port], attr: str, port_attr: PortAttributes):
+    return all((port_has(port, attr, port_attr) for port in ports))
+
+
+def extract_attribute(attr: str, port_attr: PortAttributes):
+    return {port: port_attr[port][attr] for port in port_attr.keys() \
+            if attr in port_attr[port]}

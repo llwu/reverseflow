@@ -147,4 +147,4 @@ def sub_propagate(a: CompositeArrow, port_values: PortValues, state=None) -> Por
 
 
 def propagate_shapes(comp_arrow: CompositeArrow, port_values: PortValues):
-    return propagate(sub_propagate, comp_arrow, port_values)
+    return propagate(comp_arrow, port_values)

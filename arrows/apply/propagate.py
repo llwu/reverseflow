@@ -1,30 +1,28 @@
 """"Generic Propagation of values around a composite arrow"""
-
-from copy import copy
-from typing import Dict, Callable, TypeVar
-
 from arrows.port import Port
 from arrows.compositearrow import CompositeArrow
-from arrows.port_attributes import get_port_attributes
+from arrows.port_attributes import get_port_attributes, PortAttributes
 
+from copy import copy
+from typing import Dict, Callable, TypeVar, Any, Set
 
-T = TypeVar('T')
-PortValues = Dict[Port, T]
-
-
-def update_neigh(in_dict, out_dict, context, working_set):
-    for port, value in in_dict.items():
+def update_neigh(in_dict: PortAttributes,
+                 out_dict: PortAttributes,
+                 context: CompositeArrow,
+                 working_set: Set[Port]):
+    for port, attrs in in_dict.items():
         for neigh_port in context.neigh_ports(port):
-            if (neigh_port.arrow != context) and (neigh_port not in out_dict or out_dict[neigh_port] != value):
-                working_set.add(neigh_port.arrow)
-            out_dict[neigh_port] = copy(value)
-        out_dict[port] = copy(value)
+            if (neigh_port.arrow != context):
+                neigh_attr_keys = out_dict[neigh_port].keys()
+                if any((attr_key not in neigh_attr_keys for attr_key in attrs.keys())):
+                    working_set.add(neigh_port.arrow)
+            out_dict[neigh_port].update(attrs)
+        out_dict[port].update(attrs)
 
 
-def propagate(sub_propagate: Callable,
-              comp_arrow: CompositeArrow,
-              port_values: PortValues,
-              state=None) -> PortValues:
+def propagate(comp_arrow: CompositeArrow,
+              port_values: PortAttributes,
+              state=None) -> PortAttributes:
     """
     Propagate values around a composite arrow to determine knowns from unknowns
     The knowns should be determined by the knowns, otherwise an error throws
@@ -53,12 +51,9 @@ def propagate(sub_propagate: Callable,
         sub_port_values = {port: _port_values[port]
                            for port in sub_arrow.get_ports()
                            if port in _port_values}
-        new_sub_port_values = sub_propagate(sub_arrow, sub_port_values, state)
-        update_neigh(new_sub_port_values, _port_values, comp_arrow, updated)
+        pred_dispatches = sub_arrow.get_dispatches()
+        for pred, dispatch in pred_dispatches.items():
+            if pred(sub_arrow, sub_port_values):
+                new_sub_port_attr = dispatch(sub_arrow, sub_port_values)
+                update_neigh(new_sub_port_attr, _port_values, comp_arrow, updated)
     return _port_values
-
-# 1. What is the correct termination condition
-# 2. Is this going to take in a sub_propagate function or not
-# - we might not aant to always propagate everything
-# 3. lwu put in this kind of inverse propagation to handle the case of value propagation
-# 4. How to reuse that from symbolic apply

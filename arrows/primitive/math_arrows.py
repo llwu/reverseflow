@@ -1,13 +1,45 @@
-import math
-from typing import Dict, List, MutableMapping, Set
-
-import numpy as np
-from sympy import Expr, Rel, Gt, Ne
-
 from arrows.primitivearrow import PrimitiveArrow
-
+from typing import Dict, List, MutableMapping, Set, Sequence
+from sympy import Expr, Rel, Gt, Ne
+from arrows.port_attributes import (PortAttributes, port_has, ports_has,
+    extract_attribute)
+from arrows.port import Port
+from arrows.arrow import Arrow
+from arrows.apply.pred_dispatch import *
 
 def same_shape(shape): return shape
+
+
+
+def eval_pred1(arr: "AddArrow", port_attr: PortAttributes):
+    return ports_has(arr.get_in_ports(), 'value', port_attr)
+
+def eval_dispatch1(arr: "AddArrow", port_attr: PortAttributes):
+    ptv = extract_attribute('value', port_attr)
+    i = arr.get_in_ports()
+    o = arr.get_out_ports()
+    return {o[0] : {'value': ptv[i[0]] + ptv[i[1]]}}
+
+def eval_pred2(arr: "AddArrow", port_attr: PortAttributes):
+    ports = [arr.get_in_ports()[0], arr.get_out_ports()[0]]
+    return ports_has(ports, 'value', port_attr)
+
+def eval_dispatch2(arr: "AddArrow", port_attr: PortAttributes):
+    ptv = extract_attribute('value', port_attr)
+    i = arr.get_in_ports()
+    o = arr.get_out_ports()
+    return {i[1] : {'value': ptv[o[0]] - ptv[i[0]]}}
+
+def eval_pred3(arr: "AddArrow", port_attr: PortAttributes):
+    ports = [arr.get_in_ports()[1], arr.get_out_ports()[0]]
+    return ports_has(ports, 'value', port_attr)
+
+def eval_dispatch3(arr: "AddArrow", port_attr: PortAttributes):
+    ptv = extract_attribute('value', port_attr)
+    i = arr.get_in_ports()
+    o = arr.get_out_ports()
+    return {i[1] : {'value': ptv[o[0]] - ptv[i[0]]}}
+
 
 class AddArrow(PrimitiveArrow):
     """Addition"""
@@ -16,17 +48,12 @@ class AddArrow(PrimitiveArrow):
         name = 'Add'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv and i[1] in ptv:
-            ptv[o[0]] = ptv[i[0]] + ptv[i[1]]
-        if i[0] in ptv and o[0] in ptv:
-            ptv[i[1]] = ptv[o[0]] - ptv[i[0]]
-        if i[1] in ptv and o[0] in ptv:
-            ptv[i[0]] = ptv[o[0]] - ptv[i[1]]
-        return ptv
-
+    def get_dispatches(self):
+        return {shape_pred: shape_dispatch,
+                constant_pred: constant_dispatch,
+                eval_pred1: eval_dispatch1,
+                eval_pred2: eval_dispatch2,
+                eval_pred3: eval_dispatch3}
 
 class SubArrow(PrimitiveArrow):
     """Subtraction. Out[1] = In[0] - In[1]"""
@@ -34,6 +61,10 @@ class SubArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Sub'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        return {shape_pred: shape_dispatch,
+                constant_pred: constant_dispatch}
 
     def eval(self, ptv: Dict):
         i = self.get_in_ports()
@@ -53,6 +84,10 @@ class MulArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Mul'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        return {shape_pred: shape_dispatch,
+                constant_pred: constant_dispatch}
 
     def eval(self, ptv: Dict):
         i = self.get_in_ports()
@@ -109,32 +144,12 @@ class PowArrow(PrimitiveArrow):
             constraints.append(Gt(output_expr[0], 0))
         return constraints
 
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv and i[1] in ptv:
-            ptv[o[0]] = ptv[i[0]] ** ptv[i[1]]
-        if i[0] in ptv and o[0] in ptv:
-            ptv[i[1]] = math.log(ptv[o[0]],  ptv[i[0]])
-        if i[1] in ptv and o[0] in ptv:
-            ptv[i[0]] = ptv[o[0]] ** (1 / ptv[i[1]])
-        return ptv
-
 class ExpArrow(PrimitiveArrow):
     """Exponential e^x"""
 
     def __init__(self):
         name = 'Exp'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
-
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv:
-            ptv[o[0]] = math.exp(ptv[i[0]])
-        if o[0] in ptv:
-            ptv[i[1]] = math.log(ptv[o[0]])
-        return ptv
 
 
 class LogArrow(PrimitiveArrow):
@@ -143,15 +158,6 @@ class LogArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Log'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
-
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv:
-            ptv[o[0]] = math.log(ptv[i[0]])
-        if o[0] in ptv:
-            ptv[i[1]] = math.exp(ptv[o[0]])
-        return ptv
 
 class LogBaseArrow(PrimitiveArrow):
     """Log_y(x)"""
@@ -168,17 +174,6 @@ class LogBaseArrow(PrimitiveArrow):
             constraints.append(Gt(input_expr[1], 0))
         return constraints
 
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv and i[1] in ptv:
-            ptv[o[0]] = math.log(ptv[i[0]], ptv[i[1]])
-        if i[0] in ptv and o[0] in ptv:
-            ptv[i[1]] = ptv[i[0]] ** (1 / ptv[o[0]])
-        if i[1] in ptv and o[0] in ptv:
-            ptv[i[0]] = ptv[i[1]] ** (ptv[o[0]])
-        return ptv
-
 
 class NegArrow(PrimitiveArrow):
     """Negation"""
@@ -186,15 +181,6 @@ class NegArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Neg'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
-
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv:
-            ptv[o[0]] = -ptv[i[0]]
-        if o[0] in ptv:
-            ptv[i[0]] = -ptv[o[0]]
-        return ptv
 
 
 class AddNArrow(PrimitiveArrow):
@@ -204,24 +190,6 @@ class AddNArrow(PrimitiveArrow):
         name = 'AddN'
         super().__init__(n_in_ports=n, n_out_ports=1, name=name)
 
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        last_unknown = None
-        n_known = 0
-        sum_known = 0
-        for in_port in i:
-            if in_port not in ptv:
-                last_unknown = in_port
-            else:
-                n_known += 1
-                sum_known += ptv[in_port]
-        if n_known == len(i):
-            ptv[o[0]] = sum_known
-        if n_known == len(i) - 1 and o[0] in ptv:
-            ptv[last_unknown] = ptv[o[0]] - sum_known
-        return ptv
-
 
 class SinArrow(PrimitiveArrow):
     """Sin"""
@@ -229,13 +197,6 @@ class SinArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Sin'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
-
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv:
-            ptv[o[0]] = math.sin(ptv[i[0]])
-        return ptv
 
 
 class ASinArrow(PrimitiveArrow):
@@ -245,15 +206,6 @@ class ASinArrow(PrimitiveArrow):
         name = 'ASin'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv:
-            ptv[o[0]] = math.asin(ptv[i[0]])
-        if o[0] in ptv:
-            ptv[i[0]] = math.sin(ptv[o[0]])
-        return ptv
-
 
 class CosArrow(PrimitiveArrow):
     """Cos"""
@@ -261,13 +213,6 @@ class CosArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Cos'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
-
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv:
-            ptv[o[0]] = math.cos(ptv[i[0]])
-        return ptv
 
 
 class ClipArrow(PrimitiveArrow):
@@ -277,28 +222,12 @@ class ClipArrow(PrimitiveArrow):
         name = 'Clip'
         super().__init__(n_in_ports=3, n_out_ports=1, name=name)
 
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv and i[1] in ptv and i[2] in ptv:
-            ptv[o[0]] = np.clip(ptv[i[0]], ptv[i[1]], ptv[i[2]])
-        return ptv
-
 class ACosArrow(PrimitiveArrow):
     """ACos"""
 
     def __init__(self):
         name = 'ACos'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
-
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv:
-            ptv[o[0]] = math.acos(ptv[i[0]])
-        if o[0] in ptv:
-            ptv[i[0]] = math.cos(ptv[o[0]])
-        return ptv
 
 
 class AbsArrow(PrimitiveArrow):
@@ -314,13 +243,6 @@ class AbsArrow(PrimitiveArrow):
             constraints.append(Ge(output_expr[0], 0))
         return constraints
 
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv:
-            ptv[o[0]] = abs(ptv[i[0]])
-        return ptv
-
 
 class MaxArrow(PrimitiveArrow):
     """Returns the max of x and y (i.e. x > y ? x : y) element-wise."""
@@ -328,13 +250,6 @@ class MaxArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Max'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
-
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv and i[1] in ptv:
-            ptv[o[0]] = np.max(ptv[i[0]], ptv[i[1]])
-        return ptv
 
 
 class ReduceMeanArrow(PrimitiveArrow):
@@ -354,11 +269,3 @@ class ReduceMeanArrow(PrimitiveArrow):
         self.kee_dims = keep_dims
         self.reduction_indices = reduction_indices
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
-
-    def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
-        if i[0] in ptv and i[1] in ptv:
-            i1 = tuple(ptv[i[1]]) if isinstance(ptv[i[1]], np.ndarray) else ptv[i[1]]
-            ptv[o[0]] = np.mean(ptv[i[0]], i1)
-        return ptv

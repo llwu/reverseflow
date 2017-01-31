@@ -2,7 +2,7 @@
 from arrows.primitivearrow import PrimitiveArrow
 from typing import List, MutableMapping, Set, Dict
 from sympy import Expr, Eq, Rel
-
+from arrows.apply.pred_dispatch import *
 
 
 class DuplArrow(PrimitiveArrow):
@@ -21,6 +21,11 @@ class DuplArrow(PrimitiveArrow):
                 if i != j:
                     constraints.append(Eq(output_expr[i], output_expr[j]))
         return constraints
+
+    def get_dispatches(self):
+        return {shape_pred: shape_dispatch,
+                constant_pred: constant_dispatch}
+
 
     def eval(self, port_to_value):
         known_value = None
