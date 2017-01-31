@@ -3,59 +3,9 @@ from arrows.arrow import Arrow
 from arrows.compositearrow import CompositeArrow
 from arrows.std_arrows import *
 from arrows.apply.propagate import propagate
-
 from overloading import overload
 from numpy import ndarray
 from typing import Tuple, Dict, Sequence, Union, TypeVar, Type, Callable
-
-
-# so if I understand correctly?
-# for the test we load up a dict
-# There's some overlap between what lwu is doing in eval and what inversion si doing
-# - split up the predicates in eval. i.e. if all inputs are known should be one predicate
-# The terminiation condition needs reviewing
-
-
-Shape = Sequence[int]
-PortValues = Dict
-
-
-pred_to_dispatch = {}
-
-
-def get_dispatches(a: Arrow):
-    global pred_to_dispatch
-    if pred_to_dispatch == {}:
-        pred_to_dispatch = register_dispatches()
-    return pred_to_dispatch[a.__class__]
-
-
-def register_dispatch(out_dict: Dict, a: Type, pred: Callable, dispatch: Callable):
-    if a not in pred_to_dispatch:
-        out_dict[a] = [(pred, dispatch)]
-    else:
-        out_dict[a].append((pred, dispatch))
-
-
-def eval_predicate(a: Arrow, port_values: PortValues, state=None) -> bool:
-    return True
-
-
-def eval_dispatch(a: Arrow, port_values: PortValues, state=None):
-    flattened = dict([(port, value['value']) for port, value in port_values.items() if 'value' in value])
-    for port, value in a.eval(flattened).items():
-        port_values[port]['value'] = value
-
-
-@overload
-def sub_propagate(a: Arrow, port_values: PortValues, state=None):
-    dispatches = get_dispatches(a)
-    for predicate, dispatch in dispatches:
-        if predicate(a, port_values):
-            dispatch(a, port_values)
-    if eval_predicate(a, port_values):
-        eval_dispatch(a, port_values)
-    return port_values
 
 
 def rank_predicate_shape(a: Arrow, port_values: PortValues, state=None) -> bool:

@@ -7,11 +7,6 @@ from arrows.sourcearrow import SourceArrow
 from reverseflow.util.mapping import Bimap
 from arrows.compose import compose_comb
 from arrows.config import floatX
-# import numpy as np
-#
-# def dims_bar_batch(t):
-#     """Get dimensions of a tensor exluding its batch dimension (first one)"""
-#     return np.arange(1, t.get_shape().ndims)
 
 
 class DimsBarBatchArrow(CompositeArrow):

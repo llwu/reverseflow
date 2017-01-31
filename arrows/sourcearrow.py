@@ -2,6 +2,7 @@ from typing import List, Dict
 from arrows.arrow import Arrow
 from arrows.port import Port, InPort, OutPort
 from arrows.port_attributes import make_out_port
+from arrows.apply.pred_dispatch import *
 
 class SourceArrow(Arrow):
     """
@@ -38,3 +39,6 @@ class SourceArrow(Arrow):
         assert len(o) == 1
         ptv[o[0]] = self.value
         return ptv
+
+    def get_dispatches(self):
+        return {source_predicate: source_dispatch}

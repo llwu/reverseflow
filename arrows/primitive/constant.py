@@ -2,6 +2,7 @@ from typing import Dict
 
 import numpy as np
 
+from arrows.apply.pred_dispatch import *
 from arrows.primitivearrow import PrimitiveArrow
 
 
@@ -29,6 +30,10 @@ class RankArrow(PrimitiveArrow):
     def __init__(self):
         name = 'rank'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        return {constant_pred: constant_dispatch,
+                rank_predicate_shape: rank_dispatch_shape}
 
     def eval(self, ptv: Dict):
         i = self.get_in_ports()

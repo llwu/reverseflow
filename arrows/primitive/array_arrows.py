@@ -1,5 +1,6 @@
 """Array Operations"""
 from arrows.primitivearrow import PrimitiveArrow
+from arrows.port_attributes import port_has, PortAttributes
 
 
 class GatherArrow(PrimitiveArrow):
@@ -51,6 +52,16 @@ class SparseToDenseArrow(PrimitiveArrow):
         super().__init__(n_in_ports=3, n_out_ports=1, name=name)
 
 
+def reshape_eval_pred(arr: "ReshapeArrow", port_attr: PortAttributes):
+    return ports_has(arr.get_in_ports(), 'value', port_attr)
+
+def reshape_eval_dispatch(arr: "ReshapeArrow", port_attr: PortAttributes):
+    ptv = extract_attribute('value', port_attr)
+    i = arr.get_in_ports()
+    o = arr.get_out_ports()
+    import pdb; pdb.set_trace()
+    # return {o[0] : {'value': ptv[i[0]] + ptv[i[1]]}}
+
 class ReshapeArrow(PrimitiveArrow):
     """
     Port0:  Tensor
@@ -61,3 +72,6 @@ class ReshapeArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Reshape'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        return {reshape_eval_pred: reshape_eval_dispatch}

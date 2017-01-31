@@ -1,12 +1,12 @@
 """Parametric Inversion"""
-from arrows import Arrow, OutPort, Port, InPort
-from arrows.compositearrow import CompositeArrow, RelEdgeMap, is_projecting, is_receiving
+from arrows import Arrow, Port, InPort
+from arrows.compositearrow import CompositeArrow, is_projecting, is_receiving
 from arrows.apply.constants import PortValues, CONST, VAR
 from arrows.std_arrows import *
 from arrows.port_attributes import *
-from arrows.apply.constants import propagate_constants
+from arrows.apply.propagate import propagate
 from reverseflow.defaults import default_dispatch
-from typing import Dict, Callable, Set, Tuple, Type, TypeVar, Any
+from typing import Dict, Callable, Set, Tuple, TypeVar, Any
 from overloading import overload
 
 PortMap = Dict[int, int]
@@ -128,8 +128,6 @@ def inner_invert(comp_arrow: CompositeArrow,
     return inv_comp_arrow
 
 
-from arrows.apply.shapesbk import propagate_shapes
-
 def invert(comp_arrow: CompositeArrow,
            dispatch: Dict[Arrow, Callable]=default_dispatch) -> Arrow:
     """Construct a parametric inverse of comp_arrow
@@ -141,11 +139,6 @@ def invert(comp_arrow: CompositeArrow,
     comp_arrow.duplify()
     # FIXME: These should be unified
     port_values = {}
-    port_constants = propagate_constants(comp_arrow)
-    for port, const in port_constants.items():
-        port_values[port]['constant'] = const
-    port_shapes = propagate_shapes(comp_arrow)
-    for port, values in port_shapes.items():
-        port_values[port].update(values)
+    port_values = propagate(comp_arrow, port_values)
 
     return inner_invert(comp_arrow, port_values, dispatch)
