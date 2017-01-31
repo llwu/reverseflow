@@ -44,6 +44,12 @@ class GatherArrow(PrimitiveArrow):
         name = 'Gather'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
+class SparseToDenseArrow(PrimitiveArrow):
+    """tf.sparse_to_dense"""
+    def __init__(self):
+        name = 'SparseToDense'
+        super().__init__(n_in_ports=3, n_out_ports=1, name=name)
+
 
 class ReshapeArrow(PrimitiveArrow):
     """

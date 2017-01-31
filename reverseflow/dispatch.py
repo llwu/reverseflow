@@ -1,11 +1,15 @@
 """Inverse Dispatches for Inverses"""
+from typing import Set, Tuple, Dict
+
+import numpy as np
+
 from arrows import Arrow, Port, InPort
-from arrows.port_attributes import make_error_port, make_param_port
+from arrows.port_attributes import make_error_port, make_param_port, get_port_attributes
 from arrows.std_arrows import *
 from arrows.apply.constants import PortValues, CONST, VAR
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.util.mapping import Bimap
-from typing import Set, Tuple, Dict
+from reverseflow.util.misc import complement
 
 PortMap = Dict[int, int]
 
@@ -96,9 +100,38 @@ def inv_exp(arrow: ExpArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
 
 
 def inv_gather(arrow: GatherArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
-    sub_port_values = dict_subset(arrows.get_in_ports(), port_values)
-    assert port_values[arrows.get_in_ports()[1]] is CONST, "Variable indices unsupported"
-    
+    tensor_port = arrow.get_in_ports()[0]
+    tensor_attrs = get_port_attributes(tensor_port)
+    tensor_shape = tensor_attrs['shape']
+    index_list_port = arrow.get_in_ports()[1]
+    index_list_attrs = get_port_attributes(index_list_port)
+    index_list_value = index_list_attrs['value']
+    index_list_compl = complement(index_list_value, tensor_shape)
+    std1 = SparseToDenseArrow()
+    std2 = SparseToDenseArrow()
+    dupl1 = DuplArrow()
+    dupl2 = DuplArrow()
+    source_compl = SourceArrow(np.array(index_list_compl))
+    source_tensor_shape = SourceArrow(np.array(tensor_shape))
+    source_list = SourceArrow(np.array(index_list_value))
+    add = AddArrow()
+    edges = Bimap()
+    edges.add(source_compl.get_out_ports()[0], std1.get_in_ports()[0])
+    edges.add(source_tensor_shape.get_out_ports()[0], dupl1.get_in_ports()[0])
+    edges.add(source_list.get_out_ports()[0], dupl2.get_in_ports()[0])
+    edges.add(dupl1.get_out_ports()[0], std1.get_in_ports()[1])
+    edges.add(dupl1.get_out_ports()[1], std2.get_in_ports()[1])
+    edges.add(dupl2.get_out_ports()[0], std2.get_in_ports()[0])
+    edges.add(std1.get_out_ports()[0], add.get_in_ports()[0])
+    edges.add(std2.get_out_ports()[0], add.get_in_ports()[1])
+    in_ports = [std2.get_in_ports()[2], std1.get_in_ports()[2]]
+    out_ports = [add.get_out_ports()[0], dupl2.get_out_ports()[1]]
+    op = CompositeArrow(in_ports=in_ports,
+                        out_ports=out_ports,
+                        edges=edges,
+                        name="InvGather")
+    make_param_port(op.get_in_ports()[1])
+    return op, {0: 2, 1: 3, 2: 0}
 
 
 def dict_subset(keys, dict):
