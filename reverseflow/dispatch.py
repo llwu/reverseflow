@@ -7,7 +7,7 @@ from arrows import Arrow, Port, InPort
 from arrows.port_attributes import (PortAttributes, make_error_port,
     make_param_port, get_port_attributes)
 from arrows.std_arrows import *
-from arrows.apply.constants import PortValues, CONST, VAR
+from arrows.apply.constants import CONST, VAR
 from arrows.util.misc import extract
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.util.mapping import Bimap
@@ -16,7 +16,7 @@ from reverseflow.util.misc import complement
 PortMap = Dict[int, int]
 
 def generic_binary_inv(arrow: Arrow,
-                       port_values: PortValues,
+                       port_values: PortAttributes,
                        PInverseArrow,
                        Port0ConstArrow,
                        Port1ConstArrow) -> Tuple[Arrow, PortMap]:
@@ -42,12 +42,12 @@ def generic_binary_inv(arrow: Arrow,
     return inv_arrow, port_map
 
 
-def inv_add(arrow: AddArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+def inv_add(arrow: AddArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
     return generic_binary_inv(arrow, port_values, PInverseArrow=InvAddArrow,
                               Port0ConstArrow=SubArrow, Port1ConstArrow=SubArrow)
 
 
-def inv_cos(arrow: CosArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+def inv_cos(arrow: CosArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
     #FIXME: More rigorous than 0.99, should be 1.0 but get NaNs
     ibi = IntervalBoundIdentity(-0.99, 0.99)
     acos = ACosArrow()
@@ -77,7 +77,7 @@ def inv_cos(arrow: CosArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
 #     port_map.update({arrow.get_out_ports()[i].index: inv_arrow.get_in_ports()[i].index for i in range(n_duplications)})
 #     return inv_arrow, port_map
 
-def inv_dupl_approx(arrow: DuplArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+def inv_dupl_approx(arrow: DuplArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
     # assert port_values[arrow.get_in_ports()[0]] == VAR, "Dupl is constant"
     n_duplications = arrow.n_out_ports
     inv_dupl = InvDuplArrow(n_duplications=n_duplications)
@@ -141,20 +141,20 @@ def inv_gather(arrow: GatherArrow, port_attr: PortAttributes) -> Tuple[Arrow, Po
 def dict_subset(keys, dict):
     return {key: dict[key] for key in keys}
 
-def inv_reshape(arrow: GatherArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+def inv_reshape(arrow: GatherArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
     import pdb; pdb.set_trace()
 
 
-def inv_mul(arrow: AddArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+def inv_mul(arrow: AddArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
     return generic_binary_inv(arrow, port_values, PInverseArrow=InvMulArrow,
                               Port0ConstArrow=DivArrow, Port1ConstArrow=DivArrow)
 
 
-def inv_neg(arrow: NegArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+def inv_neg(arrow: NegArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
     import pdb; pdb.set_trace()
 
 
-def inv_sin(arrow: SinArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+def inv_sin(arrow: SinArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
     ibi = IntervalBoundIdentity(-0.99, 0.99)
     asin = ASinArrow()
 

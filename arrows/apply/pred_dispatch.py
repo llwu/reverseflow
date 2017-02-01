@@ -1,15 +1,9 @@
 from arrows.arrow import Arrow
 from arrows.port_attributes import (PortAttributes, port_has, ports_has,
     extract_attribute)
+from arrows.apply.constants import CONST, VAR
 from overloading import overload
 from numpy import ndarray
-
-def constant_pred(arr: Arrow, port_attr: PortAttributes):
-    return all((port_has(port, 'constant', port_attr) for port in arr.get_in_ports()))
-
-
-def constant_dispatch(arr: Arrow, port_attr: PortAttributes):
-    assert False
 
 
 def shape_pred(arr: Arrow, port_attr: PortAttributes):
