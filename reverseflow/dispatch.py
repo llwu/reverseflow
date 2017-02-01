@@ -99,8 +99,8 @@ def inv_dupl_approx(arrow: DuplArrow, port_values: PortAttributes) -> Tuple[Arro
 
 
 def inv_exp(arrow: ExpArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
-    this_port_attr = extract(arrow.get_ports(), port_attr)
-    import pdb; pdb.set_trace()
+    neg = NegArrow()
+    return neg, {0: 1, 1: 0}
 
 
 def inv_gather(arrow: GatherArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
@@ -138,20 +138,21 @@ def inv_gather(arrow: GatherArrow, port_attr: PortAttributes) -> Tuple[Arrow, Po
     return op, {0: 2, 1: 3, 2: 0}
 
 
-def dict_subset(keys, dict):
-    return {key: dict[key] for key in keys}
-
-def inv_reshape(arrow: GatherArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
-    import pdb; pdb.set_trace()
-
-
 def inv_mul(arrow: AddArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
     return generic_binary_inv(arrow, port_values, PInverseArrow=InvMulArrow,
                               Port0ConstArrow=DivArrow, Port1ConstArrow=DivArrow)
 
 
-def inv_neg(arrow: NegArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
+def inv_neg(arrow: NegArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
+    sub_port_attr = extract(arrow.get_ports(), port_attr)
+    neg = NegArrow()
+    return neg, {0: 1, 1: 0}
+
+
+def inv_reshape(arrow: ReshapeArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
     import pdb; pdb.set_trace()
+    sub_port_attr = extract(arrow.get_ports(), port_attr)
+
 
 
 def inv_sin(arrow: SinArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
