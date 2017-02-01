@@ -26,6 +26,8 @@ def get_const_op_value(const_op: Operation):
 def conv_Add(add_op: Operation):
     return AddArrow()
 
+def conv_Sub(sub_op: Operation):
+    return SubArrow()
 
 def conv_AddN(addm_op: Operation):
     return AddNArrow(len(addm_op.inputs))
@@ -71,6 +73,7 @@ def conv_Greater(gt_op: Operation):
 # Cannot use multimethods because different ops not distinguished by type
 Op_Type_To_Arrow = {'Add': conv_Add,  # type: Dict[string, Arrow]
                     'AddN': conv_AddN,
+                    'Sub': conv_Sub,
                     'Gather': conv_Gather,
                     'Exp': conv_Exp,
                     'Mul': conv_Mul,

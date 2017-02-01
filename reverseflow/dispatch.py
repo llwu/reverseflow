@@ -1,8 +1,4 @@
 """Inverse Dispatches for Inverses"""
-from typing import Set, Tuple, Dict
-
-import numpy as np
-
 from arrows import Arrow, Port, InPort
 from arrows.port_attributes import (PortAttributes, make_error_port,
     make_param_port, get_port_attributes)
@@ -12,6 +8,8 @@ from arrows.util.misc import extract
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.util.mapping import Bimap
 from reverseflow.util.misc import complement
+import numpy as np
+from typing import Set, Tuple, Dict
 
 PortMap = Dict[int, int]
 
@@ -19,7 +17,9 @@ def generic_binary_inv(arrow: Arrow,
                        port_values: PortAttributes,
                        PInverseArrow,
                        Port0ConstArrow,
-                       Port1ConstArrow) -> Tuple[Arrow, PortMap]:
+                       Port0ConstPortMap,
+                       Port1ConstArrow,
+                       Port1ConstPortMap) -> Tuple[Arrow, PortMap]:
     # FIXME: Is this actually correct for mul/add/sub
     port_0_const = port_values[arrow.get_in_ports()[0]] == CONST
     port_1_const = port_values[arrow.get_in_ports()[1]] == CONST
@@ -30,10 +30,10 @@ def generic_binary_inv(arrow: Arrow,
         port_map = {0: 0, 1: 1, 2: 2}
     elif port_0_const:
         inv_arrow = Port0ConstArrow()
-        port_map = {0: 1, 1: 2, 2: 0}
+        port_map = Port0ConstPortMap
     elif port_1_const:
         inv_arrow = Port1ConstArrow()
-        port_map = {0: 2, 1: 1, 2: 2}
+        port_map = Port1ConstPortMap
     else:
         # Neither constant, do 'normal' parametric inversison
         inv_arrow = PInverseArrow()
@@ -43,8 +43,22 @@ def generic_binary_inv(arrow: Arrow,
 
 
 def inv_add(arrow: AddArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
-    return generic_binary_inv(arrow, port_values, PInverseArrow=InvAddArrow,
-                              Port0ConstArrow=SubArrow, Port1ConstArrow=SubArrow)
+    return generic_binary_inv(arrow,
+                              port_values,
+                              PInverseArrow=InvAddArrow,
+                              Port0ConstArrow=SubArrow,
+                              Port0ConstPortMap={0: 1, 1: 2, 2: 0},
+                              Port1ConstArrow=SubArrow,
+                              Port1ConstPortMap={0: 2, 1: 1, 2: 0})
+
+def inv_sub(arrow: SubArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
+    return generic_binary_inv(arrow,
+                              port_values,
+                              PInverseArrow=InvSubArrow,
+                              Port0ConstArrow=SubArrow,
+                              Port0ConstPortMap={0: 0, 1: 2, 2: 1},
+                              Port1ConstArrow=AddArrow,
+                              Port1ConstPortMap={0: 2, 1: 1, 2: 0})
 
 
 def inv_cos(arrow: CosArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
@@ -134,9 +148,30 @@ def inv_gather(arrow: GatherArrow, port_attr: PortAttributes) -> Tuple[Arrow, Po
     return op, {0: 2, 1: 3, 2: 0}
 
 
-def inv_mul(arrow: AddArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
-    return generic_binary_inv(arrow, port_values, PInverseArrow=InvMulArrow,
-                              Port0ConstArrow=DivArrow, Port1ConstArrow=DivArrow)
+def dict_subset(keys, dict):
+    return {key: dict[key] for key in keys}
+
+def inv_reshape(arrow: GatherArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
+    import pdb; pdb.set_trace()
+
+
+def inv_mul(arrow: MulArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
+    return generic_binary_inv(arrow,
+                              port_values,
+                              PInverseArrow=InvMulArrow,
+                              Port0ConstArrow=DivArrow,
+                              Port0ConstPortMap={0: 1, 1: 2, 2: 0},
+                              Port1ConstArrow=DivArrow,
+                              Port1ConstPortMap={0: 2, 1: 1, 2: 0})
+
+def inv_div(arrow: DivArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
+    return generic_binary_inv(arrow,
+                              port_values,
+                              PInverseArrow=InvDivArrow,
+                              Port0ConstArrow=DivArrow,
+                              Port0ConstPortMap={0: 0, 1: 2, 2: 1},
+                              Port1ConstArrow=MulArrow,
+                              Port1ConstPortMap={0: 2, 1: 1, 2: 0})
 
 
 def inv_neg(arrow: NegArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
