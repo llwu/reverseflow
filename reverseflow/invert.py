@@ -11,27 +11,24 @@ from overloading import overload
 
 PortMap = Dict[int, int]
 U = TypeVar('U', bound=Arrow)
-# DispatchType = Dict[Any, Callable]
-# FIXME: Make this type tighter (and work)
-DispatchType = Any
 
 @overload
 def invert_sub_arrow(arrow: Arrow,
-                     port_values: PortAttributes,
-                     dispatch: DispatchType):
+                     port_values,
+                     dispatch):
     invert_f = dispatch[arrow.__class__]
     return invert_f(arrow, port_values)
 
 @overload
 def invert_sub_arrow(source_arrow: SourceArrow,
-                     port_values: PortAttributes,
-                     dispatch: DispatchType):
+                     port_values,
+                     dispatch):
     return SourceArrow(value=source_arrow.value), {0: 0}
 
 @overload
 def invert_sub_arrow(comp_arrow: CompositeArrow,
-                     port_values: PortAttributes,
-                     dispatch: DispatchType):
+                     port_values,
+                     dispatch):
     return inner_invert(comp_arrow, port_values, dispatch)
 
 
