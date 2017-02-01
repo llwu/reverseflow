@@ -62,8 +62,8 @@ def inv_sub(arrow: SubArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMa
 
 
 def inv_cos(arrow: CosArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
-    #FIXME: More rigorous than 0.99, should be 1.0 but get NaNs
-    ibi = IntervalBoundIdentity(-0.99, 0.99)
+    #FIXME: More rigorous than 0.999, should be 1.0 but get NaNs
+    ibi = IntervalBoundIdentity(-0.999, 0.999)
     acos = ACosArrow()
 
     comp_arrow = CompositeArrow(name="approx_acos")
@@ -191,7 +191,7 @@ def inv_reshape(arrow: ReshapeArrow, port_attr: PortAttributes) -> Tuple[Arrow, 
 
 
 def inv_sin(arrow: SinArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
-    ibi = IntervalBoundIdentity(-0.99, 0.99)
+    ibi = IntervalBoundIdentity(-0.999, 0.999)
     asin = ASinArrow()
 
     comp_arrow = CompositeArrow(name="approx_asin")
