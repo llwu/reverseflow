@@ -1,8 +1,4 @@
 """Inverse Dispatches for Inverses"""
-from typing import Set, Tuple, Dict
-
-import numpy as np
-
 from arrows import Arrow, Port, InPort
 from arrows.port_attributes import (PortAttributes, make_error_port,
     make_param_port, get_port_attributes)
@@ -12,6 +8,8 @@ from arrows.util.misc import extract
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.util.mapping import Bimap
 from reverseflow.util.misc import complement
+import numpy as np
+from typing import Set, Tuple, Dict
 
 PortMap = Dict[int, int]
 
