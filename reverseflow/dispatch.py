@@ -104,12 +104,8 @@ def inv_exp(arrow: ExpArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]
 
 
 def inv_gather(arrow: GatherArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
-    tensor_port = arrow.get_in_ports()[0]
-    tensor_attrs = get_port_attributes(tensor_port)
-    tensor_shape = tensor_attrs['shape']
-    index_list_port = arrow.get_in_ports()[1]
-    index_list_attrs = get_port_attributes(index_list_port)
-    index_list_value = index_list_attrs['value']
+    tensor_shape = port_attr[arrow.get_in_ports()[0]]['shape']
+    index_list_value = port_attr[arrow.get_in_ports()[1]]['value']
     index_list_compl = complement(index_list_value, tensor_shape)
     std1 = SparseToDenseArrow()
     std2 = SparseToDenseArrow()
