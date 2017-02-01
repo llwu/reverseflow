@@ -1,7 +1,7 @@
 """Parametric Inversion"""
 from arrows import Arrow, Port, InPort
 from arrows.compositearrow import CompositeArrow, is_projecting, is_receiving
-from arrows.apply.constants import PortValues, CONST, VAR
+from arrows.apply.constants import CONST, VAR
 from arrows.std_arrows import *
 from arrows.port_attributes import *
 from arrows.apply.propagate import propagate
@@ -11,27 +11,24 @@ from overloading import overload
 
 PortMap = Dict[int, int]
 U = TypeVar('U', bound=Arrow)
-# DispatchType = Dict[Any, Callable]
-# FIXME: Make this type tighter (and work)
-DispatchType = Any
 
 @overload
 def invert_sub_arrow(arrow: Arrow,
-                     port_values: PortValues,
-                     dispatch: DispatchType):
+                     port_values,
+                     dispatch):
     invert_f = dispatch[arrow.__class__]
     return invert_f(arrow, port_values)
 
 @overload
 def invert_sub_arrow(source_arrow: SourceArrow,
-                     port_values: PortValues,
-                     dispatch: DispatchType):
+                     port_values,
+                     dispatch):
     return SourceArrow(value=source_arrow.value), {0: 0}
 
 @overload
 def invert_sub_arrow(comp_arrow: CompositeArrow,
-                     port_values: PortValues,
-                     dispatch: DispatchType):
+                     port_values,
+                     dispatch):
     return inner_invert(comp_arrow, port_values, dispatch)
 
 
@@ -46,7 +43,7 @@ def get_inv_port(port: Port,
     return inv_port
 
 def inner_invert(comp_arrow: CompositeArrow,
-                 port_values: PortValues,
+                 port_values: PortAttributes,
                  dispatch: Dict[Arrow, Callable]):
     """Construct a parametric inverse of arrow
     Args:
