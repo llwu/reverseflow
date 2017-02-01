@@ -1,6 +1,21 @@
 """Array Operations"""
 from arrows.primitivearrow import PrimitiveArrow
-from arrows.port_attributes import port_has, PortAttributes
+from arrows.port_attributes import ports_has, PortAttributes, extract_attribute
+from arrows.apply.pred_dispatch import *
+import numpy as np
+
+
+def gather_shape_pred(arr: "GatherArrow", port_attr: PortAttributes):
+    # FIXME: Can we infer shaep from output or aoutput and one input?
+    return ports_has(arr.get_in_ports(), 'shape', port_attr)
+
+
+def gather_shape_dispatch(arr: "GatherArrow", port_attr: PortAttributes):
+    # Produces an output tensor with shape `indices.shape + params.shape[1:]`
+    pts = extract_attribute('shape', port_attr)
+    indices_shape = pts[arr.get_in_ports()[0]]
+    param_shape = pts[arr.get_in_ports()[1]]
+    return {arr.get_out_ports()[0]: {'shape': indices_shape + param_shape[1:]}}
 
 
 class GatherArrow(PrimitiveArrow):
@@ -45,13 +60,19 @@ class GatherArrow(PrimitiveArrow):
         name = 'Gather'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
+    def get_dispatches(self):
+        return {constant_pred: constant_dispatch,
+                gather_shape_pred: gather_shape_dispatch}
+
+
 class SparseToDenseArrow(PrimitiveArrow):
     """tf.sparse_to_dense"""
     def __init__(self):
         name = 'SparseToDense'
         super().__init__(n_in_ports=3, n_out_ports=1, name=name)
 
-
+# Reshape
+# ========
 def reshape_eval_pred(arr: "ReshapeArrow", port_attr: PortAttributes):
     return ports_has(arr.get_in_ports(), 'value', port_attr)
 
@@ -59,8 +80,8 @@ def reshape_eval_dispatch(arr: "ReshapeArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
     i = arr.get_in_ports()
     o = arr.get_out_ports()
-    import pdb; pdb.set_trace()
-    # return {o[0] : {'value': ptv[i[0]] + ptv[i[1]]}}
+    res = np.reshape(ptv[i[0]], ptv[i[1]])
+    return {o[0]: {'value': res}}
 
 class ReshapeArrow(PrimitiveArrow):
     """

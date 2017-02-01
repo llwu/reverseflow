@@ -259,6 +259,10 @@ class ExpArrow(PrimitiveArrow):
         name = 'Exp'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
+    def get_dispatches(self):
+        return {constant_pred: constant_dispatch,
+                shape_pred: shape_dispatch}
+
 
 class LogArrow(PrimitiveArrow):
     """Log_e(x)"""
@@ -290,6 +294,10 @@ class NegArrow(PrimitiveArrow):
         name = 'Neg'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
+    def get_dispatches(self):
+        return {constant_pred: constant_dispatch,
+                shape_pred: shape_dispatch}
+
 
 class AddNArrow(PrimitiveArrow):
     """Element wise sum of n tensors"""
@@ -306,6 +314,10 @@ class SinArrow(PrimitiveArrow):
         name = 'Sin'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
+    def get_dispatches(self):
+        return {constant_pred: constant_dispatch,
+                shape_pred: shape_dispatch}
+
 
 class ASinArrow(PrimitiveArrow):
     """ASin"""
@@ -314,6 +326,10 @@ class ASinArrow(PrimitiveArrow):
         name = 'ASin'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
+    def get_dispatches(self):
+        return {constant_pred: constant_dispatch,
+                shape_pred: shape_dispatch}
+
 
 class CosArrow(PrimitiveArrow):
     """Cos"""
@@ -321,6 +337,11 @@ class CosArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Cos'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        return {constant_pred: constant_dispatch,
+                shape_pred: shape_dispatch}
+
 
 
 class ClipArrow(PrimitiveArrow):
@@ -336,6 +357,10 @@ class ACosArrow(PrimitiveArrow):
     def __init__(self):
         name = 'ACos'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        return {constant_pred: constant_dispatch,
+                shape_pred: shape_dispatch}
 
 
 class AbsArrow(PrimitiveArrow):

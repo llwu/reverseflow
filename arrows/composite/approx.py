@@ -132,7 +132,7 @@ class IntervalBoundIdentity(CompositeArrow):
     Identity on input but returns error for those outside bounds
     """
 
-    def __init__(self, l, u, intervalbound=SmoothIntervalBound):
+    def __init__(self, l, u, intervalbound=IntervalBound):
         super().__init__(name="IntervalBoundIdentity")
         comp_arrow = self
         in_port = comp_arrow.add_port()

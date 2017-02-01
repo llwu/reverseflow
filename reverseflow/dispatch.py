@@ -4,9 +4,11 @@ from typing import Set, Tuple, Dict
 import numpy as np
 
 from arrows import Arrow, Port, InPort
-from arrows.port_attributes import make_error_port, make_param_port, get_port_attributes
+from arrows.port_attributes import (PortAttributes, make_error_port,
+    make_param_port, get_port_attributes)
 from arrows.std_arrows import *
 from arrows.apply.constants import PortValues, CONST, VAR
+from arrows.util.misc import extract
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.util.mapping import Bimap
 from reverseflow.util.misc import complement
@@ -46,6 +48,7 @@ def inv_add(arrow: AddArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
 
 
 def inv_cos(arrow: CosArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+    #FIXME: More rigorous than 0.99, should be 1.0 but get NaNs
     ibi = IntervalBoundIdentity(-0.99, 0.99)
     acos = ACosArrow()
 
@@ -75,7 +78,7 @@ def inv_cos(arrow: CosArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
 #     return inv_arrow, port_map
 
 def inv_dupl_approx(arrow: DuplArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
-    assert port_values[arrow.get_in_ports()[0]] == VAR, "Dupl is constant"
+    # assert port_values[arrow.get_in_ports()[0]] == VAR, "Dupl is constant"
     n_duplications = arrow.n_out_ports
     inv_dupl = InvDuplArrow(n_duplications=n_duplications)
     approx_id = ApproxIdentityArrow(n_inputs=n_duplications)
@@ -95,11 +98,12 @@ def inv_dupl_approx(arrow: DuplArrow, port_values: PortValues) -> Tuple[Arrow, P
     return inv_arrow, port_map
 
 
-def inv_exp(arrow: ExpArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+def inv_exp(arrow: ExpArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
+    this_port_attr = extract(arrow.get_ports(), port_attr)
     import pdb; pdb.set_trace()
 
 
-def inv_gather(arrow: GatherArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+def inv_gather(arrow: GatherArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
     tensor_port = arrow.get_in_ports()[0]
     tensor_attrs = get_port_attributes(tensor_port)
     tensor_shape = tensor_attrs['shape']

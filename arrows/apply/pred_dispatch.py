@@ -13,10 +13,13 @@ def constant_dispatch(arr: Arrow, port_attr: PortAttributes):
 
 
 def shape_pred(arr: Arrow, port_attr: PortAttributes):
+    """True if any of the ports have a shape"""
+    # FIXME: Assert that all shapes are the same
     return any((port_has(port, 'shape', port_attr) for port in arr.get_ports()))
 
 
 def shape_dispatch(arr: Arrow, port_attr: PortAttributes):
+    """Make all other ports the smae"""
     pts = extract_attribute('shape', port_attr)
     shape = list(pts.values())[0]
     return {port: {'shape': shape} for port in arr.get_ports()}
@@ -33,7 +36,7 @@ def rank_dispatch_shape(a: Arrow, port_values: PortAttributes, state=None):
 
 # FIXME: We could get rid of these redundant predicates by just putting data
 # on the port directly
-def source_predicate(a: Arrow, port_values: PortAttributes, state=None) -> bool:
+def source_predicate(a: Arrow, port_attr: PortAttributes, state=None) -> bool:
     assert len(a.get_in_ports()) == 0
     return True
 
@@ -56,4 +59,5 @@ def constant_to_shape(x: ndarray):
 def source_dispatch(a: Arrow, port_values: PortAttributes, state=None):
     assert len(a.get_out_ports()) == 1
     return {a.get_out_ports()[0]: {'shape': constant_to_shape(a.value),
-                                    'value': a.value}}
+                                   'value': a.value,
+                                   'constant': CONST}}

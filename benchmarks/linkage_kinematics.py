@@ -51,7 +51,7 @@ def gen_robot(lengths: Sequence, angles: Sequence):
 def test_robot_arm():
     lengths = [0.9397378938990306, 1.7201786764100944]
     with tf.name_scope("fwd_kinematics"):
-        angles = [tf.placeholder(floatX(), name="theta") for i in range(len(lengths))]
+        angles = [tf.placeholder(floatX(), name="theta", shape=()) for i in range(len(lengths))]
         x, y = gen_robot(lengths, angles)
     arrow = graph_to_arrow([x, y], name="robot_fwd_kinematics")
     show_tensorboard_graph()
