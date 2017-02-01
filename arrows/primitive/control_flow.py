@@ -6,6 +6,21 @@ from arrows.apply.pred_dispatch import *
 from arrows.apply.constants import constant_pred, constant_dispatch
 
 
+def dupl_pred(arr: "DuplArrow", port_attr: PortAttributes):
+    for port in arr.get_ports():
+        if port in port_attr and 'value' in port_attr[port]:
+            return True
+    return False
+
+def dupl_disp(arr: "DuplArrow", port_attr: PortAttributes):
+    known_value = None
+    for port in arr.get_ports():
+        if port in port_attr and 'value' in port_attr[port]:
+            known_value = port_attr[port]['value']
+            break
+    return {port: {'value': known_value} for port in arr.get_ports()}
+
+
 class DuplArrow(PrimitiveArrow):
     """
     Duplicate input
@@ -25,18 +40,8 @@ class DuplArrow(PrimitiveArrow):
 
     def get_dispatches(self):
         return {shape_pred: shape_dispatch,
-                constant_pred: constant_dispatch}
-
-
-    def eval(self, port_to_value):
-        known_value = None
-        for port, value in port_to_value.items():
-            known_value = value
-            break
-        if known_value is not None:
-            for port in self.get_ports():
-                port_to_value[port] = known_value
-        return port_to_value
+                constant_pred: constant_dispatch,
+                dupl_pred: dupl_disp}
 
 
 class InvDuplArrow(PrimitiveArrow):
@@ -53,15 +58,10 @@ class InvDuplArrow(PrimitiveArrow):
             constraints.append(Eq(output_expr[0], input_expr[i]))
         return constraints
 
-    def eval(self, port_to_value):
-        known_value = None
-        for port, value in port_to_value.items():
-            known_value = value
-            break
-        if known_value is not None:
-            for port in self.get_ports():
-                port_to_value[port] = known_value
-        return port_to_value
+    def get_dispatches(self):
+        return {shape_pred: shape_dispatch,
+                constant_pred: constant_dispatch,
+                dupl_pred: dupl_disp}
 
 
 class IdentityArrow(PrimitiveArrow):

@@ -14,8 +14,8 @@ def gather_shape_pred(arr: "GatherArrow", port_attr: PortAttributes):
 def gather_shape_dispatch(arr: "GatherArrow", port_attr: PortAttributes):
     # Produces an output tensor with shape `indices.shape + params.shape[1:]`
     pts = extract_attribute('shape', port_attr)
-    indices_shape = pts[arr.get_in_ports()[0]]
-    param_shape = pts[arr.get_in_ports()[1]]
+    indices_shape = pts[arr.get_in_ports()[1]]
+    param_shape = pts[arr.get_in_ports()[0]]
     return {arr.get_out_ports()[0]: {'shape': indices_shape + param_shape[1:]}}
 
 
@@ -66,11 +66,47 @@ class GatherArrow(PrimitiveArrow):
                 gather_shape_pred: gather_shape_dispatch}
 
 
+def const_to_tuple(x):
+    if isinstance(x, np.ndarray) and x.shape == ():
+        return (x.item(),)
+    if isinstance(x, np.ndarray) or isinstance(x, list):
+        return tuple(x)
+    if not isinstance(x, tuple):
+        return (x,)
+
+
+def std_pred1(arr: "SparseToDenseArrow", port_attr: PortAttributes):
+    return ports_has(arr.get_in_ports()[1:2], 'value', port_attr)
+
+
+def std_disp1(arr: "SparseToDenseArrow", port_attr: PortAttributes):
+    output_shape = const_to_tuple(port_attr[arr.get_in_ports()[1]]['value'])
+    return {arr.get_out_ports()[0]: {'shape': output_shape}}
+
+
+def std_pred1(arr: "SparseToDenseArrow", port_attr: PortAttributes):
+    return ports_has(arr.get_in_ports(), 'value', port_attr)
+
+
+def std_disp1(arr: "SparseToDenseArrow", port_attr: PortAttributes):
+    inds = port_attr[arr.get_in_ports()[0]]['value']
+    output_shape = const_to_tuple(port_attr[arr.get_in_ports()[1]]['value'])
+    vals = port_attr[arr.get_in_ports()[2]]['value']
+    output = np.zeros(output_shape)
+    for i, ind in enumerate(list(inds)):
+        output[ind] = vals[i]
+    return {arr.get_out_ports()[0]: {'value': output}}
+
+
 class SparseToDenseArrow(PrimitiveArrow):
     """tf.sparse_to_dense"""
     def __init__(self):
         name = 'SparseToDense'
         super().__init__(n_in_ports=3, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        return {constant_pred: constant_dispatch,
+                std_pred1: std_disp1}
 
 # Reshape
 # ========
