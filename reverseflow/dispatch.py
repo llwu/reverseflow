@@ -46,6 +46,10 @@ def inv_add(arrow: AddArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
     return generic_binary_inv(arrow, port_values, PInverseArrow=InvAddArrow,
                               Port0ConstArrow=SubArrow, Port1ConstArrow=SubArrow)
 
+def inv_sub(arrow: SubArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+    return generic_binary_inv(arrow, port_values, PInverseArrow=InvSubArrow,
+                              Port0ConstArrow=AddArrow, Port1ConstArrow=AddArrow)
+
 
 def inv_cos(arrow: CosArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
     #FIXME: More rigorous than 0.99, should be 1.0 but get NaNs
@@ -145,7 +149,7 @@ def inv_reshape(arrow: GatherArrow, port_values: PortValues) -> Tuple[Arrow, Por
     import pdb; pdb.set_trace()
 
 
-def inv_mul(arrow: AddArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
+def inv_mul(arrow: MulArrow, port_values: PortValues) -> Tuple[Arrow, PortMap]:
     return generic_binary_inv(arrow, port_values, PInverseArrow=InvMulArrow,
                               Port0ConstArrow=DivArrow, Port1ConstArrow=DivArrow)
 

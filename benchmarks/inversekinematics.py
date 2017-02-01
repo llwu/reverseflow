@@ -2,7 +2,11 @@ import sys
 import getopt
 import tensorflow as tf
 import numpy as np
-from rf.util import *
+from reverseflow.util.tf import *
+from arrows.util.viz import show_tensorboard_graph
+from reverseflow.invert import invert
+from reverseflow.to_arrow import graph_to_arrow
+from reverseflow.train.train_y import min_approx_error_arrow
 
 c = tf.cos
 s = tf.sin
@@ -45,16 +49,29 @@ def ik_fwd_f(inputs):
 def ik_gen_graph(g, batch_size, is_placeholder):
     with g.name_scope("fwd_g"):
         inputs = {}
-        inputs['phi1'] = placeholder(tf.float32, name="phi1", shape=(batch_size, 1))
-        inputs['phi2'] = placeholder(tf.float32, name="phi2", shape=(batch_size, 1))
+        inputs['phi1'] = tf.placeholder(tf.float32, name="phi1", shape=(batch_size, 1))
+        inputs['phi2'] = tf.placeholder(tf.float32, name="phi2", shape=(batch_size, 1))
         # inputs['phi3'] = placeholder(tf.float32, name="phi3", shape=(batch_size, 1))
-        inputs['phi4'] = placeholder(tf.float32, name="phi4", shape=(batch_size, 1))
-        inputs['phi5'] = placeholder(tf.float32, name="phi5", shape=(batch_size, 1))
-        inputs['phi6'] = placeholder(tf.float32, name="phi6", shape=(batch_size, 1))
+        inputs['phi4'] = tf.placeholder(tf.float32, name="phi4", shape=(batch_size, 1))
+        inputs['phi5'] = tf.placeholder(tf.float32, name="phi5", shape=(batch_size, 1))
+        inputs['phi6'] = tf.placeholder(tf.float32, name="phi6", shape=(batch_size, 1))
 
-        inputs['d2'] = placeholder(tf.float32, name="d2", shape=(batch_size, 1))
-        inputs['d3'] = placeholder(tf.float32, name="d3", shape=(batch_size, 1))
-        inputs['h1'] = placeholder(tf.float32, name="h1", shape=(batch_size, 1))
+        inputs['d2'] = tf.placeholder(tf.float32, name="d2", shape=(batch_size, 1))
+        inputs['d3'] = tf.placeholder(tf.float32, name="d3", shape=(batch_size, 1))
+        inputs['h1'] = tf.placeholder(tf.float32, name="h1", shape=(batch_size, 1))
 
         outputs = ik_fwd_f(inputs)
         return {"inputs": inputs, "outputs": outputs}
+
+def test_ik():
+    with tf.name_scope("ik_stanford_manipulator"):
+        in_out = ik_gen_graph(tf.Graph(), 1, is_placeholder)
+        outputs = list(in_out["outputs"].values())
+    arrow = graph_to_arrow(outputs, name="ik_stanford")
+    show_tensorboard_graph()
+    tf.reset_default_graph()
+    inverse = invert(arrow)
+    output_values = [np.random.randn() for _ in range(len(outputs))]
+    min_approx_error_arrow(inverse, output_values)
+
+test_ik()
