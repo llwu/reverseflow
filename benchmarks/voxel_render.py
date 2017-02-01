@@ -179,7 +179,7 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
     rd = np.reshape(rd, (nmatrices * width * height, 3))
     step_sz = np.reshape(step_size, (nmatrices * width * height, 1))
     print(voxels)
-    voxels = tf.reshape(voxels, [-1])
+    # voxels = tf.reshape(voxels, [-1])
 
     for i in range(nsteps):
         # print "step", i
@@ -197,11 +197,12 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
 
     img = left_over
     img_shape = tf.TensorShape((nvoxgrids, nmatrices, width, height))
-    # print("OKOK", tf.TensorShape((nvoxgrids, nmatrices, width, height)))
-    pixels = tf.reshape(img, img_shape)
-    mask = t14 > t04
-    # print(mask.reshape())
-    return pixels,
+    # # print("OKOK", tf.TensorShape((nvoxgrids, nmatrices, width, height)))
+    return img
+    # pixels = tf.reshape(img, img_shape)
+    # mask = t14 > t04
+    # # print(mask.reshape())
+    # return pixels,
     # return tf.select(mask.reshape(img_shape), pixels, tf.ones_like(pixels)), rd, ro, tn_x, tf.ones(img_shape), orig, voxels
 
 
@@ -227,7 +228,8 @@ def render_gen_graph(g, batch_size):
     res = 32
     with g.name_scope("fwd_g"):
         voxels = tf.placeholder(floatX(), name="voxels",
-                                shape=(nvoxgrids, res, res, res))
+                                shape=nvoxgrids*res*res*res)
+                                # shape=(nvoxgrids, res, res, res))
         inputs = {"voxels": voxels}
         outputs = render_fwd_f(inputs)
         return {"inputs": inputs, "outputs": outputs}
