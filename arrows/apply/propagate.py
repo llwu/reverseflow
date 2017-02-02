@@ -5,6 +5,7 @@ from arrows.port_attributes import get_port_attributes, PortAttributes
 
 from copy import copy
 from typing import Dict, Callable, TypeVar, Any, Set
+from collections import defaultdict
 
 def update_neigh(in_dict: PortAttributes,
                  out_dict: PortAttributes,
@@ -38,13 +39,14 @@ def propagate(comp_arrow: CompositeArrow,
     """
     if port_attr is None:
         port_attr = {}
+    port_attr = {a: {b: c for b, c in d.items()} for a, d in port_attr.items()}
 
-    _port_attr = {}
+    _port_attr = defaultdict(lambda: dict())
     # update port_attr with values stored on port
     for sub_arrow in comp_arrow.get_all_arrows():
         for port in sub_arrow.ports():
             attributes = get_port_attributes(port)
-            _port_attr[port] = attributes
+            port_attr[port] = attributes
 
     updated = set(comp_arrow.get_sub_arrows())
     update_neigh(port_attr, _port_attr, comp_arrow, updated)

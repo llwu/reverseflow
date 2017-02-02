@@ -6,6 +6,16 @@ from arrows.apply.constants import constant_pred, constant_dispatch
 import numpy as np
 
 
+def const_to_tuple(x):
+    if isinstance(x, np.ndarray) and x.shape == ():
+        return (x.item(),)
+    if isinstance(x, np.ndarray) or isinstance(x, list):
+        return tuple(x)
+    if not isinstance(x, tuple):
+        return (x,)
+    return x
+
+
 def gather_shape_pred(arr: "GatherArrow", port_attr: PortAttributes):
     # FIXME: Can we infer shaep from output or aoutput and one input?
     return ports_has(arr.in_ports(), 'shape', port_attr)
@@ -14,8 +24,8 @@ def gather_shape_pred(arr: "GatherArrow", port_attr: PortAttributes):
 def gather_shape_dispatch(arr: "GatherArrow", port_attr: PortAttributes):
     # Produces an output tensor with shape `indices.shape + params.shape[1:]`
     pts = extract_attribute('shape', port_attr)
-    indices_shape = pts[arr.in_ports()[1]]
-    param_shape = pts[arr.in_ports()[0]]
+    indices_shape = const_to_tuple(pts[arr.in_ports()[1]])
+    param_shape = const_to_tuple(pts[arr.in_ports()[0]])
     return {arr.out_ports()[0]: {'shape': indices_shape + param_shape[1:]}}
 
 
@@ -64,15 +74,6 @@ class GatherArrow(PrimitiveArrow):
     def get_dispatches(self):
         return {constant_pred: constant_dispatch,
                 gather_shape_pred: gather_shape_dispatch}
-
-
-def const_to_tuple(x):
-    if isinstance(x, np.ndarray) and x.shape == ():
-        return (x.item(),)
-    if isinstance(x, np.ndarray) or isinstance(x, list):
-        return tuple(x)
-    if not isinstance(x, tuple):
-        return (x,)
 
 
 def std_pred1(arr: "SparseToDenseArrow", port_attr: PortAttributes):
