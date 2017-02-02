@@ -50,7 +50,7 @@ def ik_fwd_f(inputs):
 
 fig = plt.figure()
 
-def plot_robot_arm(inputs):
+def plot_robot_arm(inputs, target):
     global fig
     phi1 = inputs[0]
     phi2 = inputs[1]
@@ -91,7 +91,13 @@ def plot_robot_arm(inputs):
     startZ = 0
     startT = np.identity(4)
     ax = fig.gca(projection='3d')
+    scatter_x = []
+    scatter_y = []
+    scatter_z = []
     for i in range(6):
+        scatter_x.append(startX)
+        scatter_y.append(startY)
+        scatter_z.append(startZ)
         newT = np.matmul(startT, T[i])
         newX = newT[0, 3]
         newY = newT[1, 3]
@@ -102,7 +108,11 @@ def plot_robot_arm(inputs):
         startX = newX
         startY = newY
         startZ = newZ
-    ax.scatter([startX], [startY], [startZ], c='r')
+    scatter_x.append(startX)
+    scatter_y.append(startY)
+    scatter_z.append(startZ)
+    ax.scatter(scatter_x, scatter_y, scatter_z, c='b')
+    ax.scatter(target[0], target[1], target[2], c='r')
     ax.legend()
     plt.show()
 
@@ -138,18 +148,21 @@ def test_ik():
         with tf.Session() as sess:
             output_values = sess.run(in_out["outputs"], feed_dict={in_out["inputs"][i]: input_values[i] for i in range(len(input_values))})
         print(output_values)
-        plot_robot_arm(input_values)
+        # plot_robot_arm(input_values)
     arrow = graph_to_arrow(in_out["outputs"],
                            input_tensors=in_out["inputs"],
                            name="ik_stanford")
     # show_tensorboard_graph()
     tf.reset_default_graph()
     inverse = invert(arrow)
-    def plot_call_back(output_values):
+    target = (output_values[0], output_values[1], output_values[2])
+    def plot_call_back(output_values, target=target):
         robot_joints = output_values[3:3+8]
         r = np.array(robot_joints).flatten()
-        plot_robot_arm(list(r))
-        plt.pause(0.05)
+        # global fig
+        fig.clear()
+        plot_robot_arm(list(r), target)
+        plt.pause(0.01)
 
     min_approx_error_arrow(inverse, output_values, output_call_back=plot_call_back)
 
