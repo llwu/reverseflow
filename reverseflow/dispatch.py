@@ -9,9 +9,13 @@ from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.util.mapping import Bimap
 from reverseflow.util.misc import complement
 import numpy as np
-from typing import Set, Tuple, Dict
+from typing import Set, Tuple, Dict, Sequence
 
 PortMap = Dict[int, int]
+
+def is_constant(p: Port, pv: PortAttributes):
+    return p in pv and 'constant' in pv[p] and pv[p]['constant'] == CONST
+
 
 def generic_binary_inv(arrow: Arrow,
                        port_values: PortAttributes,
@@ -21,8 +25,8 @@ def generic_binary_inv(arrow: Arrow,
                        Port1ConstArrow,
                        Port1ConstPortMap) -> Tuple[Arrow, PortMap]:
     # FIXME: Is this actually correct for mul/add/sub
-    port_0_const = port_values[arrow.in_ports()[0]] == CONST
-    port_1_const = port_values[arrow.in_ports()[1]] == CONST
+    port_0_const = is_constant(arrow.in_ports()[0], port_values)
+    port_1_const = is_constant(arrow.in_ports()[1], port_values)
 
     if port_0_const and port_1_const:
         # If both ports constant just return arrow as is
