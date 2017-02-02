@@ -1,16 +1,38 @@
-"""Compute shapes of outputs"""
 from arrows.arrow import Arrow
-from arrows.compositearrow import CompositeArrow
-from arrows.std_arrows import *
-from arrows.port import Port
-from arrows.apply.propagate import propagate
-
+from arrows.port_attributes import (PortAttributes, port_has, ports_has,
+    extract_attribute)
+from arrows.apply.constants import CONST, VAR
 from overloading import overload
 from numpy import ndarray
-from typing import Tuple, Dict, Sequence
 
-ShapeList = Sequence
-PortValues = Dict
+
+def shape_pred(arr: Arrow, port_attr: PortAttributes):
+    """True if any of the ports have a shape"""
+    # FIXME: Assert that all shapes are the same
+    return any((port_has(port, 'shape', port_attr) for port in arr.get_ports()))
+
+
+def shape_dispatch(arr: Arrow, port_attr: PortAttributes):
+    """Make all other ports the smae"""
+    pts = extract_attribute('shape', port_attr)
+    shape = list(pts.values())[0]
+    return {port: {'shape': shape} for port in arr.get_ports()}
+
+
+def rank_predicate_shape(a: Arrow, port_values: PortAttributes, state=None) -> bool:
+    assert len(a.get_in_ports()) == 1
+    return True
+
+
+def rank_dispatch_shape(a: Arrow, port_values: PortAttributes, state=None):
+    assert len(a.get_out_ports()) == 1
+    return {a.get_out_ports()[0] : {'shape': ()}}
+
+# FIXME: We could get rid of these redundant predicates by just putting data
+# on the port directly
+def source_predicate(a: Arrow, port_attr: PortAttributes, state=None) -> bool:
+    assert len(a.get_in_ports()) == 0
+    return True
 
 
 @overload
@@ -28,109 +50,8 @@ def constant_to_shape(x: ndarray):
     return x.shape
 
 
-def generic_prop(a: Arrow, port_to_known: PortValues, state=None):
-    known_shape = None
-    for port, shape in port_to_known.items():
-        assert shape == known_shape or known_shape is None
-        known_shape = shape
-    if known_shape is None:
-        return {}
-    return {port: known_shape for port in a.get_ports()}
-
-
-@overload
-def sub_propagate(a: Arrow, port_to_known: PortValues, state=None) -> ShapeList:
-    assert False, "Error, no sub_propagation for %s implemented" % a.__class__.__name__
-
-
-@overload
-def sub_propagate(a: SourceArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    known_shape = constant_to_shape(a.value)
-    return {port: known_shape for port in a.get_ports()}
-
-
-@overload
-def sub_propagate(a: AddArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-
-@overload
-def sub_propagate(a: SubArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-
-@overload
-def sub_propagate(a: NegArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-
-@overload
-def sub_propagate(a: PowArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-
-@overload
-def sub_propagate(a: ExpArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-
-@overload
-def sub_propagate(a: LogArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-
-@overload
-def sub_propagate(a: LogBaseArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-
-@overload
-def sub_propagate(a: MulArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-
-@overload
-def sub_propagate(a: DivArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-
-@overload
-def sub_propagate(a: DuplArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-@overload
-def sub_propagate(a: AddNArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-@overload
-def sub_propagate(a: CastArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-@overload
-def sub_propagate(a: AbsArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-@overload
-def sub_propagate(a: InvDuplArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return generic_prop(a, port_to_known)
-
-@overload
-def sub_propagate(a: RankArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return {port: () for port in a.get_out_ports()}
-
-@overload
-def sub_propagate(a: RangeArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    assert False
-
-@overload
-def sub_propagate(a: ReduceMeanArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    assert False
-
-
-@overload
-def sub_propagate(a: CompositeArrow, port_to_known: PortValues, state=None) -> ShapeList:
-    return propagate(sub_propagate, a, port_to_known, state=None)
-
-
-def propagate_shapes(comp_arrow: CompositeArrow, port_to_known: PortValues):
-    return propagate(sub_propagate, comp_arrow, port_to_known)
+def source_dispatch(a: Arrow, port_values: PortAttributes, state=None):
+    assert len(a.get_out_ports()) == 1
+    return {a.get_out_ports()[0]: {'shape': constant_to_shape(a.value),
+                                   'value': a.value,
+                                   'constant': CONST}}

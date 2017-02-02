@@ -2,23 +2,23 @@
 from arrows.primitivearrow import PrimitiveArrow
 from typing import List, MutableMapping, Set, Dict
 from sympy import Expr, Eq, Rel
-from arrows.apply.pred_dispatch import *
+from arrows.apply.shapes import *
 from arrows.apply.constants import constant_pred, constant_dispatch
 
 
 def dupl_pred(arr: "DuplArrow", port_attr: PortAttributes):
-    for port in arr.get_ports():
+    for port in arr.ports():
         if port in port_attr and 'value' in port_attr[port]:
             return True
     return False
 
 def dupl_disp(arr: "DuplArrow", port_attr: PortAttributes):
     known_value = None
-    for port in arr.get_ports():
+    for port in arr.ports():
         if port in port_attr and 'value' in port_attr[port]:
             known_value = port_attr[port]['value']
             break
-    return {port: {'value': known_value} for port in arr.get_ports()}
+    return {port: {'value': known_value} for port in arr.ports()}
 
 
 class DuplArrow(PrimitiveArrow):
@@ -75,8 +75,8 @@ class IdentityArrow(PrimitiveArrow):
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
     def eval(self, ptv: Dict):
-        i = self.get_in_ports()
-        o = self.get_out_ports()
+        i = self.in_ports()
+        o = self.out_ports()
         if i[0] in ptv:
             ptv[o[0]] = ptv[i[0]]
         if o[0] in ptv:

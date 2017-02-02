@@ -19,15 +19,15 @@ class InvAddArrow(CompositeArrow):
         dupl_theta = DuplArrow()
         sub = SubArrow()
 
-        in_ports = [sub.get_in_ports()[0], dupl_theta.get_in_ports()[0]]
-        out_ports = [sub.get_out_ports()[0], dupl_theta.get_out_ports()[1]]
-        edges.add(dupl_theta.get_out_ports()[0], sub.get_in_ports()[1])
+        in_ports = [sub.in_ports()[0], dupl_theta.in_ports()[0]]
+        out_ports = [sub.out_ports()[0], dupl_theta.out_ports()[1]]
+        edges.add(dupl_theta.out_ports()[0], sub.in_ports()[1])
 
         super().__init__(edges=edges,
                          in_ports=in_ports,
                          out_ports=out_ports,
                          name=name)
-        make_param_port(self.get_ports()[1])
+        make_param_port(self.ports()[1])
 
 class InvSubArrow(CompositeArrow):
     """
@@ -40,15 +40,15 @@ class InvSubArrow(CompositeArrow):
         dupl_theta = DuplArrow()
         add = AddArrow()
 
-        in_ports = [add.get_in_ports()[0], dupl_theta.get_in_ports()[0]]
-        edges.add(dupl_theta.get_out_ports()[0], add.get_in_ports()[1])
-        out_ports = [add.get_out_ports()[0], dupl_theta.get_out_ports()[1]]
+        in_ports = [add.in_ports()[0], dupl_theta.in_ports()[0]]
+        edges.add(dupl_theta.out_ports()[0], add.in_ports()[1])
+        out_ports = [add.out_ports()[0], dupl_theta.out_ports()[1]]
 
         super().__init__(edges=edges,
                          in_ports=in_ports,
                          out_ports=out_ports,
                          name=name)
-        make_param_port(self.get_ports()[1])
+        make_param_port(self.ports()[1])
 
 
 class InvMulArrow(CompositeArrow):
@@ -63,15 +63,15 @@ class InvMulArrow(CompositeArrow):
         dupl_theta = DuplArrow()
         div = DivArrow()
 
-        in_ports = [div.get_in_ports()[0], dupl_theta.get_in_ports()[0]]
-        out_ports = [div.get_out_ports()[0], dupl_theta.get_out_ports()[1]]
-        edges.add(dupl_theta.get_out_ports()[0], div.get_in_ports()[1])
+        in_ports = [div.in_ports()[0], dupl_theta.in_ports()[0]]
+        out_ports = [div.out_ports()[0], dupl_theta.out_ports()[1]]
+        edges.add(dupl_theta.out_ports()[0], div.in_ports()[1])
 
         super().__init__(edges=edges,
                          in_ports=in_ports,
                          out_ports=out_ports,
                          name=name)
-        make_param_port(self.get_ports()[1])
+        make_param_port(self.ports()[1])
 
 
 class InvDivArrow(CompositeArrow):
@@ -86,15 +86,15 @@ class InvDivArrow(CompositeArrow):
         dupl_theta = DuplArrow()
         div = DivArrow()
 
-        in_ports = [div.get_in_ports()[0], dupl_theta.get_in_ports()[0]]
-        out_ports = [div.get_out_ports()[0], dupl_theta.get_out_ports()[1]]
-        edges.add(dupl_theta.get_out_ports()[0], div.get_in_ports()[1])
+        in_ports = [div.in_ports()[0], dupl_theta.in_ports()[0]]
+        out_ports = [div.out_ports()[0], dupl_theta.out_ports()[1]]
+        edges.add(dupl_theta.out_ports()[0], div.in_ports()[1])
 
         super().__init__(edges=edges,
                          in_ports=in_ports,
                          out_ports=out_ports,
                          name=name)
-        make_param_port(self.get_ports()[1])
+        make_param_port(self.ports()[1])
 
 
 class InvPowArrow(CompositeArrow):
@@ -109,12 +109,12 @@ class InvPowArrow(CompositeArrow):
         dupl_theta = DuplArrow()
         log = LogBaseArrow()
 
-        in_ports = [log.get_in_ports()[1], dupl_theta.get_in_ports()[0]]
-        out_ports = [dupl_theta.get_out_ports()[1], log.get_out_ports()[0]]
-        edges.add(dupl_theta.get_out_ports()[0], log.get_in_ports()[0])
+        in_ports = [log.in_ports()[1], dupl_theta.in_ports()[0]]
+        out_ports = [dupl_theta.out_ports()[1], log.out_ports()[0]]
+        edges.add(dupl_theta.out_ports()[0], log.in_ports()[0])
 
         super().__init__(edges=edges,
                          in_ports=in_ports,
                          out_ports=out_ports,
                          name=name)
-        make_param_port(self.get_ports()[1])
+        make_param_port(self.ports()[1])

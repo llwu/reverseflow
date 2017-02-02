@@ -10,8 +10,8 @@ class PrimitiveArrow(Arrow):
     def is_primitive(self) -> bool:
         return True
 
-    def get_ports(self) -> List[Port]:
-        return self.ports
+    def ports(self) -> List[Port]:
+        return self._ports
 
     def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> Set[Rel]:
         return []
@@ -23,7 +23,7 @@ class PrimitiveArrow(Arrow):
         new_arrow.parent = None
         n_ports = self.n_in_ports + self.n_out_ports
         assert new_arrow.n_in_ports + new_arrow.n_out_ports == n_ports, "incorrect copy"
-        new_arrow.ports = [Port(new_arrow, i) for i in range(n_ports)]
+        new_arrow._ports = [Port(new_arrow, i) for i in range(n_ports)]
         return new_arrow
 
     def __init__(self, n_in_ports: int, n_out_ports: int, name: str) -> None:
@@ -31,9 +31,9 @@ class PrimitiveArrow(Arrow):
         n_ports = n_in_ports + n_out_ports
         self.n_in_ports = n_in_ports
         self.n_out_ports = n_out_ports
-        self.ports = [Port(self, i) for i in range(n_ports)]
+        self._ports = [Port(self, i) for i in range(n_ports)]
         self.port_attributes = [{} for i in range(n_ports)]
         for i in range(n_in_ports):
-            make_in_port(self.ports[i])
+            make_in_port(self._ports[i])
         for i in range(n_in_ports, n_ports):
-            make_out_port(self.ports[i])
+            make_out_port(self._ports[i])

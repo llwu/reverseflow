@@ -2,20 +2,20 @@ from typing import List, Dict
 from arrows.arrow import Arrow
 from arrows.port import Port, InPort, OutPort
 from arrows.port_attributes import make_out_port
-from arrows.apply.pred_dispatch import *
+from arrows.apply.shapes import *
 
 class SourceArrow(Arrow):
     """
     A source arrow is a constant, it takes no input and has one output
     """
 
-    def get_ports(self):
-        return self.ports
+    def ports(self):
+        return self._ports
 
-    def get_out_ports(self):
-        return self.ports
+    def out_ports(self):
+        return self._ports
 
-    def get_in_ports(self) -> List[InPort]:
+    def in_ports(self) -> List[InPort]:
         return []
 
     def __deepcopy__(self, memo):
@@ -26,16 +26,16 @@ class SourceArrow(Arrow):
 
     def __init__(self, value, name: str = None) -> None:
         super().__init__(name=name)
-        self.ports = [Port(self, 0)]
+        self._ports = [Port(self, 0)]
         self.port_attributes = [{}]
-        make_out_port(self.ports[0])
+        make_out_port(self._ports[0])
         self.value = value
 
     def is_source(self):
         return True
 
     def eval(self, ptv: Dict):
-        o = self.get_out_ports()
+        o = self.out_ports()
         assert len(o) == 1
         ptv[o[0]] = self.value
         return ptv

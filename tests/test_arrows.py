@@ -21,11 +21,11 @@ def test_xyplusx_flat() -> CompositeArrow:
     add = AddArrow()
     dupl = DuplArrow()
     edges = Bimap()  # type: EdgeMap
-    edges.add(dupl.get_out_ports()[0], mul.get_in_ports()[0])  # dupl -> mul
-    edges.add(dupl.get_out_ports()[1], add.get_in_ports()[0])  # dupl -> add
-    edges.add(mul.get_out_ports()[0], add.get_in_ports()[1])  # mul -> add
-    d = CompositeArrow(in_ports=[dupl.get_in_ports()[0], mul.get_in_ports()[1]],
-                       out_ports=[add.get_out_ports()[0]], edges=edges)
+    edges.add(dupl.out_ports()[0], mul.in_ports()[0])  # dupl -> mul
+    edges.add(dupl.out_ports()[1], add.in_ports()[0])  # dupl -> add
+    edges.add(mul.out_ports()[0], add.in_ports()[1])  # mul -> add
+    d = CompositeArrow(in_ports=[dupl.in_ports()[0], mul.in_ports()[1]],
+                       out_ports=[add.out_ports()[0]], edges=edges)
     d.name = "test_xyplusx_flat"
     return d
 
@@ -38,13 +38,13 @@ def test_twoxyplusx() -> CompositeArrow:
     add = AddArrow()
     dupl = DuplArrow()
     edges = Bimap()  # type: EdgeMap
-    edges.add(dupl.get_out_ports()[0], mul1.get_in_ports()[0])  # dupl -> mul1
-    edges.add(dupl.get_out_ports()[1], add.get_in_ports()[0])  # dupl -> add
-    edges.add(two.get_out_ports()[0], mul2.get_in_ports()[0])
-    edges.add(mul1.get_out_ports()[0], mul2.get_in_ports()[1])
-    edges.add(mul2.get_out_ports()[0], add.get_in_ports()[1])  # mul1 -> add
-    return CompositeArrow(in_ports=[dupl.get_in_ports()[0], mul1.get_in_ports()[1]],
-                          out_ports=[add.get_out_ports()[0]],
+    edges.add(dupl.out_ports()[0], mul1.in_ports()[0])  # dupl -> mul1
+    edges.add(dupl.out_ports()[1], add.in_ports()[0])  # dupl -> add
+    edges.add(two.out_ports()[0], mul2.in_ports()[0])
+    edges.add(mul1.out_ports()[0], mul2.in_ports()[1])
+    edges.add(mul2.out_ports()[0], add.in_ports()[1])  # mul1 -> add
+    return CompositeArrow(in_ports=[dupl.in_ports()[0], mul1.in_ports()[1]],
+                          out_ports=[add.out_ports()[0]],
                           edges=edges,
                           name="test_twoxyplusx")
 
@@ -59,24 +59,24 @@ def test_inv_twoxyplusx() -> CompositeArrow:
     c = ApproxIdentityArrow(2)
     inv_dupl = InvDuplArrow()
     edges = Bimap()  # type: EdgeMap
-    edges.add(two_int.get_out_ports()[0], two.get_in_ports()[0])
-    edges.add(inv_add.get_out_ports()[0], c.get_in_ports()[0])
-    edges.add(inv_add.get_out_ports()[1], inv_mul.get_in_ports()[0])
-    edges.add(inv_mul.get_out_ports()[0], div.get_in_ports()[0])
-    edges.add(two.get_out_ports()[0], div.get_in_ports()[1])
-    edges.add(div.get_out_ports()[0], c.get_in_ports()[1])
-    edges.add(c.get_out_ports()[0], inv_dupl.get_in_ports()[0])
-    edges.add(c.get_out_ports()[1], inv_dupl.get_in_ports()[1])
+    edges.add(two_int.out_ports()[0], two.in_ports()[0])
+    edges.add(inv_add.out_ports()[0], c.in_ports()[0])
+    edges.add(inv_add.out_ports()[1], inv_mul.in_ports()[0])
+    edges.add(inv_mul.out_ports()[0], div.in_ports()[0])
+    edges.add(two.out_ports()[0], div.in_ports()[1])
+    edges.add(div.out_ports()[0], c.in_ports()[1])
+    edges.add(c.out_ports()[0], inv_dupl.in_ports()[0])
+    edges.add(c.out_ports()[1], inv_dupl.in_ports()[1])
 
-    param_inports = [inv_add.get_in_ports()[1], inv_mul.get_in_ports()[1]]
-    op = CompositeArrow(in_ports=[inv_add.get_in_ports()[0]] + param_inports,
-                        out_ports=[inv_dupl.get_out_ports()[0], inv_mul.get_out_ports()[1], c.get_out_ports()[2]],
+    param_inports = [inv_add.in_ports()[1], inv_mul.in_ports()[1]]
+    op = CompositeArrow(in_ports=[inv_add.in_ports()[0]] + param_inports,
+                        out_ports=[inv_dupl.out_ports()[0], inv_mul.out_ports()[1], c.out_ports()[2]],
                         edges=edges,
                         name="InvTwoXYPlusY")
 
-    make_param_port(op.get_in_ports()[1])
-    make_param_port(op.get_in_ports()[2])
-    make_error_port(op.get_out_ports()[2])
+    make_param_port(op.in_ports()[1])
+    make_param_port(op.in_ports()[2])
+    make_error_port(op.out_ports()[2])
     return op
 
 
@@ -86,10 +86,10 @@ def test_mixed_knowns() -> CompositeArrow:
     c2 = SourceArrow(2)
     a1 = AddArrow()
     edges = Bimap()  # type: EdgeMap
-    edges.add(c1.get_out_ports()[0], arrow.get_in_ports()[0])
-    edges.add(c2.get_out_ports()[0], arrow.get_in_ports()[1])
-    return CompositeArrow(in_ports=[a1.get_in_ports()[0], a1.get_in_ports()[1]],
-                          out_ports=[arrow.get_out_ports()[0], a1.get_out_ports()[0]],
+    edges.add(c1.out_ports()[0], arrow.in_ports()[0])
+    edges.add(c2.out_ports()[0], arrow.in_ports()[1])
+    return CompositeArrow(in_ports=[a1.in_ports()[0], a1.in_ports()[1]],
+                          out_ports=[arrow.out_ports()[0], a1.out_ports()[0]],
                           edges=edges,
                           name="test_mixed_knowns")
 

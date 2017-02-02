@@ -2,6 +2,8 @@ import sys
 import getopt
 import tensorflow as tf
 import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from reverseflow.util.tf import *
 from arrows.util.viz import show_tensorboard_graph
 from reverseflow.invert import invert
@@ -45,6 +47,67 @@ def ik_fwd_f(inputs):
                     r33])
     return outputs
 
+def plot_robot_arm(inputs):
+    phi1 = inputs[0]
+    phi2 = inputs[1]
+    phi4 = inputs[2]
+    phi5 = inputs[3]
+    phi6 = inputs[4]
+    d2 = inputs[5]
+    d3 = inputs[6]
+    h1 = inputs[7]
+    T = []      # list of T matrices
+    T.append(np.array([[np.cos(phi1), -np.sin(phi1), 0, 0],
+                       [np.sin(phi1), np.cos(phi1), 0, 0],
+                       [0, 0, 1, h1],
+                       [0, 0, 0, 1]]))
+    T.append(np.array([[np.cos(phi2), -np.sin(phi2), 0, 0],
+                       [0, 0, -1, -d2],
+                       [np.sin(phi2), np.cos(phi2), 0, 0],
+                       [0, 0, 0, 1]]))
+    T.append(np.array([[1, 0, 0, 0],
+                       [0, 0, 1, d3],
+                       [0, -1, 0, 0],
+                       [0, 0, 0, 1]]))
+    T.append(np.array([[np.cos(phi4), -np.sin(phi4), 0, 0],
+                       [np.sin(phi4), np.cos(phi4), 0, 0],
+                       [0, 0, 1, 0],
+                       [0, 0, 0, 1]]))
+    T.append(np.array([[np.cos(phi5), -np.sin(phi5), 0, 0],
+                       [0, 0, -1, 0],
+                       [np.sin(phi5), np.cos(phi5), 0, 0],
+                       [0, 0, 0, 1]]))
+    T.append(np.array([[np.cos(phi6), -np.sin(phi6), 0, 0],
+                       [0, 0, -1, 0],
+                       [-np.sin(phi6), -np.cos(phi6), 0, 0],
+                       [0, 0, 0, 1]]))
+
+    startX = 0
+    startY = 0
+    startZ = 0
+    startT = np.identity(4)
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    for i in range(6):
+        newT = np.matmul(startT, T[i])
+        newX = newT[0, 3]
+        newY = newT[1, 3]
+        newZ = newT[2, 3]
+        # print(newT)
+        plot_3dline(startX, startY, startZ, newX, newY, newZ, ax)
+        startT = newT
+        startX = newX
+        startY = newY
+        startZ = newZ
+    ax.legend()
+    plt.show()
+
+def plot_3dline(x1, y1, z1, x2, y2, z2, ax):
+    x = np.linspace(x1, x2, 100)
+    y = np.linspace(y1, y2, 100)
+    z = np.linspace(z1, z2, 100)
+    ax.plot(x, y, z, label='robot_arm')
+
 
 def ik_gen_graph(g, batch_size, is_placeholder):
     with g.name_scope("fwd_g"):
@@ -70,6 +133,7 @@ def test_ik():
         with tf.Session() as sess:
             output_values = sess.run(in_out["outputs"], feed_dict={in_out["inputs"][i]: input_values[i] for i in range(len(input_values))})
         print(output_values)
+        plot_robot_arm(input_values)
     arrow = graph_to_arrow(in_out["outputs"], name="ik_stanford")
     show_tensorboard_graph()
     tf.reset_default_graph()
