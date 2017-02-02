@@ -21,21 +21,21 @@ class ApproxIdentityArrow(CompositeArrow):
         varfrommean = VarFromMeanArrow(n_inputs)
         dupls = [DuplArrow() for i in range(n_inputs)]
         for i in range(n_inputs):
-            edges.add(dupls[i].get_out_ports()[0], mean.get_in_ports()[i])
-            edges.add(dupls[i].get_out_ports()[1], varfrommean.get_in_ports()[i+1])
+            edges.add(dupls[i].out_ports()[0], mean.in_ports()[i])
+            edges.add(dupls[i].out_ports()[1], varfrommean.in_ports()[i+1])
         mean_dupl = DuplArrow(n_duplications=n_inputs+1)
-        edges.add(mean.get_out_ports()[0], mean_dupl.get_in_ports()[0])
-        edges.add(mean_dupl.get_out_ports()[n_inputs], varfrommean.get_in_ports()[0])
-        out_ports = mean_dupl.get_out_ports()[0:n_inputs]
-        error_ports = [varfrommean.get_out_ports()[0]]
-        # x = varfrommean.get_out_ports()[0]
+        edges.add(mean.out_ports()[0], mean_dupl.in_ports()[0])
+        edges.add(mean_dupl.out_ports()[n_inputs], varfrommean.in_ports()[0])
+        out_ports = mean_dupl.out_ports()[0:n_inputs]
+        error_ports = [varfrommean.out_ports()[0]]
+        # x = varfrommean.out_ports()[0]
         # error_ports = [ErrorPort(x.arrow, x.index)]
         out_ports = out_ports + error_ports
         super().__init__(edges=edges,
-                         in_ports=[dupl.get_in_ports()[0] for dupl in dupls],
+                         in_ports=[dupl.in_ports()[0] for dupl in dupls],
                          out_ports=out_ports,
                          name=name)
-        make_error_port(self.get_out_ports()[-1])
+        make_error_port(self.out_ports()[-1])
 
 
 class IntervalBound(CompositeArrow):
@@ -54,22 +54,22 @@ class IntervalBound(CompositeArrow):
         u_src = SourceArrow(u)
 
         x_min_u = SubArrow()
-        comp_arrow.add_edge(in_port, x_min_u.get_in_ports()[0])
-        comp_arrow.add_edge(u_src.get_out_ports()[0], x_min_u.get_in_ports()[1])
+        comp_arrow.add_edge(in_port, x_min_u.in_ports()[0])
+        comp_arrow.add_edge(u_src.out_ports()[0], x_min_u.in_ports()[1])
 
         l_min_x = SubArrow()
-        comp_arrow.add_edge(l_src.get_out_ports()[0], l_min_x.get_in_ports()[0])
-        comp_arrow.add_edge(in_port, l_min_x.get_in_ports()[1])
+        comp_arrow.add_edge(l_src.out_ports()[0], l_min_x.in_ports()[0])
+        comp_arrow.add_edge(in_port, l_min_x.in_ports()[1])
 
         zero = SourceArrow(0.0)
         max1 = MaxArrow()
-        comp_arrow.add_edge(l_min_x.get_out_ports()[0], max1.get_in_ports()[0])
-        comp_arrow.add_edge(x_min_u.get_out_ports()[0], max1.get_in_ports()[1])
+        comp_arrow.add_edge(l_min_x.out_ports()[0], max1.in_ports()[0])
+        comp_arrow.add_edge(x_min_u.out_ports()[0], max1.in_ports()[1])
 
         max2 = MaxArrow()
-        comp_arrow.add_edge(zero.get_out_ports()[0], max2.get_in_ports()[0])
-        comp_arrow.add_edge(max1.get_out_ports()[0], max2.get_in_ports()[1])
-        comp_arrow.add_edge(max2.get_out_ports()[0], out_port)
+        comp_arrow.add_edge(zero.out_ports()[0], max2.in_ports()[0])
+        comp_arrow.add_edge(max1.out_ports()[0], max2.in_ports()[1])
+        comp_arrow.add_edge(max2.out_ports()[0], out_port)
         assert comp_arrow.is_wired_correctly()
 
 class SmoothIntervalBound(CompositeArrow):
@@ -92,39 +92,39 @@ class SmoothIntervalBound(CompositeArrow):
         u_src = SourceArrow(u)
 
         l_gt_x = GreaterArrow()
-        comp_arrow.add_edge(l_src.get_out_ports()[0], l_gt_x.get_in_ports()[0])
-        comp_arrow.add_edge(in_port, l_gt_x.get_in_ports()[1])
+        comp_arrow.add_edge(l_src.out_ports()[0], l_gt_x.in_ports()[0])
+        comp_arrow.add_edge(in_port, l_gt_x.in_ports()[1])
         x_gt_u = GreaterArrow()
-        comp_arrow.add_edge(in_port, x_gt_u.get_in_ports()[0])
-        comp_arrow.add_edge(u_src.get_out_ports()[0], x_gt_u.get_in_ports()[1])
+        comp_arrow.add_edge(in_port, x_gt_u.in_ports()[0])
+        comp_arrow.add_edge(u_src.out_ports()[0], x_gt_u.in_ports()[1])
 
         two = SourceArrow(2.0)
         x_min_u = SubArrow()
-        comp_arrow.add_edge(in_port, x_min_u.get_in_ports()[0])
-        comp_arrow.add_edge(u_src.get_out_ports()[0], x_min_u.get_in_ports()[1])
+        comp_arrow.add_edge(in_port, x_min_u.in_ports()[0])
+        comp_arrow.add_edge(u_src.out_ports()[0], x_min_u.in_ports()[1])
         x_min_u_sqr = PowArrow()
-        comp_arrow.add_edge(x_min_u.get_out_ports()[0], x_min_u_sqr.get_in_ports()[0])
-        comp_arrow.add_edge(two.get_out_ports()[0], x_min_u_sqr.get_in_ports()[1])
+        comp_arrow.add_edge(x_min_u.out_ports()[0], x_min_u_sqr.in_ports()[0])
+        comp_arrow.add_edge(two.out_ports()[0], x_min_u_sqr.in_ports()[1])
 
         l_min_x = SubArrow()
-        comp_arrow.add_edge(l_src.get_out_ports()[0], l_min_x.get_in_ports()[0])
-        comp_arrow.add_edge(in_port, l_min_x.get_in_ports()[1])
+        comp_arrow.add_edge(l_src.out_ports()[0], l_min_x.in_ports()[0])
+        comp_arrow.add_edge(in_port, l_min_x.in_ports()[1])
         l_min_x_sqr = PowArrow()
-        comp_arrow.add_edge(l_min_x.get_out_ports()[0], l_min_x_sqr.get_in_ports()[0])
-        comp_arrow.add_edge(two.get_out_ports()[0], l_min_x_sqr.get_in_ports()[1])
+        comp_arrow.add_edge(l_min_x.out_ports()[0], l_min_x_sqr.in_ports()[0])
+        comp_arrow.add_edge(two.out_ports()[0], l_min_x_sqr.in_ports()[1])
 
         zero = SourceArrow(0.0)
         if1 = IfArrow()
-        comp_arrow.add_edge(l_gt_x.get_out_ports()[0], if1.get_in_ports()[0])
-        comp_arrow.add_edge(l_min_x_sqr.get_out_ports()[0], if1.get_in_ports()[1])
-        comp_arrow.add_edge(zero.get_out_ports()[0], if1.get_in_ports()[2])
+        comp_arrow.add_edge(l_gt_x.out_ports()[0], if1.in_ports()[0])
+        comp_arrow.add_edge(l_min_x_sqr.out_ports()[0], if1.in_ports()[1])
+        comp_arrow.add_edge(zero.out_ports()[0], if1.in_ports()[2])
 
         if2 = IfArrow()
-        comp_arrow.add_edge(x_gt_u.get_out_ports()[0], if2.get_in_ports()[0])
-        comp_arrow.add_edge(x_min_u_sqr.get_out_ports()[0], if2.get_in_ports()[1])
-        comp_arrow.add_edge(if1.get_out_ports()[0], if2.get_in_ports()[2])
+        comp_arrow.add_edge(x_gt_u.out_ports()[0], if2.in_ports()[0])
+        comp_arrow.add_edge(x_min_u_sqr.out_ports()[0], if2.in_ports()[1])
+        comp_arrow.add_edge(if1.out_ports()[0], if2.in_ports()[2])
 
-        comp_arrow.add_edge(if2.get_out_ports()[0], out_port)
+        comp_arrow.add_edge(if2.out_ports()[0], out_port)
         assert comp_arrow.is_wired_correctly()
 
 class IntervalBoundIdentity(CompositeArrow):
@@ -148,11 +148,11 @@ class IntervalBoundIdentity(CompositeArrow):
         interval_bound = intervalbound(l, u)
         clip = ClipArrow()
 
-        comp_arrow.add_edge(in_port, clip.get_in_ports()[0])
-        comp_arrow.add_edge(l_src.get_out_ports()[0], clip.get_in_ports()[1])
-        comp_arrow.add_edge(u_src.get_out_ports()[0], clip.get_in_ports()[2])
-        comp_arrow.add_edge(clip.get_out_ports()[0], out_port)
+        comp_arrow.add_edge(in_port, clip.in_ports()[0])
+        comp_arrow.add_edge(l_src.out_ports()[0], clip.in_ports()[1])
+        comp_arrow.add_edge(u_src.out_ports()[0], clip.in_ports()[2])
+        comp_arrow.add_edge(clip.out_ports()[0], out_port)
 
-        comp_arrow.add_edge(in_port, interval_bound.get_in_ports()[0])
-        comp_arrow.add_edge(interval_bound.get_out_ports()[0], error_port)
+        comp_arrow.add_edge(in_port, interval_bound.in_ports()[0])
+        comp_arrow.add_edge(interval_bound.out_ports()[0], error_port)
         assert comp_arrow.is_wired_correctly()

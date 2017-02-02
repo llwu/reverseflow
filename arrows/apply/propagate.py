@@ -39,7 +39,7 @@ def propagate(comp_arrow: CompositeArrow,
     _port_values = {}
     # update port_values with values stored on port
     for sub_arrow in comp_arrow.get_all_arrows():
-        for port in sub_arrow.get_ports():
+        for port in sub_arrow.ports():
             attributes = get_port_attributes(port)
             _port_values[port] = attributes
 
@@ -49,7 +49,7 @@ def propagate(comp_arrow: CompositeArrow,
         print(len(updated))
         sub_arrow = updated.pop()
         sub_port_values = {port: _port_values[port]
-                           for port in sub_arrow.get_ports()
+                           for port in sub_arrow.ports()
                            if port in _port_values}
         pred_dispatches = sub_arrow.get_dispatches()
         for pred, dispatch in pred_dispatches.items():

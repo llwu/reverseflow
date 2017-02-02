@@ -93,7 +93,7 @@ def arrow_from_op(op: Operation,
         conv_op = Op_Type_To_Arrow[op.type]
         arrow = conv_op(op)
         op_to_arrow[op] = arrow
-    assert len(arrow.get_in_ports()) == len(op.inputs)
+    assert len(arrow.in_ports()) == len(op.inputs)
     return arrow
 
 
@@ -129,7 +129,7 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
         # set_port_shape(out_port, tensor.get_shape().as_list())
         make_out_port(out_port)
         arrow = arrow_from_op(tensor.op, op_to_arrow)
-        left = arrow.get_out_ports()[tensor.value_index]
+        left = arrow.out_ports()[tensor.value_index]
         comp_arrow.add_edge(left, out_port)
 
     to_see_tensors = output_tensors[:]
@@ -145,7 +145,7 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
         else:
             out_port_id = tensor.value_index
             left_arrow = arrow_from_op(tensor.op, op_to_arrow)
-            left_port = left_arrow.get_out_ports()[out_port_id]
+            left_port = left_arrow.out_ports()[out_port_id]
             update_seen(tensor.op, seen_tensors, to_see_tensors)
 
         for rec_op in tensor.consumers():
@@ -154,7 +154,7 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
                     in_port_id = i
                     right_arrow = arrow_from_op(rec_op, op_to_arrow)
                     comp_arrow.add_edge(left_port,
-                                        right_arrow.get_in_ports()[in_port_id])
+                                        right_arrow.in_ports()[in_port_id])
 
     assert comp_arrow.is_wired_correctly()
     return comp_arrow

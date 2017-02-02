@@ -15,7 +15,7 @@ from overloading import overload
 
 def gen_input_tensors(arrow: Arrow):
     input_tensors = []
-    for in_port in arrow.get_in_ports():
+    for in_port in arrow.in_ports():
         if is_param_port(in_port):
             # FIXME for right shape
             input_tensors.append(tf.Variable(np.random.rand(1), name="blerg", dtype=floatX()))
@@ -151,6 +151,14 @@ def conv(a: GreaterArrow, args: TensorVarList) -> Sequence[Tensor]:
 def conv(a: IfArrow, args: TensorVarList) -> Sequence[Tensor]:
     #import pdb; pdb.set_trace()
     return [tf.where(*args)]
+
+@overload
+def conv(a: GatherArrow, args: TensorVarList) -> Sequence[Tensor]:
+    return [tf.gather(*args)]
+
+@overload
+def conv(a: SparseToDenseArrow, args: TensorVarList) -> Sequence[Tensor]:
+    return [tf.sparse_to_dense(*args)]
 
 @overload
 def conv(a: CompositeArrow, args: TensorVarList) -> Sequence[Tensor]:

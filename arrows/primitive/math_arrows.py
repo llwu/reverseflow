@@ -6,39 +6,39 @@ from arrows.port_attributes import (PortAttributes, port_has, ports_has,
     extract_attribute)
 from arrows.port import Port
 from arrows.arrow import Arrow
-from arrows.apply.pred_dispatch import *
+from arrows.apply.shapes import *
 from arrows.apply.constants import constant_pred, constant_dispatch
 
 def same_shape(shape): return shape
 
 
 def add_pred1(arr: "AddArrow", port_attr: PortAttributes):
-    return ports_has(arr.get_in_ports(), 'value', port_attr)
+    return ports_has(arr.in_ports(), 'value', port_attr)
 
 def add_dispatch1(arr: "AddArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {o[0] : {'value': ptv[i[0]] + ptv[i[1]]}}
 
 def add_pred2(arr: "AddArrow", port_attr: PortAttributes):
-    ports = [arr.get_in_ports()[0], arr.get_out_ports()[0]]
+    ports = [arr.in_ports()[0], arr.out_ports()[0]]
     return ports_has(ports, 'value', port_attr)
 
 def add_dispatch2(arr: "AddArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {i[1] : {'value': ptv[o[0]] - ptv[i[0]]}}
 
 def add_pred3(arr: "AddArrow", port_attr: PortAttributes):
-    ports = [arr.get_in_ports()[1], arr.get_out_ports()[0]]
+    ports = [arr.in_ports()[1], arr.out_ports()[0]]
     return ports_has(ports, 'value', port_attr)
 
 def add_dispatch3(arr: "AddArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {i[0] : {'value': ptv[o[0]] - ptv[i[1]]}}
 
 
@@ -58,32 +58,32 @@ class AddArrow(PrimitiveArrow):
 
 
 def sub_pred1(arr: "SubArrow", port_attr: PortAttributes):
-    return ports_has(arr.get_in_ports(), 'value', port_attr)
+    return ports_has(arr.in_ports(), 'value', port_attr)
 
 def sub_dispatch1(arr: "SubArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {o[0] : {'value': ptv[i[0]] - ptv[i[1]]}}
 
 def sub_pred2(arr: "SubArrow", port_attr: PortAttributes):
-    ports = [arr.get_in_ports()[0], arr.get_out_ports()[0]]
+    ports = [arr.in_ports()[0], arr.out_ports()[0]]
     return ports_has(ports, 'value', port_attr)
 
 def sub_dispatch2(arr: "SubArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {i[1] : {'value': ptv[i[0]] - ptv[o[0]]}}
 
 def sub_pred3(arr: "SubArrow", port_attr: PortAttributes):
-    ports = [arr.get_in_ports()[1], arr.get_out_ports()[0]]
+    ports = [arr.in_ports()[1], arr.out_ports()[0]]
     return ports_has(ports, 'value', port_attr)
 
 def sub_dispatch3(arr: "SubArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {i[0] : {'value': ptv[o[0]] + ptv[i[1]]}}
 
 
@@ -103,32 +103,32 @@ class SubArrow(PrimitiveArrow):
 
 
 def mul_pred1(arr: "MulArrow", port_attr: PortAttributes):
-    return ports_has(arr.get_in_ports(), 'value', port_attr)
+    return ports_has(arr.in_ports(), 'value', port_attr)
 
 def mul_dispatch1(arr: "MulArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {o[0] : {'value': ptv[i[0]] * ptv[i[1]]}}
 
 def mul_pred2(arr: "MulArrow", port_attr: PortAttributes):
-    ports = [arr.get_in_ports()[0], arr.get_out_ports()[0]]
+    ports = [arr.in_ports()[0], arr.out_ports()[0]]
     return ports_has(ports, 'value', port_attr)
 
 def mul_dispatch2(arr: "MulArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {i[1] : {'value': ptv[o[0]] / ptv[i[0]]}}
 
 def mul_pred3(arr: "MulArrow", port_attr: PortAttributes):
-    ports = [arr.get_in_ports()[1], arr.get_out_ports()[0]]
+    ports = [arr.in_ports()[1], arr.out_ports()[0]]
     return ports_has(ports, 'value', port_attr)
 
 def mul_dispatch3(arr: "MulArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {i[0] : {'value': ptv[o[0]] / ptv[i[1]]}}
 
 
@@ -148,32 +148,32 @@ class MulArrow(PrimitiveArrow):
 
 
 def div_pred1(arr: "DivArrow", port_attr: PortAttributes):
-    return ports_has(arr.get_in_ports(), 'value', port_attr)
+    return ports_has(arr.in_ports(), 'value', port_attr)
 
 def div_dispatch1(arr: "DivArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {o[0] : {'value': ptv[i[0]] / ptv[i[1]]}}
 
 def div_pred2(arr: "DivArrow", port_attr: PortAttributes):
-    ports = [arr.get_in_ports()[0], arr.get_out_ports()[0]]
+    ports = [arr.in_ports()[0], arr.out_ports()[0]]
     return ports_has(ports, 'value', port_attr)
 
 def div_dispatch2(arr: "DivArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {i[1] : {'value': ptv[i[0]] / ptv[o[0]]}}
 
 def div_pred3(arr: "DivArrow", port_attr: PortAttributes):
-    ports = [arr.get_in_ports()[1], arr.get_out_ports()[0]]
+    ports = [arr.in_ports()[1], arr.out_ports()[0]]
     return ports_has(ports, 'value', port_attr)
 
 def div_dispatch3(arr: "DivArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {i[0] : {'value': ptv[o[0]] * ptv[i[1]]}}
 
 
@@ -199,32 +199,32 @@ class DivArrow(PrimitiveArrow):
 
 
 def pow_pred1(arr: "PowArrow", port_attr: PortAttributes):
-    return ports_has(arr.get_in_ports(), 'value', port_attr)
+    return ports_has(arr.in_ports(), 'value', port_attr)
 
 def pow_dispatch1(arr: "PowArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {o[0] : {'value': ptv[i[0]] ** ptv[i[1]]}}
 
 def pow_pred2(arr: "PowArrow", port_attr: PortAttributes):
-    ports = [arr.get_in_ports()[0], arr.get_out_ports()[0]]
+    ports = [arr.in_ports()[0], arr.out_ports()[0]]
     return ports_has(ports, 'value', port_attr)
 
 def pow_dispatch2(arr: "PowArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {i[1] : {'value': math.log(ptv[i[0]], ptv[o[0]])}}
 
 def pow_pred3(arr: "PowArrow", port_attr: PortAttributes):
-    ports = [arr.get_in_ports()[1], arr.get_out_ports()[0]]
+    ports = [arr.in_ports()[1], arr.out_ports()[0]]
     return ports_has(ports, 'value', port_attr)
 
 def pow_dispatch3(arr: "PowArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    i = arr.get_in_ports()
-    o = arr.get_out_ports()
+    i = arr.in_ports()
+    o = arr.out_ports()
     return {i[0] : {'value': ptv[o[0]] ** (1.0 / ptv[i[1]])}}
 
 

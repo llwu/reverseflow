@@ -6,7 +6,7 @@ from totality_test import totality_test
 
 def generate_input(arrow: Arrow):
     input_symbols = []
-    for i, in_port in enumerate(arrow.get_in_ports()):
+    for i, in_port in enumerate(arrow.in_ports()):
         input_symbols.append(sympy.Dummy("input_%s" % i))
     return input_symbols
 

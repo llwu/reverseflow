@@ -10,8 +10,8 @@ class CastArrow(PrimitiveArrow):
 
     def eval(self, ptv: Dict):
         # TODO: do we need to actually do something?
-        i = self.get_in_ports()
-        o = self.get_out_ports()
+        i = self.in_ports()
+        o = self.out_ports()
         if i[0] in ptv:
             ptv[o[0]] = ptv[i[0]]
         if o[0] in ptv:

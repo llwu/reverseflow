@@ -45,18 +45,18 @@ class CompositeArrow(Arrow):
             if len(in_ports) > 1:
                 dupl = DuplArrow(n_duplications=len(in_ports))
                 # add edge from to dupl and remove all other edges
-                self.add_edge(out_port, dupl.get_in_ports()[0])
+                self.add_edge(out_port, dupl.in_ports()[0])
                 for i, neigh_port in enumerate(in_ports):
                     self.remove_edge(out_port, neigh_port)
-                    self.add_edge(dupl.get_out_ports()[i], neigh_port)
+                    self.add_edge(dupl.out_ports()[i], neigh_port)
                 assert len(self.neigh_in_ports(out_port)) == 1
         assert self.is_wired_correctly()
 
     def has_in_port_type(self, PortType) -> bool:
-        return any((isinstance(PortType, port) for port in self.get_in_ports()))
+        return any((isinstance(PortType, port) for port in self.in_ports()))
 
     def has_out_port_type(self, PortType) -> bool:
-        return any((isinstance(PortType, port) for port in self.get_out_ports()))
+        return any((isinstance(PortType, port) for port in self.out_ports()))
 
     def neigh_in_ports(self, out_port: Port) -> Sequence[Port]:
         return list(self.edges.fwd(out_port))
@@ -97,7 +97,7 @@ class CompositeArrow(Arrow):
         rec_ports = {}
 
         for sub_arrow in sub_arrows:
-            for port in sub_arrow.get_ports():
+            for port in sub_arrow.ports():
                 if is_projecting(port, self):
                     proj_ports[port] = 0
                 elif is_receiving(port, self):
@@ -161,15 +161,15 @@ class CompositeArrow(Arrow):
         """Add a port to the arrow"""
         idx = self.num_ports()
         port = Port(self, idx)
-        self.ports.append(port)
+        self._ports.append(port)
         if port_attributes is not None:
             self.port_attributes.append(port_attributes)
         else:
             self.port_attributes.append({})
         return port
 
-    def get_ports(self) -> List[Port]:
-        return self.ports
+    def ports(self) -> List[Port]:
+        return self._ports
 
     def __deepcopy__(self, memo):
         new_arrow = copy(self)
@@ -185,7 +185,7 @@ class CompositeArrow(Arrow):
             new_port_attributes.append(deepcopy(attribute))
         new_arrow.port_attributes = new_port_attributes
 
-        new_arrow.ports = [Port(new_arrow, i) for i in range(self.num_ports())]
+        new_arrow._ports = [Port(new_arrow, i) for i in range(self.num_ports())]
 
         copies = {self: new_arrow}
         for sub_arrow in self.get_sub_arrows():
@@ -195,8 +195,8 @@ class CompositeArrow(Arrow):
         for out_port, in_port in self.edges.items():
             assert out_port.arrow in copies, "sub_arrow not copied"
             assert in_port.arrow in copies, "sub_arrow not copied"
-            new_out = copies[out_port.arrow].get_ports()[out_port.index]
-            new_in = copies[in_port.arrow].get_ports()[in_port.index]
+            new_out = copies[out_port.arrow].ports()[out_port.index]
+            new_in = copies[in_port.arrow].ports()[in_port.index]
             assert new_out.arrow == copies[out_port.arrow], "port not copied properly"
             assert new_in.arrow == copies[in_port.arrow], "port not copied properly"
             new_edges.add(new_out, new_in)
@@ -234,7 +234,7 @@ class CompositeArrow(Arrow):
         super().__init__(name=name)
 
         self.edges = Relation()
-        self.ports = []
+        self._ports = []
         self.port_attributes = []
 
         if edges:

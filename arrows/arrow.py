@@ -13,44 +13,59 @@ class Arrow:
         assert port.arrow is self
         return self.port_attributes[port.index]
 
-    def get_ports(self):
-        return self.ports
+    def ports(self):
+        return self._ports
 
-    def get_in_ports(self):
+    def port(self, index: int):
+        return self.ports()[index]
+
+    def in_ports(self):
         """
         Get InPorts of an Arrow.
         Returns:
             List of InPorts
         """
-        return [port for port in self.ports if pa.is_in_port(port)]
+        return [port for port in self._ports if pa.is_in_port(port)]
 
-    def get_param_ports(self):
+    def in_port(self, index: int):
+        """
+        Get ith InPort
+        """
+        return self.in_ports()[index]
+
+    def param_ports(self):
         """
         Get ParamPorts of an Arrow.
         Returns:
             List of ParamPorts
         """
-        return [port for port in self.ports if pa.is_param_port(port)]
+        return [port for port in self._ports if pa.is_param_port(port)]
 
-    def get_out_ports(self):
+    def out_ports(self):
         """
         Get OutPorts of an Arrow.
         Returns:
             List of OutPorts
         """
-        return [port for port in self.ports if pa.is_out_port(port)]
+        return [port for port in self._ports if pa.is_out_port(port)]
 
-    def num_ports(self):
-        return len(self.get_ports())
+    def out_port(self, index: int):
+        """
+        Get ith OutPort
+        """
+        return self.out_ports()[index]
+
+    def num_ports(self) -> int:
+        return len(self.ports())
 
     def num_in_ports(self) -> int:
-        return len(self.get_in_ports())
+        return len(self.in_ports())
 
     def num_out_ports(self) -> int:
-        return len(self.get_out_ports())
+        return len(self.out_ports())
 
     def num_param_ports(self) -> int:
-        return len(self.get_param_ports())
+        return len(self.param_ports())
 
     def is_primitive(self) -> bool:
         return False
