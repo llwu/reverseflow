@@ -99,6 +99,7 @@ def plot_robot_arm(inputs):
         startX = newX
         startY = newY
         startZ = newZ
+    ax.scatter([startX], [startY], [startZ], c='r')
     ax.legend()
     plt.show()
 
