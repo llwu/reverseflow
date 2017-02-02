@@ -39,7 +39,7 @@ def get_inv_port(port: Port,
     inv = arrow_to_inv[arrow]
     port_map = arrow_to_port_map[arrow]
     inv_port_index = port_map[port.index]
-    inv_port = inv.ports[inv_port_index]
+    inv_port = inv._ports[inv_port_index]
     return inv_port
 
 def inner_invert(comp_arrow: CompositeArrow,

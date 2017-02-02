@@ -2,7 +2,7 @@
 from arrows.primitivearrow import PrimitiveArrow
 from typing import List, MutableMapping, Set, Dict
 from sympy import Expr, Eq, Rel
-from arrows.apply.pred_dispatch import *
+from arrows.apply.shapes import *
 from arrows.apply.constants import constant_pred, constant_dispatch
 
 

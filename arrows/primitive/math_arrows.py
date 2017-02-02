@@ -6,7 +6,7 @@ from arrows.port_attributes import (PortAttributes, port_has, ports_has,
     extract_attribute)
 from arrows.port import Port
 from arrows.arrow import Arrow
-from arrows.apply.pred_dispatch import *
+from arrows.apply.shapes import *
 from arrows.apply.constants import constant_pred, constant_dispatch
 
 def same_shape(shape): return shape

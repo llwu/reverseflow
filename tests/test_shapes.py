@@ -3,7 +3,7 @@ import pdb
 import numpy as np
 from arrows import Arrow
 from arrows.port_attributes import is_param_port
-from arrows.apply.shapesbk import propagate_shapes
+from arrows.apply.propagate import propagate
 from reverseflow.inv_primitives.inv_math_arrows import InvAddArrow
 
 from test_arrows import all_test_arrow_gens, test_inv_twoxyplusx
@@ -18,14 +18,14 @@ def input_gen(arrow: Arrow):
 
 def test_shapes():
     all_test_arrows = [gen() for gen in all_test_arrow_gens]
-    totality_test(propagate_shapes, all_test_arrows, input_gen)
+    totality_test(propagate, all_test_arrows, input_gen)
 
 
 def manual_inspection():
     """Manually inspect output with PDB."""
     arrow = InvAddArrow()
     given_shapes = input_gen(arrow)
-    known_shapes = propagate_shapes(arrow, given_shapes)
+    known_shapes = propagate(arrow, given_shapes)
     pdb.set_trace()
     return known_shapes
 

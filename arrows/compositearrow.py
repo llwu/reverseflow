@@ -161,7 +161,7 @@ class CompositeArrow(Arrow):
         """Add a port to the arrow"""
         idx = self.num_ports()
         port = Port(self, idx)
-        self.ports.append(port)
+        self._ports.append(port)
         if port_attributes is not None:
             self.port_attributes.append(port_attributes)
         else:
@@ -169,7 +169,7 @@ class CompositeArrow(Arrow):
         return port
 
     def get_ports(self) -> List[Port]:
-        return self.ports
+        return self._ports
 
     def __deepcopy__(self, memo):
         new_arrow = copy(self)
@@ -185,7 +185,7 @@ class CompositeArrow(Arrow):
             new_port_attributes.append(deepcopy(attribute))
         new_arrow.port_attributes = new_port_attributes
 
-        new_arrow.ports = [Port(new_arrow, i) for i in range(self.num_ports())]
+        new_arrow._ports = [Port(new_arrow, i) for i in range(self.num_ports())]
 
         copies = {self: new_arrow}
         for sub_arrow in self.get_sub_arrows():
@@ -234,7 +234,7 @@ class CompositeArrow(Arrow):
         super().__init__(name=name)
 
         self.edges = Relation()
-        self.ports = []
+        self._ports = []
         self.port_attributes = []
 
         if edges:

@@ -2,7 +2,7 @@ from typing import Dict
 
 import numpy as np
 
-from arrows.apply.pred_dispatch import *
+from arrows.apply.shapes import *
 from arrows.primitivearrow import PrimitiveArrow
 
 

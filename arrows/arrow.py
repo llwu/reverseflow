@@ -14,7 +14,10 @@ class Arrow:
         return self.port_attributes[port.index]
 
     def get_ports(self):
-        return self.ports
+        return self._ports
+
+    def get_port(self, index: int):
+        return self.get_ports()[index]
 
     def get_in_ports(self):
         """
@@ -22,7 +25,13 @@ class Arrow:
         Returns:
             List of InPorts
         """
-        return [port for port in self.ports if pa.is_in_port(port)]
+        return [port for port in self._ports if pa.is_in_port(port)]
+
+    def get_in_port(self, index: int):
+        """
+        Get ith InPort
+        """
+        return self.get_in_ports()[index]
 
     def get_param_ports(self):
         """
@@ -30,7 +39,7 @@ class Arrow:
         Returns:
             List of ParamPorts
         """
-        return [port for port in self.ports if pa.is_param_port(port)]
+        return [port for port in self._ports if pa.is_param_port(port)]
 
     def get_out_ports(self):
         """
@@ -38,9 +47,15 @@ class Arrow:
         Returns:
             List of OutPorts
         """
-        return [port for port in self.ports if pa.is_out_port(port)]
+        return [port for port in self._ports if pa.is_out_port(port)]
 
-    def num_ports(self):
+    def get_out_port(self, index: int):
+        """
+        Get ith OutPort
+        """
+        return self.get_out_ports()[index]
+
+    def num_ports(self) -> int:
         return len(self.get_ports())
 
     def num_in_ports(self) -> int:

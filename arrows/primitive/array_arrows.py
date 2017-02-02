@@ -1,7 +1,7 @@
 """Array Operations"""
 from arrows.primitivearrow import PrimitiveArrow
 from arrows.port_attributes import ports_has, PortAttributes, extract_attribute
-from arrows.apply.pred_dispatch import *
+from arrows.apply.shapes import *
 from arrows.apply.constants import constant_pred, constant_dispatch
 import numpy as np
 
