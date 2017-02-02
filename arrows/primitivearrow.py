@@ -10,7 +10,7 @@ class PrimitiveArrow(Arrow):
     def is_primitive(self) -> bool:
         return True
 
-    def get_ports(self) -> List[Port]:
+    def ports(self) -> List[Port]:
         return self._ports
 
     def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> Set[Rel]:

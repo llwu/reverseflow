@@ -111,8 +111,8 @@ def min_approx_error_arrow(arrow: Arrow, input_data: List) -> CompositeArrow:
         output_tensors = arrow_to_graph(arrow, input_tensors)
     show_tensorboard_graph()
 
-    param_tensors = [t for i, t in enumerate(input_tensors) if is_param_port(arrow.get_in_ports()[i])]
-    error_tensors = [t for i, t in enumerate(output_tensors) if is_error_port(arrow.get_out_ports()[i])]
+    param_tensors = [t for i, t in enumerate(input_tensors) if is_param_port(arrow.in_ports()[i])]
+    error_tensors = [t for i, t in enumerate(output_tensors) if is_error_port(arrow.out_ports()[i])]
     assert len(param_tensors) > 0, "Must have parametric inports"
     assert len(error_tensors) > 0, "Must have error outports"
     train_y_tf(param_tensors, error_tensors, input_tensors, output_tensors, input_data)

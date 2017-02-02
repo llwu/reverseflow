@@ -21,7 +21,7 @@ def partition(comp_arrow: CompositeArrow) -> List[Set[Arrow]]:
 		arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
 
 
-	for port in comp_arrow.get_in_ports():
+	for port in comp_arrow.in_ports():
 		in_ports = comp_arrow.neigh_in_ports(port)
 		for in_port in in_ports:
 			assert in_port.arrow in arrow_colors, "sub_arrow not in arrow_colors"
@@ -41,7 +41,7 @@ def partition(comp_arrow: CompositeArrow) -> List[Set[Arrow]]:
 		partition_arrows.append(arrow_layer)
 
 		for arrow in arrow_layer:
-			for out_port in arrow.get_out_ports():
+			for out_port in arrow.out_ports():
 				in_ports = comp_arrow.neigh_in_ports(out_port)
 				for in_port in in_ports:
 					if in_port.arrow != comp_arrow:
@@ -66,12 +66,12 @@ def attachNN(comp_arrow: CompositeArrow) -> CompositeArrow:
 		# input ports of new_arrow are inputs of the first neural network to
 		# provide information to the sub_arrows with only parametric inputs
 		if i == 0:
-			for in_port in new_arrow.get_in_ports():
+			for in_port in new_arrow.in_ports():
 				if is_param_port(in_port) == False:
 					in_ports.extend(new_arrow.neigh_in_ports(in_port))
 
 		for sub_arrow in layer:
-			for port in sub_arrow.get_in_ports():
+			for port in sub_arrow.in_ports():
 				for neigh_port in new_arrow.neigh_out_ports(port):
 					if is_param_port(neigh_port):
 						if port not in param_ports:
@@ -92,8 +92,8 @@ def attachNN(comp_arrow: CompositeArrow) -> CompositeArrow:
 									graph=tf.Graph(),
 									name="nn_for_params_"+str(i))
 
-		nn_in_ports = neural_net_arrow.get_in_ports()
-		nn_out_ports = neural_net_arrow.get_out_ports()
+		nn_in_ports = neural_net_arrow.in_ports()
+		nn_out_ports = neural_net_arrow.out_ports()
 
 		for (j, in_port) in enumerate(in_ports):
 			new_arrow.add_edge(in_port, nn_in_ports[j])

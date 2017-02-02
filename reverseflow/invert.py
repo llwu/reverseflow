@@ -55,7 +55,7 @@ def inner_invert(comp_arrow: CompositeArrow,
     inv_comp_arrow = CompositeArrow(name="%s_inv" % comp_arrow.name)
 
     # Add a port on inverse arrow for every port on arrow
-    for port in comp_arrow.get_ports():
+    for port in comp_arrow.ports():
         inv_port = inv_comp_arrow.add_port()
         if is_in_port(port):
             make_out_port(inv_port)
@@ -106,7 +106,7 @@ def inner_invert(comp_arrow: CompositeArrow,
 
     # Craete new ports on inverse compositions for parametric and error ports
     for sub_arrow in inv_comp_arrow.get_sub_arrows():
-        for port in sub_arrow.get_ports():
+        for port in sub_arrow.ports():
             if is_param_port(port):
                 assert port not in inv_comp_arrow.edges.keys()
                 assert port not in inv_comp_arrow.edges.values()
