@@ -117,39 +117,40 @@ def inv_dupl_approx(arrow: DuplArrow, port_values: PortAttributes) -> Tuple[Arro
 
 
 def inv_exp(arrow: ExpArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
-    neg = NegArrow()
-    return neg, {0: 1, 1: 0}
+    log = LogArrow()
+    return log, {0: 1, 1: 0}
 
 
 def inv_gather(arrow: GatherArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
     tensor_shape = port_attr[arrow.in_ports()[0]]['shape']
+    if isinstance(tensor_shape, tuple):
+        tensor_shape = list(tensor_shape)
     index_list_value = port_attr[arrow.in_ports()[1]]['value']
     index_list_compl = complement(index_list_value, tensor_shape)
     std1 = SparseToDenseArrow()
     std2 = SparseToDenseArrow()
     dupl1 = DuplArrow()
     dupl2 = DuplArrow()
+    # TODO: don't do this, complement could be huge
     source_compl = SourceArrow(np.array(index_list_compl))
     source_tensor_shape = SourceArrow(np.array(tensor_shape))
-    source_list = SourceArrow(np.array(index_list_value))
     add = AddArrow()
     edges = Bimap()
     edges.add(source_compl.out_ports()[0], std1.in_ports()[0])
     edges.add(source_tensor_shape.out_ports()[0], dupl1.in_ports()[0])
-    edges.add(source_list.out_ports()[0], dupl2.in_ports()[0])
     edges.add(dupl1.out_ports()[0], std1.in_ports()[1])
     edges.add(dupl1.out_ports()[1], std2.in_ports()[1])
-    edges.add(dupl2.out_ports()[0], std2.in_ports()[0])
     edges.add(std1.out_ports()[0], add.in_ports()[0])
     edges.add(std2.out_ports()[0], add.in_ports()[1])
-    in_ports = [std2.in_ports()[2], std1.in_ports()[2]]
-    out_ports = [add.out_ports()[0], dupl2.out_ports()[1]]
+    # orig_out_port, params, inp_list
+    in_ports = [std2.in_ports()[2], std1.in_ports()[2], std2.in_ports()[0]]
+    out_ports = [add.out_ports()[0]]
     op = CompositeArrow(in_ports=in_ports,
                         out_ports=out_ports,
                         edges=edges,
                         name="InvGather")
     make_param_port(op.in_ports()[1])
-    return op, {0: 2, 1: 3, 2: 0}
+    return op, {0: 3, 1: 2, 2: 0}
 
 
 def dict_subset(keys, dict):
