@@ -13,13 +13,16 @@ class Arrow:
         assert port.arrow is self
         return self.port_attributes[port.index]
 
-    def ports(self):
-        return self._ports
+    def ports(self, idx=None):
+        if idx is None:
+            return self._ports
+        else:
+            return [self._ports[i] for i in idx]
 
     def port(self, index: int):
         return self.ports()[index]
 
-    def in_ports(self):
+    def in_ports(self, idx=None):
         """
         Get InPorts of an Arrow.
         Returns:

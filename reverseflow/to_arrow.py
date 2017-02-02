@@ -110,11 +110,15 @@ def is_input_tensor(tensor: Tensor) -> bool:
 
 
 def graph_to_arrow(output_tensors: Sequence[Tensor],
+                   input_tensors: Sequence[Tensor]=None,
                    name:str=None) -> Arrow:
     """Convert a tensorflow graph into an arrow.
     Assume inputs are 'Placeholder' tensors
     Args:
         output_tensors: Tensors designated as outputs
+        input_tensors: Tensors designated as inputs.  If not given then
+                       we assume any placeholder tensors connected (indrectly)
+                       to the outputs are input tensors
         name: Name of the composite arrow
     Returns:
         A 'CompositeArrow' equivalent to graph which computes 'output_tensors'
@@ -124,24 +128,40 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
     to_see_tensors = []
     comp_arrow = CompositeArrow(name=name)
 
+    # If in_ports are given don't dynamically find them
+    # FIXME: Should this really be optional?
+    given_in_ports = input_tensors is not None
+    if given_in_ports:
+        # Make an in_port for every input tensor
+        tensor_to_in_port = dict()
+        for tensor in input_tensors:
+            in_port = comp_arrow.add_port()
+            make_in_port(in_port)
+            set_port_shape(in_port, tensor.get_shape().as_list())
+            tensor_to_in_port[tensor] = in_port
+
+    # Make an out_port for every output tensor
     for tensor in output_tensors:
         out_port = comp_arrow.add_port()
-        # set_port_shape(out_port, tensor.get_shape().as_list())
         make_out_port(out_port)
         arrow = arrow_from_op(tensor.op, op_to_arrow)
         left = arrow.out_ports()[tensor.value_index]
         comp_arrow.add_edge(left, out_port)
 
+    # Starting from outputs
     to_see_tensors = output_tensors[:]
     while len(to_see_tensors) > 0:
         tensor = to_see_tensors.pop()
         seen_tensors.add(tensor)
         if is_input_tensor(tensor):
-            left_port = comp_arrow.add_port()
-            make_in_port(left_port)
-            # FIXME: We are only taking shapes from placeholder inputs
-            # is this sufficient?
-            set_port_shape(out_port, tensor.get_shape().as_list())
+            if given_in_ports:
+                left_port = tensor_to_in_port[tensor]
+            else:
+                left_port = comp_arrow.add_port()
+                make_in_port(left_port)
+                # FIXME: We are only taking shapes from placeholder inputs
+                # is this sufficient?
+                set_port_shape(left_port, tensor.get_shape().as_list())
         else:
             out_port_id = tensor.value_index
             left_arrow = arrow_from_op(tensor.op, op_to_arrow)

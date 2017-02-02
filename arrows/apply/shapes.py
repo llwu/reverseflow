@@ -9,14 +9,14 @@ from numpy import ndarray
 def shape_pred(arr: Arrow, port_attr: PortAttributes):
     """True if any of the ports have a shape"""
     # FIXME: Assert that all shapes are the same
-    return any((port_has(port, 'shape', port_attr) for port in arr.get_ports()))
+    return any((port_has(port, 'shape', port_attr) for port in arr.ports()))
 
 
 def shape_dispatch(arr: Arrow, port_attr: PortAttributes):
     """Make all other ports the smae"""
     pts = extract_attribute('shape', port_attr)
     shape = list(pts.values())[0]
-    return {port: {'shape': shape} for port in arr.get_ports()}
+    return {port: {'shape': shape} for port in arr.ports()}
 
 
 def rank_predicate_shape(a: Arrow, port_values: PortAttributes, state=None) -> bool:

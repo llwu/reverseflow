@@ -21,7 +21,7 @@ def update_neigh(in_dict: PortAttributes,
 
 
 def propagate(comp_arrow: CompositeArrow,
-              port_values: PortAttributes,
+              port_attr: PortAttributes=None,
               state=None) -> PortAttributes:
     """
     Propagate values around a composite arrow to determine knowns from unknowns
@@ -30,30 +30,33 @@ def propagate(comp_arrow: CompositeArrow,
         sub_propagate: an @overloaded function which propagates from each arrow
           sub_propagate(a: ArrowType, port_to_known:Dict[Port, T], state:Any)
         comp_arrow: Composite Arrow to propagate through
-        port_values: port->value map for inputs to composite arrow
+        port_attr: port->value map for inputs to composite arrow
         state: A value of any type that is passed around during propagation
                and can be updated by sub_propagate
     Returns:
         port->value map for all ports in composite arrow
     """
-    _port_values = {}
-    # update port_values with values stored on port
+    if port_attr is None:
+        port_attr = {}
+
+    _port_attr = {}
+    # update port_attr with values stored on port
     for sub_arrow in comp_arrow.get_all_arrows():
         for port in sub_arrow.ports():
             attributes = get_port_attributes(port)
-            _port_values[port] = attributes
+            _port_attr[port] = attributes
 
     updated = set(comp_arrow.get_sub_arrows())
-    update_neigh(port_values, _port_values, comp_arrow, updated)
+    update_neigh(port_attr, _port_attr, comp_arrow, updated)
     while len(updated) > 0:
         print(len(updated))
         sub_arrow = updated.pop()
-        sub_port_values = {port: _port_values[port]
+        sub_port_attr = {port: _port_attr[port]
                            for port in sub_arrow.ports()
-                           if port in _port_values}
+                           if port in _port_attr}
         pred_dispatches = sub_arrow.get_dispatches()
         for pred, dispatch in pred_dispatches.items():
-            if pred(sub_arrow, sub_port_values):
-                new_sub_port_attr = dispatch(sub_arrow, sub_port_values)
-                update_neigh(new_sub_port_attr, _port_values, comp_arrow, updated)
-    return _port_values
+            if pred(sub_arrow, sub_port_attr):
+                new_sub_port_attr = dispatch(sub_arrow, sub_port_attr)
+                update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
+    return _port_attr

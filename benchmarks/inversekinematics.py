@@ -10,6 +10,7 @@ from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.train_y import min_approx_error_arrow
 
+plt.ion()
 c = tf.cos
 s = tf.sin
 
@@ -47,7 +48,10 @@ def ik_fwd_f(inputs):
                     r33])
     return outputs
 
+fig = plt.figure()
+
 def plot_robot_arm(inputs):
+    global fig
     phi1 = inputs[0]
     phi2 = inputs[1]
     phi4 = inputs[2]
@@ -86,7 +90,6 @@ def plot_robot_arm(inputs):
     startY = 0
     startZ = 0
     startT = np.identity(4)
-    fig = plt.figure()
     ax = fig.gca(projection='3d')
     for i in range(6):
         newT = np.matmul(startT, T[i])
@@ -126,6 +129,7 @@ def ik_gen_graph(g, batch_size, is_placeholder):
         outputs = ik_fwd_f(inputs)
         return {"inputs": inputs, "outputs": outputs}
 
+
 def test_ik():
     with tf.name_scope("ik_stanford_manipulator"):
         in_out = ik_gen_graph(tf.Graph(), 1, is_placeholder)
@@ -134,10 +138,18 @@ def test_ik():
             output_values = sess.run(in_out["outputs"], feed_dict={in_out["inputs"][i]: input_values[i] for i in range(len(input_values))})
         print(output_values)
         plot_robot_arm(input_values)
-    arrow = graph_to_arrow(in_out["outputs"], name="ik_stanford")
-    show_tensorboard_graph()
+    arrow = graph_to_arrow(in_out["outputs"],
+                           input_tensors=in_out["inputs"],
+                           name="ik_stanford")
+    # show_tensorboard_graph()
     tf.reset_default_graph()
     inverse = invert(arrow)
-    min_approx_error_arrow(inverse, output_values)
+    def plot_call_back(output_values):
+        robot_joints = output_values[3:3+8]
+        r = np.array(robot_joints).flatten()
+        plot_robot_arm(list(r))
+        plt.pause(0.05)
+
+    min_approx_error_arrow(inverse, output_values, output_call_back=plot_call_back)
 
 test_ik()

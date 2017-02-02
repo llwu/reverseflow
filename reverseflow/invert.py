@@ -14,22 +14,22 @@ U = TypeVar('U', bound=Arrow)
 
 @overload
 def invert_sub_arrow(arrow: Arrow,
-                     port_values,
+                     port_attr,
                      dispatch):
     invert_f = dispatch[arrow.__class__]
-    return invert_f(arrow, port_values)
+    return invert_f(arrow, port_attr)
 
 @overload
 def invert_sub_arrow(source_arrow: SourceArrow,
-                     port_values,
+                     port_attr,
                      dispatch):
     return SourceArrow(value=source_arrow.value), {0: 0}
 
 @overload
 def invert_sub_arrow(comp_arrow: CompositeArrow,
-                     port_values,
+                     port_attr,
                      dispatch):
-    return inner_invert(comp_arrow, port_values, dispatch)
+    return inner_invert(comp_arrow, port_attr, dispatch)
 
 
 def get_inv_port(port: Port,
@@ -43,14 +43,16 @@ def get_inv_port(port: Port,
     return inv_port
 
 def inner_invert(comp_arrow: CompositeArrow,
-                 port_values: PortAttributes,
+                 port_attr: PortAttributes,
                  dispatch: Dict[Arrow, Callable]):
     """Construct a parametric inverse of arrow
     Args:
         arrow: Arrow to invert
         dispatch: Dict mapping arrow class to invert function
     Returns:
-        A (approximate) parametric inverse of `arrow`"""
+        A (approximate) parametric inverse of `arrow`
+        The ith in_port of comp_arrow will be corresponding ith out_port
+        error_ports and param_ports will follow"""
     # Empty compositon for inverse
     inv_comp_arrow = CompositeArrow(name="%s_inv" % comp_arrow.name)
 
@@ -67,7 +69,7 @@ def inner_invert(comp_arrow: CompositeArrow,
     arrow_to_port_map = dict()
     for sub_arrow in comp_arrow.get_sub_arrows():
         inv_sub_arrow, port_map = invert_sub_arrow(sub_arrow,
-                                                   port_values,
+                                                   port_attr,
                                                    dispatch)
         assert sub_arrow is not None
         assert inv_sub_arrow.parent is None
@@ -133,9 +135,7 @@ def invert(comp_arrow: CompositeArrow,
         dispatch: Dict mapping comp_arrow class to invert function
     Returns:
         A (approximate) parametric inverse of `comp_arrow`"""
+    # Replace multiedges with dupls and propagate
     comp_arrow.duplify()
-    # FIXME: These should be unified
-    port_values = {}
-    port_values = propagate(comp_arrow, port_values)
-
-    return inner_invert(comp_arrow, port_values, dispatch)
+    port_attr = propagate(comp_arrow)
+    return inner_invert(comp_arrow, port_attr, dispatch)

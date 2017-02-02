@@ -50,6 +50,7 @@ def train_loop(update_step,
                compress=False,
                save_dir="./",
                saver=None,
+               output_call_back=None,
                **kwargs):
     """Perform training
     Args:
@@ -71,12 +72,14 @@ def train_loop(update_step,
     for i in range(num_iterations):
         feed_dict = gen_batch(input_tensors, input_data)
         loss_res = sess.run([check, loss, update_step] + output_tensors, feed_dict=feed_dict)
+        if output_call_back:
+            output_call_back(loss_res)
         print("Loss is ", loss_res[1])
 
 def train_y_tf(params: List[Tensor],
                losses: List[Tensor],
-               input_tensors,
-               output_tensors,
+               input_tensors: List[Tensor],
+               output_tensors: List[Tensor],
                input_data,
                **kwargs) -> Graph:
     """
@@ -96,7 +99,9 @@ def train_y_tf(params: List[Tensor],
 
 from arrows.util.viz import show_tensorboard_graph
 
-def min_approx_error_arrow(arrow: Arrow, input_data: List) -> CompositeArrow:
+def min_approx_error_arrow(arrow: Arrow,
+                           input_data: List,
+                           **kwargs) -> CompositeArrow:
     """
     Find parameter values of arrow which minimize approximation error of arrow(data)
     Args:
@@ -109,10 +114,11 @@ def min_approx_error_arrow(arrow: Arrow, input_data: List) -> CompositeArrow:
     with tf.name_scope("%s_inv" % arrow.name):
         input_tensors = gen_input_tensors(arrow)
         output_tensors = arrow_to_graph(arrow, input_tensors)
-    show_tensorboard_graph()
+    # show_tensorboard_graph()
 
     param_tensors = [t for i, t in enumerate(input_tensors) if is_param_port(arrow.in_ports()[i])]
     error_tensors = [t for i, t in enumerate(output_tensors) if is_error_port(arrow.out_ports()[i])]
     assert len(param_tensors) > 0, "Must have parametric inports"
     assert len(error_tensors) > 0, "Must have error outports"
-    train_y_tf(param_tensors, error_tensors, input_tensors, output_tensors, input_data)
+    train_y_tf(param_tensors, error_tensors, input_tensors, output_tensors,
+               input_data, **kwargs)
