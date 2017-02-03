@@ -3,8 +3,14 @@ from arrows.primitivearrow import PrimitiveArrow
 from typing import List, MutableMapping, Set, Dict
 from sympy import Expr, Eq, Rel
 from arrows.apply.shapes import *
-from arrows.apply.constants import constant_pred, constant_dispatch
+from arrows.apply.constants import constant_pred, constant_dispatch, CONST
 
+closure_available = set([
+    "AddArrow",
+    "SubArrow",
+    "MulArrow",
+    "DivArrow"
+    ])
 
 def dupl_pred(arr: "DuplArrow", port_attr: PortAttributes):
     for port in arr.ports():
@@ -19,6 +25,36 @@ def dupl_disp(arr: "DuplArrow", port_attr: PortAttributes):
             known_value = port_attr[port]['value']
             break
     return {port: {'value': known_value} for port in arr.ports()}
+
+def closure_pred(arr: "DuplArrow", port_attr: PortAttributes):
+    return True
+
+def closure_disp(arr: "DuplArrow", port_attr: PortAttributes):
+    if arr.parent is None:
+        return {}
+    o = arr.out_ports()
+    n = 0
+    const_dict = {}
+    neighs_dict = {}
+    neigh_list = []
+    for out_port in o:
+        neighs_dict[out_port] = len(out_port.arrow.parent.neigh_ports(out_port))
+        for neigh in out_port.arrow.parent.neigh_ports(out_port):
+            neigh_list.append((neigh.arrow, neigh.arrow.get_topo_order(), out_port))
+    print(neighs_dict)
+    print(neigh_list)
+    for arrow, _, out_port in sorted(neigh_list, key=lambda x:x[1]):
+        if arrow.__class__.__name__ not in closure_available:
+            break
+        else:
+            neighs_dict[out_port] -= 1
+            if neighs_dict[out_port] == 0:
+                const_dict[out_port] = {'constant': CONST}
+                n += 1
+                if n >= len(o) - 1:
+                    break
+    print(const_dict)
+    return const_dict
 
 
 class DuplArrow(PrimitiveArrow):
@@ -42,7 +78,8 @@ class DuplArrow(PrimitiveArrow):
         disp = super().get_dispatches()
         disp.update({
             shape_pred: shape_dispatch,
-            dupl_pred: dupl_disp
+            dupl_pred: dupl_disp,
+            closure_pred: closure_disp
             })
         return disp
 

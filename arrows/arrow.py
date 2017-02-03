@@ -97,3 +97,9 @@ class Arrow:
 
     def get_dispatches(self):
         return {co.constant_pred: co.constant_dispatch}
+
+    def get_topo_order(self):
+        if self.parent is None:
+            return [self.topo_order]
+        else:
+            return self.parent.get_topo_order() + [self.topo_order]
