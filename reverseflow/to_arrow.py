@@ -137,7 +137,7 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
         for tensor in input_tensors:
             in_port = comp_arrow.add_port()
             make_in_port(in_port)
-            set_port_shape(in_port, tensor.get_shape().as_list())
+            set_port_shape(in_port, const_to_tuple(tensor.get_shape().as_list()))
             tensor_to_in_port[tensor] = in_port
 
     # Make an out_port for every output tensor
@@ -161,7 +161,7 @@ def graph_to_arrow(output_tensors: Sequence[Tensor],
                 make_in_port(left_port)
                 # FIXME: We are only taking shapes from placeholder inputs
                 # is this sufficient?
-                set_port_shape(left_port, tensor.get_shape().as_list())
+                set_port_shape(left_port, const_to_tuple(tensor.get_shape().as_list()))
         else:
             out_port_id = tensor.value_index
             left_arrow = arrow_from_op(tensor.op, op_to_arrow)

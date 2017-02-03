@@ -34,11 +34,5 @@ class SourceArrow(Arrow):
     def is_source(self):
         return True
 
-    def eval(self, ptv: Dict):
-        o = self.out_ports()
-        assert len(o) == 1
-        ptv[o[0]] = self.value
-        return ptv
-
     def get_dispatches(self):
         return {source_predicate: source_dispatch}

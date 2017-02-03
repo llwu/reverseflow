@@ -50,11 +50,14 @@ class AddArrow(PrimitiveArrow):
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
     def get_dispatches(self):
-        return {shape_pred: shape_dispatch,
-                constant_pred: constant_dispatch,
-                add_pred1: add_dispatch1,
-                add_pred2: add_dispatch2,
-                add_pred3: add_dispatch3}
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch,
+            add_pred1: add_dispatch1,
+            add_pred2: add_dispatch2,
+            add_pred3: add_dispatch3
+            })
+        return disp
 
 
 def sub_pred1(arr: "SubArrow", port_attr: PortAttributes):
@@ -95,11 +98,14 @@ class SubArrow(PrimitiveArrow):
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
     def get_dispatches(self):
-        return {shape_pred: shape_dispatch,
-                constant_pred: constant_dispatch,
-                sub_pred1: sub_dispatch1,
-                sub_pred2: sub_dispatch2,
-                sub_pred3: sub_dispatch3}
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch,
+            sub_pred1: sub_dispatch1,
+            sub_pred2: sub_dispatch2,
+            sub_pred3: sub_dispatch3
+            })
+        return disp
 
 
 def mul_pred1(arr: "MulArrow", port_attr: PortAttributes):
@@ -140,11 +146,14 @@ class MulArrow(PrimitiveArrow):
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
     def get_dispatches(self):
-        return {shape_pred: shape_dispatch,
-                constant_pred: constant_dispatch,
-                mul_pred1: mul_dispatch1,
-                mul_pred2: mul_dispatch2,
-                mul_pred3: mul_dispatch3}
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch,
+            mul_pred1: mul_dispatch1,
+            mul_pred2: mul_dispatch2,
+            mul_pred3: mul_dispatch3
+            })
+        return disp
 
 
 def div_pred1(arr: "DivArrow", port_attr: PortAttributes):
@@ -185,11 +194,14 @@ class DivArrow(PrimitiveArrow):
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
     def get_dispatches(self):
-        return {shape_pred: shape_dispatch,
-                constant_pred: constant_dispatch,
-                div_pred1: div_dispatch1,
-                div_pred2: div_dispatch2,
-                div_pred3: div_dispatch3}
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch,
+            div_pred1: div_dispatch1,
+            div_pred2: div_dispatch2,
+            div_pred3: div_dispatch3
+            })
+        return disp
 
     def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> Set[Rel]:
         constraints = []
@@ -239,11 +251,14 @@ class PowArrow(PrimitiveArrow):
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
     def get_dispatches(self):
-        return {shape_pred: shape_dispatch,
-                constant_pred: constant_dispatch,
-                pow_pred1: pow_dispatch1,
-                pow_pred2: pow_dispatch2,
-                pow_pred3: pow_dispatch3}
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch,
+            pow_pred1: pow_dispatch1,
+            pow_pred2: pow_dispatch2,
+            pow_pred3: pow_dispatch3
+            })
+        return disp
 
     def gen_constraints(self, input_expr: MutableMapping[int, Expr], output_expr: MutableMapping[int, Expr]) -> Set[Rel]:
         constraints = []
@@ -261,8 +276,11 @@ class ExpArrow(PrimitiveArrow):
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
     def get_dispatches(self):
-        return {constant_pred: constant_dispatch,
-                shape_pred: shape_dispatch}
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch
+            })
+        return disp
 
 
 class LogArrow(PrimitiveArrow):
@@ -296,8 +314,11 @@ class NegArrow(PrimitiveArrow):
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
     def get_dispatches(self):
-        return {constant_pred: constant_dispatch,
-                shape_pred: shape_dispatch}
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch
+            })
+        return disp
 
 
 class AddNArrow(PrimitiveArrow):
@@ -316,8 +337,12 @@ class SinArrow(PrimitiveArrow):
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
     def get_dispatches(self):
-        return {constant_pred: constant_dispatch,
-                shape_pred: shape_dispatch}
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch
+            })
+        return disp
+
 
 
 class ASinArrow(PrimitiveArrow):
@@ -328,8 +353,11 @@ class ASinArrow(PrimitiveArrow):
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
     def get_dispatches(self):
-        return {constant_pred: constant_dispatch,
-                shape_pred: shape_dispatch}
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch
+            })
+        return disp
 
 
 class CosArrow(PrimitiveArrow):
@@ -340,8 +368,10 @@ class CosArrow(PrimitiveArrow):
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
     def get_dispatches(self):
-        return {constant_pred: constant_dispatch,
-                shape_pred: shape_dispatch}
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch
+            })
 
 class FloorDivArrow(PrimitiveArrow):
     """Floor Division"""

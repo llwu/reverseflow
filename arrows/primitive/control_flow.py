@@ -39,9 +39,12 @@ class DuplArrow(PrimitiveArrow):
         return constraints
 
     def get_dispatches(self):
-        return {shape_pred: shape_dispatch,
-                constant_pred: constant_dispatch,
-                dupl_pred: dupl_disp}
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch,
+            dupl_pred: dupl_disp
+            })
+        return disp
 
 
 class InvDuplArrow(PrimitiveArrow):
@@ -59,9 +62,12 @@ class InvDuplArrow(PrimitiveArrow):
         return constraints
 
     def get_dispatches(self):
-        return {shape_pred: shape_dispatch,
-                constant_pred: constant_dispatch,
-                dupl_pred: dupl_disp}
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch,
+            dupl_pred: dupl_disp
+            })
+        return disp
 
 
 class IdentityArrow(PrimitiveArrow):
@@ -74,14 +80,13 @@ class IdentityArrow(PrimitiveArrow):
         name = 'Identity'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
-    def eval(self, ptv: Dict):
-        i = self.in_ports()
-        o = self.out_ports()
-        if i[0] in ptv:
-            ptv[o[0]] = ptv[i[0]]
-        if o[0] in ptv:
-            ptv[i[0]] = ptv[o[0]]
-        return ptv
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch,
+            dupl_pred: dupl_disp
+            })
+        return disp
 
 
 class IfArrow(PrimitiveArrow):

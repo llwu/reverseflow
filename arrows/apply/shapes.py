@@ -20,7 +20,7 @@ def shape_dispatch(arr: Arrow, port_attr: PortAttributes):
 
 
 def rank_predicate_shape(a: Arrow, port_values: PortAttributes, state=None) -> bool:
-    assert len(a.get_in_ports()) == 1
+    assert len(a.in_ports()) == 1
     return True
 
 

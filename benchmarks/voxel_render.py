@@ -2,7 +2,7 @@
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.train_y import min_approx_error_arrow
-from arrows.util.viz import show_tensorboard_graph
+from arrows.util.viz import show_tensorboard_graph, show_tensorboard
 from arrows.config import floatX
 import sys
 import getopt
@@ -186,7 +186,7 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
         pos = orig + rd*step_sz*i
         voxel_indices = np.floor(pos*res)
         pruned = np.clip(voxel_indices,0,res-1)
-        p_int = pruned.astype('int32')
+        p_int = pruned.astype('int64')
         indices = np.reshape(p_int, (nmatrices*width*height,3))
         flat_indices = indices[:, 0] + res * (indices[:, 1] + res * indices[:, 2])
         # print("ishape", flat_indices.shape, "vshape", voxels.get_shape())
@@ -263,6 +263,7 @@ def test_render_graph():
     show_tensorboard_graph()
     arrow_renderer = graph_to_arrow([out_img_tensor])
     inv_renderer = invert(arrow_renderer)
+    show_tensorboard(inv_renderer)
 
 
 if __name__ == "__main__":
