@@ -5,6 +5,7 @@ from arrows.config import floatX
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.train_y import min_approx_error_arrow
+from reverseflow.train.loss import inv_fwd_loss_arrow
 from typing import Sequence
 
 
@@ -56,8 +57,9 @@ def test_robot_arm():
     arrow = graph_to_arrow([x, y], name="robot_fwd_kinematics")
     show_tensorboard_graph()
     tf.reset_default_graph()
+    inv_fwd_arrow = inv_fwd_loss_arrow(arrow)
     inv_arrow = invert(arrow)
-    min_approx_error_arrow(inv_arrow, [0.9397378938990306, 1.7201786764100944])
+    min_approx_error_arrow(inv_fwd_arrow, [0.9397378938990306, 1.7201786764100944])
 
 
 test_robot_arm()

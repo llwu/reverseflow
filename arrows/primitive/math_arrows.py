@@ -403,3 +403,20 @@ class ReduceMeanArrow(PrimitiveArrow):
         self.kee_dims = keep_dims
         self.reduction_indices = reduction_indices
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+
+class SquaredDifference(PrimitiveArrow):
+    """
+    Returns (x - y)(x - y) element-wise.
+
+    Args:
+      x: A `Tensor`. Must be one of the following types: `half`, `float32`, `float64`, `int32`, `int64`, `complex64`, `complex128`.
+      y: A `Tensor`. Must have the same type as `x`.
+      name: A name for the operation (optional).
+
+    Returns:
+      A `Tensor`. Has the same type as `x`.
+    """
+    def __init__(self):
+        name = 'SquaredDifference'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
