@@ -374,6 +374,7 @@ class CosArrow(PrimitiveArrow):
             })
         return disp
 
+
 class FloorDivArrow(PrimitiveArrow):
     """Floor Division"""
 

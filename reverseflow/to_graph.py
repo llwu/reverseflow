@@ -168,6 +168,10 @@ def conv(a: SparseToDenseArrow, args: TensorVarList) -> Sequence[Tensor]:
     return [tf.sparse_to_dense(*args)]
 
 @overload
+def conv(a: SquaredDifference, args: TensorVarList) -> Sequence[Tensor]:
+    return [tf.squared_difference(*args)]
+
+@overload
 def conv(a: CompositeArrow, args: TensorVarList) -> Sequence[Tensor]:
     assert len(args) == a.num_in_ports()
     with tf.name_scope(a.name):

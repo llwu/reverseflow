@@ -42,11 +42,15 @@ def propagate(comp_arrow: CompositeArrow,
     port_attr = {a: {b: c for b, c in d.items()} for a, d in port_attr.items()}
 
     _port_attr = defaultdict(lambda: dict())
+    if comp_arrow.parent is None:
+        comp_arrow.toposort()
     # update port_attr with values stored on port
     for sub_arrow in comp_arrow.get_all_arrows():
         for port in sub_arrow.ports():
             attributes = get_port_attributes(port)
-            port_attr[port] = attributes
+            if port not in port_attr:
+                port_attr[port] = {}
+            port_attr[port].update(attributes)
 
     updated = set(comp_arrow.get_sub_arrows())
     update_neigh(port_attr, _port_attr, comp_arrow, updated)
@@ -56,10 +60,14 @@ def propagate(comp_arrow: CompositeArrow,
         sub_port_attr = {port: _port_attr[port]
                            for port in sub_arrow.ports()
                            if port in _port_attr}
-        pred_dispatches = sub_arrow.get_dispatches()
-        # import pdb; pdb.set_trace()
-        for pred, dispatch in pred_dispatches.items():
-            if pred(sub_arrow, sub_port_attr):
-                new_sub_port_attr = dispatch(sub_arrow, sub_port_attr)
-                update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
+
+        if isinstance(sub_arrow, CompositeArrow):
+            new_sub_port_attr = propagate(sub_arrow, sub_port_attr, state)
+            update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
+        else:
+            pred_dispatches = sub_arrow.get_dispatches()
+            for pred, dispatch in pred_dispatches.items():
+                if pred(sub_arrow, sub_port_attr):
+                    new_sub_port_attr = dispatch(sub_arrow, sub_port_attr)
+                    update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
     return _port_attr

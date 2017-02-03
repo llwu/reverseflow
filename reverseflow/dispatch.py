@@ -116,6 +116,45 @@ def inv_dupl_approx(arrow: DuplArrow, port_values: PortAttributes) -> Tuple[Arro
     return inv_arrow, port_map
 
 
+def inv_dupl(arrow: DuplArrow, port_values: PortAttributes):
+    const_outs = []
+    var_outs = []
+    for i, out_port in enumerate(arrow.out_ports()):
+        if out_port in port_values and 'constant' in port_values[out_port] and port_values[out_port]['constant'] == CONST:
+            const_outs.append(i + 1)
+        else:
+            var_outs.append(i + 1)
+    n_duplications = len(const_outs) + 1
+    dupl = DuplArrow(n_duplications=n_duplications)
+    in_ports = dupl.in_ports()
+    out_ports = dupl.out_ports()
+    edges = Bimap()  # type: EdgeMap
+    n_duplications = len(var_outs)
+    if n_duplications > 1:
+        inv_dupl = InvDuplArrow(n_duplications=n_duplications)
+        approx_id = ApproxIdentityArrow(n_inputs=n_duplications)
+        in_ports = approx_id.in_ports()
+        edges.add(inv_dupl.out_ports()[0], dupl.in_ports()[0])
+        for i in range(n_duplications):
+            edges.add(approx_id.out_ports()[i], inv_dupl.in_ports()[i])
+        out_ports.append(approx_id.out_ports()[n_duplications])
+    inv_arrow = CompositeArrow(edges=edges,
+                               in_ports=in_ports,
+                               out_ports=out_ports,
+                               name="InvDupl")
+    if n_duplications > 1:
+        make_error_port(inv_arrow.out_ports()[-1])
+    port_map = {0: arrow.num_out_ports()}
+    i = 0
+    for port in var_outs:
+        port_map[port] = i
+        i += 1
+    for port in const_outs:
+        port_map[port] = i
+        i += 1
+    return inv_arrow, port_map
+
+
 def inv_exp(arrow: ExpArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
     log = LogArrow()
     return log, {0: 1, 1: 0}

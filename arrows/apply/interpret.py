@@ -71,8 +71,8 @@ def inner_interpret(conv: Callable,
         sub_arrow, priority = arrow_colors.popitem()
         if sub_arrow is not comp_arrow:
             assert priority == 0, "Must resolve all inputs to sub_arrow first"
-
-            inputs = [arrow_inputs[sub_arrow][i] for i in range(len(arrow_inputs[sub_arrow]))]
+            # inputs = [arrow_inputs[sub_arrow][i] for i in range(len(arrow_inputs[sub_arrow]))]
+            inputs = [arrow_inputs[sub_arrow][i] for i in sorted(arrow_inputs[sub_arrow].keys())]
             outputs = conv(sub_arrow, inputs)
             if isinstance(outputs, tuple) and len(outputs) == 2:
                 outputs, emit = outputs
