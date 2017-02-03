@@ -6,7 +6,7 @@ from pqdict import pqdict
 
 from arrows import Arrow
 from arrows.port import Port
-from arrows.port_attributes import is_in_port, is_out_port
+from arrows.port_attributes import *
 from arrows.primitive.control_flow import DuplArrow
 from reverseflow.util.mapping import Bimap, Relation
 
