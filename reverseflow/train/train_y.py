@@ -1,5 +1,4 @@
 from arrows import (Arrow, CompositeArrow, compose_comb_modular, compose_comb)
-from arrows import InPort
 from arrows.port_attributes import is_param_port, is_error_port
 from arrows.std_arrows import *
 from arrows.config import floatX
@@ -14,7 +13,7 @@ from tensorflow import Graph, Tensor, Session
 
 def gen_update_step(loss: Tensor) -> Tensor:
     with tf.name_scope('optimization'):
-        optimizer = tf.train.MomentumOptimizer(0.01,
+        optimizer = tf.train.MomentumOptimizer(0.001,
                                                momentum=0.1)
         update_step = optimizer.minimize(loss)
         return update_step

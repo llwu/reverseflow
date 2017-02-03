@@ -54,6 +54,7 @@ def gen_arrow_inputs(comp_arrow: CompositeArrow,
 
     return arrow_inputs
 
+from arrows.port_attributes import *
 
 def inner_interpret(conv: Callable,
                     comp_arrow: CompositeArrow,
