@@ -72,8 +72,9 @@ class GatherArrow(PrimitiveArrow):
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
     def get_dispatches(self):
-        return {constant_pred: constant_dispatch,
-                gather_shape_pred: gather_shape_dispatch}
+        disp = super().get_dispatches()
+        disp.update({gather_shape_pred: gather_shape_dispatch})
+        return disp
 
 
 def std_pred1(arr: "SparseToDenseArrow", port_attr: PortAttributes):
@@ -106,8 +107,9 @@ class SparseToDenseArrow(PrimitiveArrow):
         super().__init__(n_in_ports=3, n_out_ports=1, name=name)
 
     def get_dispatches(self):
-        return {constant_pred: constant_dispatch,
-                std_pred1: std_disp1}
+        disp = super().get_dispatches()
+        disp.update({std_pred1: std_disp1})
+        return disp
 
 # Reshape
 # ========
@@ -133,4 +135,6 @@ class ReshapeArrow(PrimitiveArrow):
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
     def get_dispatches(self):
-        return {reshape_eval_pred: reshape_eval_dispatch}
+        disp = super().get_dispatches()
+        disp.update({reshape_eval_pred: reshape_eval_dispatch})
+        return disp
