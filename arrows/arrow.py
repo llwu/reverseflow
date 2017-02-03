@@ -1,6 +1,7 @@
 """Major classes for Arrow data structures"""
 
 import arrows.port_attributes as pa
+import arrows.apply.constants as co
 
 class Arrow:
     """Abstract arrow class"""
@@ -93,3 +94,6 @@ class Arrow:
 
     def __deepcopy__(self, memo):
         return None
+
+    def get_dispatches(self):
+        return {co.constant_pred: co.constant_dispatch}
