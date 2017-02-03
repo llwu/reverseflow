@@ -372,6 +372,7 @@ class CosArrow(PrimitiveArrow):
         disp.update({
             shape_pred: shape_dispatch
             })
+        return disp
 
 
 
