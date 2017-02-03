@@ -414,6 +414,13 @@ class AbsArrow(PrimitiveArrow):
             constraints.append(Ge(output_expr[0], 0))
         return constraints
 
+class SquareArrow(PrimitiveArrow):
+    """Square(x)"""
+
+    def __init__(self):
+        name = 'Square'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
 
 class MaxArrow(PrimitiveArrow):
     """Returns the max of x and y (i.e. x > y ? x : y) element-wise."""

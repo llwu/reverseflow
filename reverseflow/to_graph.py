@@ -18,7 +18,7 @@ def gen_input_tensors(arrow: Arrow):
     for in_port in arrow.in_ports():
         if is_param_port(in_port):
             # FIXME for right shape
-            input_tensors.append(tf.Variable(np.random.rand(1), name="blerg", dtype=floatX()))
+            input_tensors.append(tf.Variable(np.random.rand(), name="blerg", dtype=floatX()))
         elif is_in_port(in_port):
             input_tensors.append(tf.placeholder(dtype=floatX()))
         else:
@@ -124,6 +124,10 @@ def conv(a: FloorDivArrow, args: TensorVarList) -> Sequence[Tensor]:
 @overload
 def conv(a: AbsArrow, args: TensorVarList) -> Sequence[Tensor]:
     return [tf.abs(args[0])]
+
+@overload
+def conv(a: SquareArrow, args: TensorVarList) -> Sequence[Tensor]:
+    return [tf.square(args[0])]
 
 @overload
 def conv(a: MaxArrow, args: TensorVarList) -> Sequence[Tensor]:

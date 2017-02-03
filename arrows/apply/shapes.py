@@ -52,6 +52,6 @@ def constant_to_shape(x: ndarray):
 
 def source_dispatch(a: Arrow, port_values: PortAttributes, state=None):
     assert len(a.out_ports()) == 1
-    return {a.out_ports()[0]: {'shape': constant_to_shape(a.value),
+    return {a.out_ports()[0]: {'shape': constant_to_shape(float(a.value)),
                                    'value': a.value,
                                    'constant': CONST}}

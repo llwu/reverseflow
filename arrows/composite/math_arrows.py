@@ -101,14 +101,12 @@ class ScalarVarFromMeanArrow(CompositeArrow):
         make_out_port(out_port)
 
         sub_arrows = [SubArrow() for i in range(n_inputs)]
-        two = SourceArrow(2.0)
-        squares = [PowArrow() for i in range(n_inputs)]
-        addn = AddNArrow()
+        squares = [SquareArrow() for i in range(n_inputs)]
+        addn = AddNArrow(n_inputs)
         for i in range(n_inputs):
             comp_arrow.add_edge(in_ports[0], sub_arrows[i].in_ports()[1])
             comp_arrow.add_edge(in_ports[i + 1], sub_arrows[i].in_ports()[0])
             comp_arrow.add_edge(sub_arrows[i].out_ports()[0], squares[i].in_ports()[0])
-            comp_arrow.add_edge(two.out_ports()[0], squares[i].in_ports()[1])
             comp_arrow.add_edge(squares[i].out_ports()[0], addn.in_ports()[i])
 
         nn = SourceArrow(n_inputs)

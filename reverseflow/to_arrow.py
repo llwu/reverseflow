@@ -68,6 +68,9 @@ def conv_Reshape(sin_op: Operation):
 def conv_Greater(gt_op: Operation):
     return GreaterArrow()
 
+def conv_Identity(id_op: Operation):
+    return IdentityArrow()
+
 
 # Mapping between op types and arrows
 # Cannot use multimethods because different ops not distinguished by type
@@ -82,7 +85,8 @@ Op_Type_To_Arrow = {'Add': conv_Add,  # type: Dict[string, Arrow]
                     'Cos': conv_Cos,
                     'Reshape': conv_Reshape,
                     'Const': conv_Const,
-                    'Greater': conv_Greater}
+                    'Greater': conv_Greater,
+                    'Identity': conv_Identity}
 
 def arrow_from_op(op: Operation,
                   op_to_arrow: Dict[Operation, Arrow]) -> Arrow:

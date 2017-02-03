@@ -21,9 +21,9 @@ def ik_fwd_f(inputs):
     phi4 = inputs[2]
     phi5 = inputs[3]
     phi6 = inputs[4]
-    d2 = 1
-    d3 = inputs[5]
-    h1 = 1
+    d2 = inputs[5]
+    d3 = 2.0
+    h1 = 1.0
     r11 = -s(phi6)*(c(phi4)*s(phi1) + c(phi1)*c(phi2)*s(phi4) ) - c(phi6)*(c(phi5)*(s(phi1)*s(phi4) - c(phi1)*c(phi2)*c(phi4) ) + c(phi1)*s(phi2)*s(phi5) )
     r12 = s(phi6)*(c(phi5)*(s(phi1)*s(phi4) - c(phi1)*c(phi2)*c(phi4) ) + c(phi1)*s(phi2)*s(phi5) ) - c(phi6)*(c(phi4)*s(phi1) + c(phi1)*c(phi2)*s(phi4) )
     r13 = s(phi5)*(s(phi1)*s(phi4) - c(phi1)*c(phi2)*c(phi4) ) - c(phi1)*c(phi5)*s(phi2)
@@ -57,9 +57,9 @@ def plot_robot_arm(inputs, target):
     phi4 = inputs[2]
     phi5 = inputs[3]
     phi6 = inputs[4]
-    d2 = 1
-    d3 = inputs[5]
-    h1 = 1
+    d2 = inputs[5]
+    d3 = 2.0
+    h1 = 1.0
     T = []      # list of T matrices
     T.append(np.array([[np.cos(phi1), -np.sin(phi1), 0, 0],
                        [np.sin(phi1), np.cos(phi1), 0, 0],
@@ -133,9 +133,9 @@ def ik_gen_graph(g, batch_size, is_placeholder):
         inputs[3] = tf.placeholder(tf.float32, name="phi5", shape=())
         inputs[4] = tf.placeholder(tf.float32, name="phi6", shape=())
 
-        # inputs[5] = tf.placeholder(tf.float32, name="d2", shape=())
-        inputs[5] = tf.placeholder(tf.float32, name="d3", shape=())
-        # inputs[7] = tf.placeholder(tf.float32, name="h1", shape=())
+        inputs[5] = tf.placeholder(tf.float32, name="d2", shape=())
+        # inputs[6] = tf.placeholder(tf.float32, name="d3", shape=())
+        # inputs[7] = tf.Variable(1.0, name="h1")
 
         outputs = ik_fwd_f(inputs)
         return {"inputs": inputs, "outputs": outputs}
@@ -144,11 +144,11 @@ def ik_gen_graph(g, batch_size, is_placeholder):
 def test_ik():
     with tf.name_scope("ik_stanford_manipulator"):
         in_out = ik_gen_graph(tf.Graph(), 1, is_placeholder)
-        input_values = [30, 45, 90, 0, 60, 2]
+        input_values = [30, 45, 90, 0, 60, 1]
         with tf.Session() as sess:
             output_values = sess.run(in_out["outputs"], feed_dict={in_out["inputs"][i]: input_values[i] for i in range(len(input_values))})
         print(output_values)
-        # plot_robot_arm(input_values)
+        # plot_robot_arm(input_values, (output_values[0], output_values[1], output_values[2]))
     arrow = graph_to_arrow(output_tensors=in_out["outputs"],
                            input_tensors=in_out["inputs"],
                            name="ik_stanford")
@@ -157,7 +157,7 @@ def test_ik():
     inverse = invert(arrow)
     target = (output_values[0], output_values[1], output_values[2])
     def plot_call_back(output_values, target=target):
-        robot_joints = output_values[3:3+8]
+        robot_joints = output_values[3:3+6]
         r = np.array(robot_joints).flatten()
         fig.clear()
         plot_robot_arm(list(r), target)

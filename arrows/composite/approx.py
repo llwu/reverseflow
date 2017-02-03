@@ -1,5 +1,5 @@
 from arrows.primitive.math_arrows import SubArrow, MaxArrow, ClipArrow, PowArrow
-from arrows.composite.math_arrows import MeanArrow, VarFromMeanArrow, TriangleWaveArrow
+from arrows.composite.math_arrows import MeanArrow, VarFromMeanArrow, TriangleWaveArrow, ScalarVarFromMeanArrow
 from arrows.compositearrow import CompositeArrow
 from arrows.primitive.control_flow import DuplArrow, IfArrow, GreaterArrow
 from reverseflow.util.mapping import Bimap
@@ -14,7 +14,7 @@ class ApproxIdentityArrow(CompositeArrow):
     Last out_port is the error port
     """
 
-    def __init__(self, n_inputs: int, variance=VarFromMeanArrow):
+    def __init__(self, n_inputs: int, variance=ScalarVarFromMeanArrow):
         name = "ApproxIdentity"
         edges = Bimap()  # type: EdgeMap
         mean = MeanArrow(n_inputs)
