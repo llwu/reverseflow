@@ -1,5 +1,5 @@
 from arrows.primitive.math_arrows import SubArrow, MaxArrow, ClipArrow, PowArrow
-from arrows.composite.math_arrows import MeanArrow, VarFromMeanArrow
+from arrows.composite.math_arrows import MeanArrow, VarFromMeanArrow, TriangleWaveArrow
 from arrows.compositearrow import CompositeArrow
 from arrows.primitive.control_flow import DuplArrow, IfArrow, GreaterArrow
 from reverseflow.util.mapping import Bimap
@@ -14,11 +14,11 @@ class ApproxIdentityArrow(CompositeArrow):
     Last out_port is the error port
     """
 
-    def __init__(self, n_inputs: int):
+    def __init__(self, n_inputs: int, variance=VarFromMeanArrow):
         name = "ApproxIdentity"
         edges = Bimap()  # type: EdgeMap
         mean = MeanArrow(n_inputs)
-        varfrommean = VarFromMeanArrow(n_inputs)
+        varfrommean = variance(n_inputs)
         dupls = [DuplArrow() for i in range(n_inputs)]
         for i in range(n_inputs):
             edges.add(dupls[i].out_ports()[0], mean.in_ports()[i])
@@ -132,7 +132,7 @@ class IntervalBoundIdentity(CompositeArrow):
     Identity on input but returns error for those outside bounds
     """
 
-    def __init__(self, l, u, intervalbound=IntervalBound):
+    def __init__(self, l, u, intervalbound=IntervalBound, clipper=ClipArrow):
         super().__init__(name="IntervalBoundIdentity")
         comp_arrow = self
         in_port = comp_arrow.add_port()
@@ -146,7 +146,7 @@ class IntervalBoundIdentity(CompositeArrow):
         l_src = SourceArrow(l)
         u_src = SourceArrow(u)
         interval_bound = intervalbound(l, u)
-        clip = ClipArrow()
+        clip = clipper()
 
         comp_arrow.add_edge(in_port, clip.in_ports()[0])
         comp_arrow.add_edge(l_src.out_ports()[0], clip.in_ports()[1])

@@ -25,13 +25,13 @@ def rank_predicate_shape(a: Arrow, port_values: PortAttributes, state=None) -> b
 
 
 def rank_dispatch_shape(a: Arrow, port_values: PortAttributes, state=None):
-    assert len(a.get_out_ports()) == 1
-    return {a.get_out_ports()[0] : {'shape': ()}}
+    assert len(a.out_ports()) == 1
+    return {a.out_ports()[0] : {'shape': ()}}
 
 # FIXME: We could get rid of these redundant predicates by just putting data
 # on the port directly
 def source_predicate(a: Arrow, port_attr: PortAttributes, state=None) -> bool:
-    assert len(a.get_in_ports()) == 0
+    assert len(a.in_ports()) == 0
     return True
 
 
@@ -51,7 +51,7 @@ def constant_to_shape(x: ndarray):
 
 
 def source_dispatch(a: Arrow, port_values: PortAttributes, state=None):
-    assert len(a.get_out_ports()) == 1
-    return {a.get_out_ports()[0]: {'shape': constant_to_shape(a.value),
+    assert len(a.out_ports()) == 1
+    return {a.out_ports()[0]: {'shape': constant_to_shape(a.value),
                                    'value': a.value,
                                    'constant': CONST}}

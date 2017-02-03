@@ -343,6 +343,12 @@ class CosArrow(PrimitiveArrow):
         return {constant_pred: constant_dispatch,
                 shape_pred: shape_dispatch}
 
+class FloorDivArrow(PrimitiveArrow):
+    """Floor Division"""
+
+    def __init__(self):
+        name = 'FloorDiv'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
 
 class ClipArrow(PrimitiveArrow):
