@@ -9,6 +9,8 @@ from arrows.util.viz import show_tensorboard_graph
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.train_y import min_approx_error_arrow
+from reverseflow.train.loss import inv_fwd_loss_arrow
+
 
 plt.ion()
 c = tf.cos
@@ -155,6 +157,7 @@ def test_ik():
     # show_tensorboard_graph()
     tf.reset_default_graph()
     inverse = invert(arrow)
+    inv_fwd_arrow = inv_fwd_loss_arrow(arrow)
     target = (output_values[0], output_values[1], output_values[2])
     def plot_call_back(output_values, target=target):
         robot_joints = output_values[3:3+6]
@@ -163,6 +166,6 @@ def test_ik():
         plot_robot_arm(list(r), target)
         plt.pause(0.01)
 
-    min_approx_error_arrow(inverse, output_values, output_call_back=plot_call_back)
+    min_approx_error_arrow(inv_fwd_arrow, output_values, output_call_back=plot_call_back)
 
 test_ik()
