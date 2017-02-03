@@ -57,6 +57,7 @@ def propagate(comp_arrow: CompositeArrow,
                            for port in sub_arrow.ports()
                            if port in _port_attr}
         pred_dispatches = sub_arrow.get_dispatches()
+        # import pdb; pdb.set_trace()
         for pred, dispatch in pred_dispatches.items():
             if pred(sub_arrow, sub_port_attr):
                 new_sub_port_attr = dispatch(sub_arrow, sub_port_attr)
