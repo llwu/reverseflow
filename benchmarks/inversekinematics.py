@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from arrows.port_attributes import has_port_label
 from reverseflow.util.tf import *
 from arrows.util.viz import show_tensorboard_graph
 from reverseflow.invert import invert
@@ -159,13 +160,16 @@ def test_ik():
     inverse = invert(arrow)
     inv_fwd_arrow = inv_fwd_loss_arrow(arrow)
     target = (output_values[0], output_values[1], output_values[2])
-    def plot_call_back(output_values, target=target):
-        robot_joints = output_values[3:3+6]
+    def plot_call_back(fetch_res, target=target):
+        robot_joints = fetch_res['output_tensors'][0:6]
         r = np.array(robot_joints).flatten()
         fig.clear()
         plot_robot_arm(list(r), target)
         plt.pause(0.01)
 
-    min_approx_error_arrow(inv_fwd_arrow, output_values, output_call_back=plot_call_back)
+    min_approx_error_arrow(inv_fwd_arrow,
+                           output_values,
+                           error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
+                           output_call_back=plot_call_back)
 
 test_ik()
