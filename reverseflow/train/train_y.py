@@ -13,7 +13,7 @@ from tensorflow import Graph, Tensor, Session
 
 def gen_update_step(loss: Tensor) -> Tensor:
     with tf.name_scope('optimization'):
-        optimizer = tf.train.MomentumOptimizer(0.01,
+        optimizer = tf.train.MomentumOptimizer(0.1,
                                                momentum=0.1)
         update_step = optimizer.minimize(loss)
         return update_step
@@ -49,6 +49,7 @@ def train_loop(update_step,
                compress=False,
                save_dir="./",
                saver=None,
+               stop_test=None,
                output_call_back=None,
                debug=False,
                **kwargs):

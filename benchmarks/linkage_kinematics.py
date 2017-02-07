@@ -79,12 +79,7 @@ def plot_call_back(fetch_res):
         ax.add_line(lines)
         plt.draw()
     else:
-        # ax.lines = [Line2D(x, y)]
-        # ax.add_line(lines)
-        # import pdb; pdb.set_trace()
-        # lines.set_data(np.random.rand(3), np.random.rand(3))
         lines.set_data(x, y)
-        # import pdb; pdb.set_trace()
     plt.draw()
     plt.show()
     plt.pause(0.05)
@@ -94,10 +89,10 @@ def plot_call_back(fetch_res):
 
 from arrows.port_attributes import *
 
-def test_robot_arm():
+def test_robot_arm(batch_size=128):
     lengths = [1, 1, 1]
     with tf.name_scope("fwd_kinematics"):
-        angles = [tf.placeholder(floatX(), name="theta", shape=()) for i in range(len(lengths))]
+        angles = [tf.placeholder(floatX(), name="theta", shape=(batch_size, 1)) for i in range(len(lengths))]
         x, y = gen_robot(lengths, angles)
     arrow = graph_to_arrow([x, y],
                            input_tensors=angles,
@@ -106,7 +101,6 @@ def test_robot_arm():
     tf.reset_default_graph()
     # inv_arrow = invert(arrow)
     inv_arrow = inv_fwd_loss_arrow(arrow)
-    import pdb; pdb.set_trace()
 
     min_approx_error_arrow(inv_arrow,
                            [0.5, 0.5],
