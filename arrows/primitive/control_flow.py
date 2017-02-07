@@ -78,8 +78,8 @@ class DuplArrow(PrimitiveArrow):
         disp = super().get_dispatches()
         disp.update({
             shape_pred: shape_dispatch,
-            dupl_pred: dupl_disp,
-            closure_pred: closure_disp
+            dupl_pred: dupl_disp
+            # closure_pred: closure_disp
             })
         return disp
 

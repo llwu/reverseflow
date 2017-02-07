@@ -50,6 +50,7 @@ def train_loop(update_step,
                save_dir="./",
                saver=None,
                output_call_back=None,
+               debug=False,
                **kwargs):
     """Perform training
     Args:
@@ -67,13 +68,21 @@ def train_loop(update_step,
         save_dir: Directory for saving logs
         saver: Tensorflow saver for saving
     """
-    check = tf.add_check_numerics_ops()
+    fetch = {}
+    if debug:
+        fetch['check'] = tf.add_check_numerics_ops()
+
+    fetch['loss'] = loss
+    fetch['update_step'] = update_step
+    fetch['output_tensors'] = output_tensors
+
+    # fetch = fetch + [loss, update_step] + output_tensors
     for i in range(num_iterations):
         feed_dict = gen_batch(input_tensors, input_data)
-        loss_res = sess.run([check, loss, update_step] + output_tensors, feed_dict=feed_dict)
+        fetch_res = sess.run(fetch, feed_dict=feed_dict)
         if output_call_back:
-            output_call_back(loss_res)
-        print("Loss is ", loss_res[1])
+            output_call_back(fetch_res)
+        print("Iteration: ", i, " Loss: ", fetch_res['loss'])
 
 def train_y_tf(params: List[Tensor],
                losses: List[Tensor],
@@ -100,6 +109,7 @@ from arrows.util.viz import show_tensorboard_graph
 
 def min_approx_error_arrow(arrow: Arrow,
                            input_data: List,
+                           error_filter=is_error_port,
                            **kwargs) -> CompositeArrow:
     """
     Find parameter values of arrow which minimize approximation error of arrow(data)
@@ -116,7 +126,7 @@ def min_approx_error_arrow(arrow: Arrow,
     # show_tensorboard_graph()
 
     param_tensors = [t for i, t in enumerate(input_tensors) if is_param_port(arrow.in_ports()[i])]
-    error_tensors = [t for i, t in enumerate(output_tensors) if is_error_port(arrow.out_ports()[i])]
+    error_tensors = [t for i, t in enumerate(output_tensors) if error_filter(arrow.out_ports()[i])]
     assert len(param_tensors) > 0, "Must have parametric inports"
     assert len(error_tensors) > 0, "Must have error outports"
     train_y_tf(param_tensors, error_tensors, input_tensors, output_tensors,
