@@ -33,6 +33,7 @@ install:
   - pip install python-coveralls pytest-cov
   - pip install numpydoc
   - pip install pqdict
+  - pip install sympy
   - pip install git+git://github.com/python/mypy.git
   - pip install git+git://github.com/PyCQA/astroid
   - pip install git+git://github.com/PyCQA/pylint
