@@ -2,7 +2,7 @@ from arrows.arrow import Arrow
 from arrows.compositearrow import CompositeArrow
 from arrows.std_arrows import *
 from arrows.port_attributes import (is_error_port, make_error_port,
-    make_out_port, is_param_port, make_param_port)
+    make_out_port, is_param_port, make_param_port, add_port_label)
 from reverseflow.invert import invert
 
 def inv_fwd_loss_arrow(arrow: Arrow,
@@ -40,6 +40,7 @@ def inv_fwd_loss_arrow(arrow: Arrow,
             error_port = c.add_port()
             make_out_port(error_port)
             make_error_port(error_port)
+            add_port_label(error_port, "sub_arrow_error")
             c.add_edge(out_port, error_port)
 
     # find difference between inputs to inverse and outputs of fwd
@@ -51,6 +52,7 @@ def inv_fwd_loss_arrow(arrow: Arrow,
         error_port = c.add_port()
         make_out_port(error_port)
         make_error_port(error_port)
+        add_port_label(error_port, "inv_fwd_error")
         c.add_edge(diff.out_port(0), error_port)
 
     assert c.is_wired_correctly()

@@ -4,23 +4,29 @@ from tensorflow import Tensor, Graph, Variable
 import numpy as np
 from arrows.config import floatX
 from arrows.port import InPort
-from arrows.port_attributes import is_in_port, is_param_port
+from arrows.port_attributes import *
 from arrows.arrow import Arrow
 from arrows.sourcearrow import SourceArrow
 from arrows.compositearrow import CompositeArrow, EdgeMap
 from arrows.std_arrows import *
 from arrows.apply.interpret import interpret
+from arrows.apply.propagate import propagate
 from typing import List, Dict, MutableMapping, Union, Sequence
 from overloading import overload
 
 def gen_input_tensors(arrow: Arrow):
     input_tensors = []
+    port_attr = propagate(arrow)
     for in_port in arrow.in_ports():
+        shape = port_attr[in_port]['shape']
+        name = "input_%s" % in_port.index
         if is_param_port(in_port):
-            # FIXME for right shape
-            input_tensors.append(tf.Variable(np.random.rand(), name="blerg", dtype=floatX()))
+            var = tf.Variable(np.random.rand(*shape), name=name,
+                              dtype=floatX())
+            input_tensors.append(var)
         elif is_in_port(in_port):
-            input_tensors.append(tf.placeholder(dtype=floatX()))
+            inp = tf.placeholder(name=name, shape=shape, dtype=floatX())
+            input_tensors.append(inp)
         else:
             assert False, "Don't know how to handle %s" % in_port
     return input_tensors

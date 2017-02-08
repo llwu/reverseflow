@@ -48,6 +48,20 @@ def is_error_port(port: Port) -> bool:
     return "error" in port_attributes and port_attributes["error"] is True
 
 
+def add_port_label(port: Port, label: str):
+    """Add a string label to a port"""
+    port_attributes = port.arrow.port_attributes[port.index]
+    if "labels" not in port_attributes:
+        port_attributes["labels"] = set()
+    port_attributes["labels"].add(label)
+
+
+def has_port_label(port: Port, label: str) -> bool:
+    """Does port have this label"""
+    port_attributes = port.arrow.port_attributes[port.index]
+    return "labels" in port_attributes and label in port_attributes['labels']
+
+
 Shape = Sequence[int]
 
 

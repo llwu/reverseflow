@@ -7,6 +7,18 @@ from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.train_y import min_approx_error_arrow
 from reverseflow.train.loss import inv_fwd_loss_arrow
 from typing import Sequence
+import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+import numpy as np
+
+# Interactive Plotting
+plt.ion()
+fig = plt.figure()
+ax = fig.add_subplot(111, autoscale_on=False)
+ax.set_xlim(0, 2)
+ax.set_ylim(0, 2)
+# axis = plt.axis([-3, 3, -3, 3])
+lines = None
 
 
 def accum_sum(xs: Sequence):
@@ -47,19 +59,53 @@ def gen_robot(lengths: Sequence, angles: Sequence):
     y_accum, y = accum_sum(y_terms)
     return x, y
 
+def draw_lines(n_links, angles):
+    accum_angles, total_angles = accum_sum(angles)
+    x_terms = [0.0] + [np.cos(accum_angles[i]) for i in range(n_links)]
+    y_terms = [0.0] + [np.sin(accum_angles[i]) for i in range(n_links)]
+    return x_terms, y_terms
 
+def plot_call_back(fetch_res):
+    # import pdb; pdb.set_trace()
+    global lines
+    global ax
+    n_links = 3
+    angles = fetch_res['output_tensors'][0:n_links]
+    x, y = draw_lines(n_links, angles)
+    # import pdb; pdb.set_trace()
+    print(sum(x), sum(y))
+    if lines is None:
+        lines = Line2D(x, y)
+        ax.add_line(lines)
+        plt.draw()
+    else:
+        lines.set_data(x, y)
+    plt.draw()
+    plt.show()
+    plt.pause(0.05)
+    # robot_joints = output_values[3:3+6]
+    # r = np.array(robot_joints).flatten()
+    # plot_robot_arm(list(r), target)
 
-def test_robot_arm():
-    lengths = [0.9397378938990306, 1.7201786764100944]
+from arrows.port_attributes import *
+
+def test_robot_arm(batch_size=128):
+    lengths = [1, 1, 1]
     with tf.name_scope("fwd_kinematics"):
-        angles = [tf.placeholder(floatX(), name="theta", shape=()) for i in range(len(lengths))]
+        angles = [tf.placeholder(floatX(), name="theta", shape=(batch_size, 1)) for i in range(len(lengths))]
         x, y = gen_robot(lengths, angles)
-    arrow = graph_to_arrow([x, y], name="robot_fwd_kinematics")
+    arrow = graph_to_arrow([x, y],
+                           input_tensors=angles,
+                           name="robot_fwd_kinematics")
     show_tensorboard_graph()
     tf.reset_default_graph()
-    inv_fwd_arrow = inv_fwd_loss_arrow(arrow)
-    inv_arrow = invert(arrow)
-    min_approx_error_arrow(inv_fwd_arrow, [0.9397378938990306, 1.7201786764100944])
+    # inv_arrow = invert(arrow)
+    inv_arrow = inv_fwd_loss_arrow(arrow)
+
+    min_approx_error_arrow(inv_arrow,
+                           [0.5, 0.5],
+                           error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
+                           output_call_back=plot_call_back)
 
 
 test_robot_arm()
