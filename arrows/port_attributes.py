@@ -93,3 +93,6 @@ def ports_has(ports: Sequence[Port], attr: str, port_attr: PortAttributes):
 def extract_attribute(attr: str, port_attr: PortAttributes):
     return {port: port_attr[port][attr] for port in port_attr.keys() \
             if attr in port_attr[port]}
+
+def arrow_filter(arrow: str, port_attr: PortAttributes):
+    return {k: v for k, v in port_attr.items() if k.arrow == arrow}

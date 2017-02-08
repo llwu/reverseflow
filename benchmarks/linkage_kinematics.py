@@ -69,7 +69,7 @@ def plot_call_back(fetch_res):
     # import pdb; pdb.set_trace()
     global lines
     global ax
-    n_links = 3
+    n_links = 2
     angles = fetch_res['output_tensors'][0:n_links]
     x, y = draw_lines(n_links, angles)
     # import pdb; pdb.set_trace()
@@ -88,9 +88,15 @@ def plot_call_back(fetch_res):
     # plot_robot_arm(list(r), target)
 
 from arrows.port_attributes import *
+from arrows.apply.propagate import *
+
+
+def print_one_per_line(xs:Sequence):
+    for x in xs:
+        print(x)
 
 def test_robot_arm(batch_size=128):
-    lengths = [1, 1, 1]
+    lengths = [1, 1]
     with tf.name_scope("fwd_kinematics"):
         angles = [tf.placeholder(floatX(), name="theta", shape=(batch_size, 1)) for i in range(len(lengths))]
         x, y = gen_robot(lengths, angles)
@@ -99,8 +105,11 @@ def test_robot_arm(batch_size=128):
                            name="robot_fwd_kinematics")
     show_tensorboard_graph()
     tf.reset_default_graph()
-    # inv_arrow = invert(arrow)
-    inv_arrow = inv_fwd_loss_arrow(arrow)
+    inv_arrow = invert(arrow)
+    # inv_arrow = inv_fwd_loss_arrow(arrow)
+    port_attr = propagate(inv_arrow)
+    lsa = list(inv_arrow.get_sub_arrows())
+    import pdb; pdb.set_trace()
 
     min_approx_error_arrow(inv_arrow,
                            [0.5, 0.5],
