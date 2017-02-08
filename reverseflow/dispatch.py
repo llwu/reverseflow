@@ -66,7 +66,7 @@ def inv_sub(arrow: SubArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMa
                               Port1ConstPortMap={0: 2, 1: 1, 2: 0})
 
 
-def inv_cos(arrow: CosArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
+def inv_cos(arrow: CosArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
     if is_constant(arrow.in_ports()[0], port_attr):
         return deepcopy(arrow), {0: 0, 1: 1}
     #FIXME: More rigorous than 0.999, should be 1.0 but get NaNs
@@ -239,7 +239,7 @@ def inv_reshape(arrow: ReshapeArrow, port_attr: PortAttributes) -> Tuple[Arrow, 
 
 
 
-def inv_sin(arrow: SinArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
+def inv_sin(arrow: SinArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
     if is_constant(arrow.in_ports()[0], port_attr):
         return deepcopy(arrow), {0: 0, 1: 1}
     ibi = IntervalBoundIdentity(-0.999, 0.999)
