@@ -70,7 +70,7 @@ def inner_interpret(conv: Callable,
         # print("Converting ", sub_arrow.name)
         sub_arrow, priority = arrow_colors.popitem()
         if sub_arrow is not comp_arrow:
-            assert priority == 0, "Must resolve all inputs to sub_arrow first"
+            assert priority == 0, "Must resolve {} more inputs to {} first".format(priority, sub_arrow)
             # inputs = [arrow_inputs[sub_arrow][i] for i in range(len(arrow_inputs[sub_arrow]))]
             inputs = [arrow_inputs[sub_arrow][i] for i in sorted(arrow_inputs[sub_arrow].keys())]
             outputs = conv(sub_arrow, inputs)

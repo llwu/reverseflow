@@ -9,7 +9,12 @@ closure_available = set([
     "AddArrow",
     "SubArrow",
     "MulArrow",
-    "DivArrow"
+    "DivArrow",
+    "ExpArrow",
+    "NegArrow",
+    "CosArrow",
+    "SinArrow",
+#    "GatherArrow"
     ])
 
 def dupl_pred(arr: "DuplArrow", port_attr: PortAttributes):
@@ -27,7 +32,7 @@ def dupl_disp(arr: "DuplArrow", port_attr: PortAttributes):
     return {port: {'value': known_value} for port in arr.ports()}
 
 def closure_pred(arr: "DuplArrow", port_attr: PortAttributes):
-    return True
+    return hasattr(arr, 'topo_order')
 
 def closure_disp(arr: "DuplArrow", port_attr: PortAttributes):
     if arr.parent is None:
@@ -78,8 +83,8 @@ class DuplArrow(PrimitiveArrow):
         disp = super().get_dispatches()
         disp.update({
             shape_pred: shape_dispatch,
-            dupl_pred: dupl_disp
-            # closure_pred: closure_disp
+            dupl_pred: dupl_disp,
+            closure_pred: closure_disp
             })
         return disp
 

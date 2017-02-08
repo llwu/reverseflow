@@ -264,6 +264,7 @@ def test_render_graph():
     arrow_renderer = graph_to_arrow([out_img_tensor])
     inv_renderer = invert(arrow_renderer)
     show_tensorboard(inv_renderer)
+    import pdb; pdb.set_trace()
 
 
 if __name__ == "__main__":

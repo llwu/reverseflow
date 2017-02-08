@@ -104,8 +104,10 @@ def inner_invert(comp_arrow: CompositeArrow,
             elif is_in_port(left_inv_port) and is_out_port(right_inv_port):
                 inv_comp_arrow.add_edge(right_inv_port, left_inv_port)
             else:
-                print(left_inv_port)
-                print(right_inv_port)
+                print(arrow_to_port_map[out_port.arrow])
+                print(out_port)
+                print(arrow_to_port_map[in_port.arrow])
+                print(in_port)
                 assert False, "One must be projecting and one receiving"
 
     # Craete new ports on inverse compositions for parametric and error ports
