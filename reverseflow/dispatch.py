@@ -10,6 +10,7 @@ from reverseflow.util.mapping import Bimap
 from reverseflow.util.misc import complement
 import numpy as np
 from typing import Set, Tuple, Dict, Sequence
+from copy import deepcopy
 
 PortMap = Dict[int, int]
 
@@ -30,7 +31,7 @@ def generic_binary_inv(arrow: Arrow,
 
     if port_0_const and port_1_const:
         # If both ports constant just return arrow as is
-        inv_arrow = arrow
+        inv_arrow = deepcopy(arrow)
         port_map = {0: 0, 1: 1, 2: 2}
     elif port_0_const:
         inv_arrow = Port0ConstArrow()
@@ -66,6 +67,8 @@ def inv_sub(arrow: SubArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMa
 
 
 def inv_cos(arrow: CosArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
+    if is_constant(arrow.in_ports()[0], port_attr):
+        return deepcopy(arrow), {0: 0, 1: 1}
     #FIXME: More rigorous than 0.999, should be 1.0 but get NaNs
     ibi = IntervalBoundIdentity(-0.999, 0.999)
     acos = ACosArrow()
@@ -156,11 +159,15 @@ def inv_dupl(arrow: DuplArrow, port_values: PortAttributes):
 
 
 def inv_exp(arrow: ExpArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
+    if is_constant(arrow.in_ports()[0], port_attr):
+        return deepcopy(arrow), {0: 0, 1: 1}
     log = LogArrow()
     return log, {0: 1, 1: 0}
 
 
 def inv_gather(arrow: GatherArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
+    if is_constant(arrow.in_ports()[0], port_attr) and is_constant(arrow.in_ports()[1], port_attr):
+        return deepcopy(arrow), {0: 0, 1: 1, 2: 2}
     tensor_shape = port_attr[arrow.in_ports()[0]]['shape']
     if isinstance(tensor_shape, tuple):
         tensor_shape = list(tensor_shape)
@@ -219,6 +226,8 @@ def inv_div(arrow: DivArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMa
 
 
 def inv_neg(arrow: NegArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
+    if is_constant(arrow.in_ports()[0], port_attr):
+        return deepcopy(arrow), {0: 0, 1: 1}
     sub_port_attr = extract(arrow.ports(), port_attr)
     neg = NegArrow()
     return neg, {0: 1, 1: 0}
@@ -231,6 +240,8 @@ def inv_reshape(arrow: ReshapeArrow, port_attr: PortAttributes) -> Tuple[Arrow, 
 
 
 def inv_sin(arrow: SinArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
+    if is_constant(arrow.in_ports()[0], port_attr):
+        return deepcopy(arrow), {0: 0, 1: 1}
     ibi = IntervalBoundIdentity(-0.999, 0.999)
     asin = ASinArrow()
 
