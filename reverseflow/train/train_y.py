@@ -2,10 +2,9 @@ from arrows import (Arrow, CompositeArrow, compose_comb_modular, compose_comb)
 from arrows.port_attributes import is_param_port, is_error_port
 from arrows.std_arrows import *
 from arrows.config import floatX
-
+from arrows.util.viz import show_tensorboard_graph
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.to_graph import arrow_to_graph, gen_input_tensors
-
 from typing import List
 import tensorflow as tf
 from tensorflow import Graph, Tensor, Session
@@ -96,7 +95,6 @@ def train_y_tf(params: List[Tensor],
                input_data,
                **kwargs)
 
-from arrows.util.viz import show_tensorboard_graph
 
 def min_approx_error_arrow(arrow: Arrow,
                            input_data: List,

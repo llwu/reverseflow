@@ -88,6 +88,7 @@ def train_loop(loss, update_step, phi, theta_samples, outputs, n_iterations=1000
 
 options = {'layer_width': 2,
            'nblocks': 1,
-           'block_size': 1}
+           'block_size': 1,
+           'reuse': False}
 
 train(circle_loss, template_options=options)
