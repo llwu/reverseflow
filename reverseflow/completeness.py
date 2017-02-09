@@ -33,9 +33,9 @@ def update_plot(theta_samples):
 
 def gen_update_step(loss):
     with tf.name_scope('optimization'):
-        optimizer = tf.train.MomentumOptimizer(0.001,
-                                               momentum=0.05)
-        # optimizer = tf.train.AdamOptimizer(0.01)
+        # optimizer = tf.train.MomentumOptimizer(0.001,
+        #                                        momentum=0.05)
+        optimizer = tf.train.AdamOptimizer(0.001)
         update_step = optimizer.minimize(loss)
         return update_step
 
@@ -67,6 +67,18 @@ def non_iden_idx(permutation):
     return [i for i, p in enumerate(permutation) if i != p]
 
 
+def rnd_pairwise_min_dist(phi, g, permutation, permutation_idx):
+    op, params = g(phi)
+    theta_samples = op[0]
+    theta_shrunk = tf.gather(theta_samples, permutation_idx)
+    theta_pemute = tf.gather(theta_samples, permutation)
+    diff = theta_pemute - theta_shrunk + EPS
+    sqrdiff = tf.abs(diff)
+    euclids = tf.reduce_sum(sqrdiff, reduction_indices=1) + EPS
+    rp = tf.reduce_min(euclids)
+    return theta_samples, -rp
+
+
 def rnd_pairwise_gap_ratio(phi, g, permutation, permutation_idx):
     op, params = g(phi)
     theta_samples = op[0]
@@ -82,7 +94,7 @@ def rnd_pairwise_gap_ratio(phi, g, permutation, permutation_idx):
 
 
 def train(sdf,
-          batch_size=128,
+          batch_size=256,
           phi_ndim=2,
           theta_ndim=2,
           template=res_net.template,
@@ -98,7 +110,7 @@ def train(sdf,
                         inp_shapes=[phi_shape],
                         out_shapes=[theta_shape],
                         **template_options)
-    theta_samples, loss1 = rnd_pairwise_gap_ratio(phi, g, permutation, permutation_idx)
+    theta_samples, loss1 = rnd_pairwise_min_dist(phi, g, permutation, permutation_idx)
     loss2 = sdf(theta_samples)
     # loss = loss2
     lmbda = 4.0
@@ -124,8 +136,8 @@ def train(sdf,
 def sumsum(xs):
     return np.sum([np.sum(x) for x in xs])
 
-def train_loop(loss, update_step, phi, permutation, permutation_idx, fetches, n_iterations=1000,
-               batch_size=128):
+def train_loop(loss, update_step, phi, permutation, permutation_idx, fetches, n_iterations=10000,
+               batch_size=256):
     sess = tf.Session()
     init = tf.initialize_all_variables()
     sess.run(init)
