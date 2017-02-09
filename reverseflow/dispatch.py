@@ -1,7 +1,7 @@
 """Inverse Dispatches for Inverses"""
 from arrows import Arrow, Port, InPort
 from arrows.port_attributes import (PortAttributes, make_error_port,
-    make_param_port, get_port_attributes)
+    make_param_port, get_port_attr)
 from arrows.std_arrows import *
 from arrows.apply.constants import CONST, VAR
 from arrows.util.misc import extract

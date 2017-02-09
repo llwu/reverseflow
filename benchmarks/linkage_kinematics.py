@@ -113,7 +113,7 @@ def test_robot_arm(batch_size=128):
 
     min_approx_error_arrow(inv_arrow,
                            [0.5, 0.5],
-                           error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
+                        #    error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
                            output_call_back=plot_call_back)
 
 

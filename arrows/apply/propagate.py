@@ -1,7 +1,7 @@
 """"Generic Propagation of values around a composite arrow"""
 from arrows.port import Port
 from arrows.compositearrow import CompositeArrow
-from arrows.port_attributes import get_port_attributes, PortAttributes
+from arrows.port_attributes import get_port_attr, PortAttributes
 
 from copy import copy
 from typing import Dict, Callable, TypeVar, Any, Set
@@ -42,12 +42,12 @@ def propagate(comp_arrow: CompositeArrow,
     port_attr = {a: {b: c for b, c in d.items()} for a, d in port_attr.items()}
 
     _port_attr = defaultdict(lambda: dict())
-    if comp_arrow.parent is None:
-        comp_arrow.toposort()
+    # if comp_arrow.parent is None:
+    #     comp_arrow.toposort()
     # update port_attr with values stored on port
     for sub_arrow in comp_arrow.get_all_arrows():
         for port in sub_arrow.ports():
-            attributes = get_port_attributes(port)
+            attributes = get_port_attr(port)
             if port not in port_attr:
                 port_attr[port] = {}
             port_attr[port].update(attributes)

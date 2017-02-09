@@ -328,6 +328,13 @@ class AddNArrow(PrimitiveArrow):
         name = 'AddN'
         super().__init__(n_in_ports=n, n_out_ports=1, name=name)
 
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch
+            })
+        return disp
+
 
 class SinArrow(PrimitiveArrow):
     """Sin"""
@@ -390,6 +397,11 @@ class ClipArrow(PrimitiveArrow):
         name = 'Clip'
         super().__init__(n_in_ports=3, n_out_ports=1, name=name)
 
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({shape_pred: shape_dispatch})
+        return disp
+
 class ACosArrow(PrimitiveArrow):
     """ACos"""
 
@@ -422,6 +434,11 @@ class SquareArrow(PrimitiveArrow):
         name = 'Square'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
 
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({shape_pred: shape_dispatch})
+        return disp
+
 
 class MaxArrow(PrimitiveArrow):
     """Returns the max of x and y (i.e. x > y ? x : y) element-wise."""
@@ -429,6 +446,11 @@ class MaxArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Max'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({shape_pred: shape_dispatch})
+        return disp
 
 
 class ReduceMeanArrow(PrimitiveArrow):

@@ -32,7 +32,7 @@ class PrimitiveArrow(Arrow):
         self.n_in_ports = n_in_ports
         self.n_out_ports = n_out_ports
         self._ports = [Port(self, i) for i in range(n_ports)]
-        self.port_attributes = [{} for i in range(n_ports)]
+        self.port_attr = [{} for i in range(n_ports)]
         for i in range(n_in_ports):
             make_in_port(self._ports[i])
         for i in range(n_in_ports, n_ports):

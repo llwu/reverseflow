@@ -63,6 +63,9 @@ def inner_invert(comp_arrow: CompositeArrow,
             make_out_port(inv_port)
         elif is_out_port(port):
             make_in_port(inv_port)
+        # Transfer port information
+        # FIXME: What port_attr go transfered from port to inv_port
+        set_port_shape(inv_port, get_port_shape(port, port_attr))
 
     # invert each sub_arrow
     arrow_to_inv = dict()

@@ -27,7 +27,7 @@ class SourceArrow(Arrow):
     def __init__(self, value, name: str = None) -> None:
         super().__init__(name=name)
         self._ports = [Port(self, 0)]
-        self.port_attributes = [{}]
+        self.port_attr = [{}]
         make_out_port(self._ports[0])
         self.value = value
 

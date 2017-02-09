@@ -146,7 +146,7 @@ def ik_gen_graph(g, batch_size, is_placeholder):
 
 def test_ik():
     with tf.name_scope("ik_stanford_manipulator"):
-        in_out = ik_gen_graph(tf.Graph(), 10, is_placeholder)
+        in_out = ik_gen_graph(tf.Graph(), 1, is_placeholder)
         input_values = [30, 45, 90, 0, 60, 1]
         with tf.Session() as sess:
             output_values = sess.run(in_out["outputs"], feed_dict={in_out["inputs"][i]: input_values[i] for i in range(len(input_values))})

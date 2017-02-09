@@ -123,7 +123,7 @@ class CompositeArrow(Arrow):
         return all((arrow.parent is None for arrow in self.get_sub_arrows()))
 
     def add_port_attribute(self, index: int, attribute: str):
-        self.port_attributes[index].add(attribute)
+        self.port_attr[index].add(attribute)
 
     def add_in_port_attribute(self, index: int, attribute: str):
         assert index < self.num_in_ports()
@@ -162,15 +162,15 @@ class CompositeArrow(Arrow):
         self.edges.remove(left, right)
 
 
-    def add_port(self, port_attributes=None) -> Port:
+    def add_port(self, port_attr=None) -> Port:
         """Add a port to the arrow"""
         idx = self.num_ports()
         port = Port(self, idx)
         self._ports.append(port)
-        if port_attributes is not None:
-            self.port_attributes.append(port_attributes)
+        if port_attr is not None:
+            self.port_attr.append(port_attr)
         else:
-            self.port_attributes.append({})
+            self.port_attr.append({})
         return port
 
     def ports(self) -> List[Port]:
@@ -185,10 +185,10 @@ class CompositeArrow(Arrow):
         new_arrow.name = new_name
         new_arrow.parent = None
 
-        new_port_attributes = [] # type: List[Dict]
-        for attribute in self.port_attributes:
-            new_port_attributes.append(deepcopy(attribute))
-        new_arrow.port_attributes = new_port_attributes
+        new_port_attr = [] # type: List[Dict]
+        for attribute in self.port_attr:
+            new_port_attr.append(deepcopy(attribute))
+        new_arrow.port_attr = new_port_attr
 
         new_arrow._ports = [Port(new_arrow, i) for i in range(self.num_ports())]
 
@@ -207,7 +207,7 @@ class CompositeArrow(Arrow):
             new_edges.add(new_out, new_in)
 
         new_arrow.edges = new_edges
-        assert new_arrow.num_ports() == len(new_arrow.port_attributes), "incorrect number of attributes"
+        assert new_arrow.num_ports() == len(new_arrow.port_attr), "incorrect number of attributes"
         assert new_arrow.is_wired_correctly(), "arrow copy is wired incorrectly"
         assert new_arrow.are_sub_arrows_parentless(), "sub_arrows can't have a parent yet"
         for sub_arrow in new_arrow.get_sub_arrows():
@@ -249,7 +249,7 @@ class CompositeArrow(Arrow):
                  out_ports: Sequence[Port]=None,
                  name: str=None,
                  parent=None,
-                 port_attributes=None) -> None:
+                 port_attr=None) -> None:
         """
         Args:
             edges: wires mapping out_ports to in_ports
@@ -257,7 +257,7 @@ class CompositeArrow(Arrow):
             out_ports: list of out_ports of sub_arrows to be linked to out_ports of composition
             name: name of composition
             parent: Composite arrow this arrow is embedded in
-            port_attributes: tags for ports
+            port_attr: tags for ports
         Returns:
             Composite Arrow
 
@@ -267,7 +267,7 @@ class CompositeArrow(Arrow):
 
         self.edges = Relation()
         self._ports = []
-        self.port_attributes = []
+        self.port_attr = []
 
         if edges:
             for out_port, in_port in edges.items():
@@ -285,9 +285,9 @@ class CompositeArrow(Arrow):
                 self.edges.add(out_port, port)
 
         n_ports = self.num_ports()
-        if port_attributes:
-            assert len(port_attributes) == n_ports
-            self.port_attributes = port_attributes
+        if port_attr:
+            assert len(port_attr) == n_ports
+            self.port_attr = port_attr
 
         assert self.is_wired_correctly(), "The arrow is wired incorrectly"
         assert self.are_sub_arrows_parentless(), "subarrows must be parentless"
