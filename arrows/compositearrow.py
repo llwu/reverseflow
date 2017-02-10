@@ -291,12 +291,12 @@ class CompositeArrow(Arrow):
 
 
 def neigh_ports(port: Port):
-    return port.arrow.neigh_ports(port)
+    return port.arrow.parent.neigh_ports(port)
 
 
 def neigh_in_ports(port: Port):
-    return port.arrow.neigh_in_ports(port)
+    return port.arrow.parent.neigh_in_ports(port)
 
 
 def neigh_out_ports(port: Port):
-    return port.arrow.neigh_out_ports(port)
+    return port.arrow.parent.neigh_out_ports(port)

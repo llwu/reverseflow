@@ -4,6 +4,11 @@ from arrows.port import Port
 from arrows.compositearrow import CompositeArrow
 from arrows.port_attributes import get_port_attr, PortAttributes
 
+from arrows.port_attributes import *
+from arrows.compositearrow import *
+from arrows.util.misc import *
+
+
 from copy import copy
 from typing import Dict, Callable, TypeVar, Any, Set
 from collections import defaultdict
@@ -16,13 +21,14 @@ from collections import defaultdict
 # solution
 
 # Do not propagate port attributes of this kind
-NO_PROP = set(['InOut', 'parametric', 'error'])
+DONT_PROP = set(['InOut', 'parametric', 'error'])
 
 def update_port_attr(to_update: PortAttributes,
                      with_p: PortAttributes,
-                     fail_on_conflict=True):
+                     fail_on_conflict=True,
+                     dont_update=set()):
     for key, value in with_p.items():
-        if key not in NO_PROP:
+        if key not in dont_update:
             if key in to_update and fail_on_conflict:
                 assert value == to_update[key]
             to_update[key] = value
@@ -48,9 +54,18 @@ def update_neigh(sub_port_attr: PortAttributes,
                 neigh_attr_keys = port_attr[neigh_port].keys()
                 if any((attr_key not in neigh_attr_keys for attr_key in attrs.keys())):
                     working_set.add(neigh_port.arrow)
-            update_port_attr(port_attr[neigh_port], attrs)
+            update_port_attr(port_attr[neigh_port], attrs, dont_update=DONT_PROP)
         # Update global with this port
-        update_port_attr(port_attr[port], attrs)
+        update_port_attr(port_attr[port], attrs, dont_update=DONT_PROP)
+
+
+def extract_port_attr(comp_arrow, port_attr):
+    for sub_arrow in comp_arrow.get_all_arrows():
+        for port in sub_arrow.ports():
+            attributes = get_port_attr(port)
+            if port not in port_attr:
+                port_attr[port] = {}
+            update_port_attr(port_attr[port], attributes)
 
 
 def propagate(comp_arrow: CompositeArrow,
@@ -78,12 +93,7 @@ def propagate(comp_arrow: CompositeArrow,
     #     comp_arrow.toposort()
 
     # update port_attr with values stored on port
-    for sub_arrow in comp_arrow.get_all_arrows():
-        for port in sub_arrow.ports():
-            attributes = get_port_attr(port)
-            if port not in port_attr:
-                port_attr[port] = {}
-            update_port_attr(port_attr[port], attributes)
+    extract_port_attr(comp_arrow, port_attr)
 
     updated = set(comp_arrow.get_sub_arrows())
     update_neigh(port_attr, _port_attr, comp_arrow, updated)

@@ -150,7 +150,7 @@ class IfArrow(PrimitiveArrow):
             constraints.append(Eq(output_expr[0], input_expr[2]))
         return constraints
 
-
+# FIXME: Why is this here?
 class GreaterArrow(PrimitiveArrow):
     """
     Bool valued arrow for the operation '>':
@@ -169,3 +169,21 @@ class GreaterArrow(PrimitiveArrow):
         else:
             constraints.append(Ge(input_expr[1], input_expr[0]))
         return constraints
+
+## FIXME Add assertion to test that shapes are broadcast compatibl
+class BroadcastArrow(PrimitiveArrow):
+    """
+    Broadcast an op
+    """
+
+    def __init__(self):
+        name = 'Broadcast'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch,
+            dupl_pred: dupl_disp
+            })
+        return disp

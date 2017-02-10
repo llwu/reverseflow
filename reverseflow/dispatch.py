@@ -107,7 +107,7 @@ def inv_dupl_approx(arrow: DuplArrow, port_values: PortAttributes) -> Tuple[Arro
     for i in range(n_duplications):
         edges.add(approx_id.out_ports()[i], inv_dupl.in_ports()[i])
     error_ports = [approx_id.out_ports()[n_duplications]]
-    out_ports=inv_dupl.out_ports()+error_ports
+    out_ports = inv_dupl.out_ports() + error_ports
     inv_arrow = CompositeArrow(edges=edges,
                                in_ports=approx_id.in_ports(),
                                out_ports=out_ports,

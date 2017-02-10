@@ -1,7 +1,7 @@
 from arrows.primitive.math_arrows import SubArrow, MaxArrow, ClipArrow, PowArrow
 from arrows.composite.math_arrows import MeanArrow, VarFromMeanArrow, TriangleWaveArrow, ScalarVarFromMeanArrow
 from arrows.compositearrow import CompositeArrow
-from arrows.primitive.control_flow import DuplArrow, IfArrow, GreaterArrow
+from arrows.primitive.control_flow import DuplArrow, IfArrow, GreaterArrow, BroadcastArrow
 from reverseflow.util.mapping import Bimap
 from arrows.sourcearrow import SourceArrow
 from arrows.port_attributes import make_error_port, make_in_port, make_out_port
@@ -50,8 +50,12 @@ class IntervalBound(CompositeArrow):
         make_in_port(in_port)
         out_port = comp_arrow.add_port()
         make_out_port(out_port)
-        l_src = SourceArrow(l)
-        u_src = SourceArrow(u)
+        l_src_nb = SourceArrow(l)
+        u_src_nb = SourceArrow(u)
+        l_src = BroadcastArrow()
+        u_src = BroadcastArrow()
+        comp_arrow.add_edge(l_src_nb.out_port(0), l_src.in_port(0))
+        comp_arrow.add_edge(u_src_nb.out_port(0), u_src.in_port(0))
 
         x_min_u = SubArrow()
         comp_arrow.add_edge(in_port, x_min_u.in_ports()[0])
@@ -130,6 +134,7 @@ class SmoothIntervalBound(CompositeArrow):
 class IntervalBoundIdentity(CompositeArrow):
     """
     Identity on input but returns error for those outside bounds
+
     """
 
     def __init__(self, l, u, intervalbound=IntervalBound, clipper=ClipArrow):
@@ -143,8 +148,12 @@ class IntervalBoundIdentity(CompositeArrow):
         make_out_port(error_port)
         make_error_port(error_port)
 
-        l_src = SourceArrow(l)
-        u_src = SourceArrow(u)
+        l_src_nb = SourceArrow(l)
+        u_src_nb = SourceArrow(u)
+        l_src = BroadcastArrow()
+        u_src = BroadcastArrow()
+        comp_arrow.add_edge(l_src_nb.out_port(0), l_src.in_port(0))
+        comp_arrow.add_edge(u_src_nb.out_port(0), u_src.in_port(0))
         interval_bound = intervalbound(l, u)
         clip = clipper()
 

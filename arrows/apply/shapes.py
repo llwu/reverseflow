@@ -1,10 +1,11 @@
 from arrows.arrow import Arrow
-from arrows.port_attributes import (PortAttributes, port_has, ports_has,
-    extract_attribute)
+from arrows.port_attributes import *
 from arrows.apply.constants import CONST, VAR
 from arrows.util.misc import same
 from overloading import overload
 from numpy import ndarray
+from arrows.compositearrow import *
+from arrows.util.misc import *
 
 
 
@@ -18,6 +19,7 @@ def shape_dispatch(arr: Arrow, port_attr: PortAttributes):
     """Make all other ports the smae"""
     pts = extract_attribute('shape', port_attr)
     shapes = list(pts.values())
+    #FIXME: Remove me
     assert same(shapes), "All shapes should be the same"
     shape = shapes[0]
     return {port: {'shape': shape} for port in arr.ports()}
