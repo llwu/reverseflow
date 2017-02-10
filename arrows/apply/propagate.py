@@ -1,4 +1,5 @@
 """"Generic Propagation of values around a composite arrow"""
+from arrows.arrow import Arrow
 from arrows.port import Port
 from arrows.compositearrow import CompositeArrow
 from arrows.port_attributes import get_port_attr, PortAttributes
@@ -7,18 +8,49 @@ from copy import copy
 from typing import Dict, Callable, TypeVar, Any, Set
 from collections import defaultdict
 
-def update_neigh(in_dict: PortAttributes,
-                 out_dict: PortAttributes,
+# FIXME: Really port_attr reflects two different kinds of things.
+# This which are actually about the ports themselves, i.e. whether its an out
+# port or inport, which we dont want to propagate, and things which are Really
+# abstractios (or actually) values which should propagate along the node
+# e.g. shape, type, symbolic, etc.  NO_PROP is a simple workaround, need better
+# solution
+
+# Do not propagate port attributes of this kind
+NO_PROP = set(['InOut', 'parametric', 'error'])
+
+def update_port_attr(to_update: PortAttributes,
+                     with_p: PortAttributes,
+                     fail_on_conflict=True):
+    for key, value in with_p.items():
+        if key not in NO_PROP:
+            if key in to_update and fail_on_conflict:
+                assert value == to_update[key]
+            to_update[key] = value
+
+
+def update_neigh(sub_port_attr: PortAttributes,
+                 port_attr: PortAttributes,
                  context: CompositeArrow,
-                 working_set: Set[Port]):
-    for port, attrs in in_dict.items():
+                 working_set: Set[Arrow]):
+    """
+    For every port in sub_port_attr the port_attr data all of its connected nodes
+    Args:
+        sub_port_attr: Port Attributes restricted to a particular arrow
+        port_attr: Global PortAttributes for composition to be update
+        context: The composition
+        working_set: Set of arrows that need further propagation
+    """
+    for port, attrs in sub_port_attr.items():
         for neigh_port in context.neigh_ports(port):
+            # If the neighbouring node doesn't have a key which I have, then it will
+            # have to be added to working set to propagate again
             if (neigh_port.arrow != context):
-                neigh_attr_keys = out_dict[neigh_port].keys()
+                neigh_attr_keys = port_attr[neigh_port].keys()
                 if any((attr_key not in neigh_attr_keys for attr_key in attrs.keys())):
                     working_set.add(neigh_port.arrow)
-            out_dict[neigh_port].update(attrs)
-        out_dict[port].update(attrs)
+            update_port_attr(port_attr[neigh_port], attrs)
+        # Update global with this port
+        update_port_attr(port_attr[port], attrs)
 
 
 def propagate(comp_arrow: CompositeArrow,
@@ -37,20 +69,21 @@ def propagate(comp_arrow: CompositeArrow,
     Returns:
         port->value map for all ports in composite arrow
     """
-    if port_attr is None:
-        port_attr = {}
+    # Copy port_attr to avoid affecting input
+    port_attr = {} if port_attr is None else port_attr
     port_attr = {a: {b: c for b, c in d.items()} for a, d in port_attr.items()}
 
     _port_attr = defaultdict(lambda: dict())
     # if comp_arrow.parent is None:
     #     comp_arrow.toposort()
+
     # update port_attr with values stored on port
     for sub_arrow in comp_arrow.get_all_arrows():
         for port in sub_arrow.ports():
             attributes = get_port_attr(port)
             if port not in port_attr:
                 port_attr[port] = {}
-            port_attr[port].update(attributes)
+            update_port_attr(port_attr[port], attributes)
 
     updated = set(comp_arrow.get_sub_arrows())
     update_neigh(port_attr, _port_attr, comp_arrow, updated)

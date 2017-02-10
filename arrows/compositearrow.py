@@ -54,12 +54,6 @@ class CompositeArrow(Arrow):
                 assert len(self.neigh_in_ports(out_port)) == 1
         assert self.is_wired_correctly()
 
-    def has_in_port_type(self, PortType) -> bool:
-        return any((isinstance(PortType, port) for port in self.in_ports()))
-
-    def has_out_port_type(self, PortType) -> bool:
-        return any((isinstance(PortType, port) for port in self.out_ports()))
-
     def neigh_in_ports(self, out_port: Port) -> Sequence[Port]:
         return list(self.edges.fwd(out_port))
 
@@ -294,3 +288,15 @@ class CompositeArrow(Arrow):
         # Make this arrow the parent of each sub_arrow
         for sub_arrow in self.get_sub_arrows():
             sub_arrow.parent = self
+
+
+def neigh_ports(port: Port):
+    return port.arrow.neigh_ports(port)
+
+
+def neigh_in_ports(port: Port):
+    return port.arrow.neigh_in_ports(port)
+
+
+def neigh_out_ports(port: Port):
+    return port.arrow.neigh_out_ports(port)

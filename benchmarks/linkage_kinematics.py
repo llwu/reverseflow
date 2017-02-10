@@ -69,31 +69,26 @@ def plot_call_back(fetch_res):
     # import pdb; pdb.set_trace()
     global lines
     global ax
-    n_links = 2
-    angles = fetch_res['output_tensors'][0:n_links]
-    x, y = draw_lines(n_links, angles)
-    # import pdb; pdb.set_trace()
-    print(sum(x), sum(y))
-    if lines is None:
-        lines = Line2D(x, y)
-        ax.add_line(lines)
-        plt.draw()
-    else:
-        lines.set_data(x, y)
-    plt.draw()
-    plt.show()
-    plt.pause(0.05)
+    # n_links = 2
+    # angles = fetch_res['output_tensors'][0:n_links]
+    # x, y = draw_lines(n_links, angles)
+    # # import pdb; pdb.set_trace()
+    # print(sum(x), sum(y))
+    # if lines is None:
+    #     lines = Line2D(x, y)
+    #     ax.add_line(lines)
+    #     plt.draw()
+    # else:
+    #     lines.set_data(x, y)
+    # plt.draw()
+    # plt.show()
+    # plt.pause(0.05)
     # robot_joints = output_values[3:3+6]
     # r = np.array(robot_joints).flatten()
     # plot_robot_arm(list(r), target)
 
 from arrows.port_attributes import *
 from arrows.apply.propagate import *
-
-
-def print_one_per_line(xs:Sequence):
-    for x in xs:
-        print(x)
 
 def test_robot_arm(batch_size=128):
     lengths = [1, 1]
@@ -109,10 +104,16 @@ def test_robot_arm(batch_size=128):
     # inv_arrow = inv_fwd_loss_arrow(arrow)
     port_attr = propagate(inv_arrow)
     lsa = list(inv_arrow.get_sub_arrows())
+    g = list(filter(lambda x: x.name == 'approx_asin', lsa))
+    print("ASIN")
+    from arrows.util.misc import print_one_per_line
+    print_one_per_line(arrow_filter(g[0], port_attr).items())
     import pdb; pdb.set_trace()
 
+    inv_input1 = np.tile([0.5], (batch_size, 1))
+    inv_input2 = np.tile([0.5], (batch_size, 1))
     min_approx_error_arrow(inv_arrow,
-                           [0.5, 0.5],
+                           [inv_input1, inv_input2],
                         #    error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
                            output_call_back=plot_call_back)
 

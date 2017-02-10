@@ -11,6 +11,7 @@ from arrows.compositearrow import CompositeArrow, EdgeMap
 from arrows.std_arrows import *
 from arrows.apply.interpret import interpret
 from arrows.apply.propagate import propagate
+from arrows.util.misc import print_one_per_line
 from typing import List, Dict, MutableMapping, Union, Sequence
 from overloading import overload
 
@@ -19,12 +20,13 @@ def gen_input_tensors(arrow: Arrow):
     port_attr = propagate(arrow)
     for in_port in arrow.in_ports():
         shape = port_attr[in_port]['shape']
-        name = "input_%s" % in_port.index
         if is_param_port(in_port):
+            name = "param_input_%s" % in_port.index
             var = tf.Variable(np.random.rand(*shape), name=name,
                               dtype=floatX())
             input_tensors.append(var)
         elif is_in_port(in_port):
+            name = "input_%s" % in_port.index
             inp = tf.placeholder(name=name, shape=shape, dtype=floatX())
             input_tensors.append(inp)
         else:
@@ -113,6 +115,8 @@ def conv(a: InvDuplArrow, args: TensorVarList) -> Sequence[Tensor]:
 
 @overload
 def conv(a: AddNArrow, args: TensorVarList) -> Sequence[Tensor]:
+    print("args")
+    print_one_per_line(args)
     return [tf.add_n(args)]
 
 @overload
