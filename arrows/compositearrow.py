@@ -300,3 +300,13 @@ def neigh_in_ports(port: Port):
 
 def neigh_out_ports(port: Port):
     return port.arrow.parent.neigh_out_ports(port)
+
+def all_arrows(comp_arrow: CompositeArrow):
+    sub_arrows = set()
+    for sub_arrow in comp_arrow.get_sub_arrows():
+        if isinstance(sub_arrow, CompositeArrow):
+            for sub_sub_arrow in all_arrows(sub_arrow):
+                sub_arrows.add(sub_sub_arrow)
+        else:
+            sub_arrows.add(sub_arrow)
+    return sub_arrows

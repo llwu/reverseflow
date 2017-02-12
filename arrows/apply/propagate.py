@@ -1,4 +1,5 @@
 """"Generic Propagation of values around a composite arrow"""
+import arrows
 from arrows.arrow import Arrow
 from arrows.port import Port
 from arrows.compositearrow import CompositeArrow

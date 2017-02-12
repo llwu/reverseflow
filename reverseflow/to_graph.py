@@ -41,6 +41,12 @@ def conv(a: Arrow, args: TensorVarList) -> Sequence[Tensor]:
 
 
 @overload
+def conv(a: BroadcastArrow, args: TensorVarList) -> Sequence[Tensor]:
+    # Tensorflow has automatic broadcasting so do nothing
+    return args
+
+
+@overload
 def conv(a: AddArrow, args: TensorVarList) -> Sequence[Tensor]:
     return [tf.add(*args)]
 

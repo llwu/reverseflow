@@ -14,7 +14,7 @@ class ApproxIdentityArrow(CompositeArrow):
     Last out_port is the error port
     """
 
-    def __init__(self, n_inputs: int, variance=ScalarVarFromMeanArrow):
+    def __init__(self, n_inputs: int, variance=VarFromMeanArrow):
         name = "ApproxIdentity"
         edges = Bimap()  # type: EdgeMap
         mean = MeanArrow(n_inputs)
@@ -65,7 +65,9 @@ class IntervalBound(CompositeArrow):
         comp_arrow.add_edge(l_src.out_ports()[0], l_min_x.in_ports()[0])
         comp_arrow.add_edge(in_port, l_min_x.in_ports()[1])
 
-        zero = SourceArrow(0.0)
+        zero_nb = SourceArrow(0.0)
+        zero = BroadcastArrow()
+        comp_arrow.add_edge(zero_nb.out_port(0), zero.in_port(0))
         max1 = MaxArrow()
         comp_arrow.add_edge(l_min_x.out_ports()[0], max1.in_ports()[0])
         comp_arrow.add_edge(x_min_u.out_ports()[0], max1.in_ports()[1])

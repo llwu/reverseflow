@@ -179,11 +179,3 @@ class BroadcastArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Broadcast'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
-
-    def get_dispatches(self):
-        disp = super().get_dispatches()
-        disp.update({
-            shape_pred: shape_dispatch,
-            dupl_pred: dupl_disp
-            })
-        return disp

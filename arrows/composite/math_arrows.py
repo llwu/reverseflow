@@ -35,9 +35,11 @@ class MeanArrow(CompositeArrow):
         edges = Bimap() # type: EdgeMap
         addn_arrow = AddNArrow(n_inputs)
         nsource = SourceArrow(n_inputs)
-        castarrow = CastArrow(floatX())
+        castarrow_nb = CastArrow(floatX())
+        castarrow = BroadcastArrow()
         div_arrow = DivArrow()
-        edges.add(nsource.out_ports()[0], castarrow.in_ports()[0])
+        edges.add(nsource.out_ports()[0], castarrow_nb.in_ports()[0])
+        edges.add(castarrow_nb.out_port(0), castarrow.in_port(0))
         edges.add(addn_arrow.out_ports()[0], div_arrow.in_ports()[0])
         edges.add(castarrow.out_ports()[0], div_arrow.in_ports()[1])
         super().__init__(edges=edges,
@@ -92,7 +94,7 @@ class ScalarVarFromMeanArrow(CompositeArrow):
     """
 
     def __init__(self, n_inputs: int) -> None:
-        super().__init__(name="ScalarVarFromMean")
+        super().__init__(name="VarFromMean")
         comp_arrow = self
         in_ports = [comp_arrow.add_port() for i in range(n_inputs + 1)]
         for in_port in in_ports:
