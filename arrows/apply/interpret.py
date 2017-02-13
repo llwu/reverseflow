@@ -1,11 +1,12 @@
 """Decode an arrow into a tensoflow graph"""
-from pqdict import pqdict
 from arrows.arrow import Arrow
 from arrows.compositearrow import CompositeArrow, EdgeMap
 from arrows.primitive.math_arrows import *
 from arrows.primitive.control_flow import *
 from arrows.primitive.cast_arrows import *
 from arrows.primitive.constant import *
+from arrows.port_attributes import *
+from pqdict import pqdict
 from typing import List, Dict, MutableMapping, Union, Callable
 from collections import OrderedDict
 
@@ -40,7 +41,7 @@ def gen_arrow_inputs(comp_arrow: CompositeArrow,
                      arrow_colors):
     # Store a map from an arrow to its inputs
     # Use a dict because no guarantee we'll create input tensors in order
-    arrow_inputs = dict()  # type: Dict[Arrow, MutableMapping[int, tf.Tensor]]
+    arrow_inputs = dict()  # type: Dict[Arrow, MutableMapping[int, Any]]
     for sub_arrow in comp_arrow.get_all_arrows():
         arrow_inputs[sub_arrow] = dict()
 
@@ -54,13 +55,14 @@ def gen_arrow_inputs(comp_arrow: CompositeArrow,
 
     return arrow_inputs
 
-from arrows.port_attributes import *
 
 def inner_interpret(conv: Callable,
                     comp_arrow: CompositeArrow,
                     inputs: List,
                     arrow_colors: MutableMapping[Arrow, int],
-                    arrow_inputs):
+                    arrow_inputs: Sequence,
+                    state: Dict,
+                    port_grab: Dict[Port, Any]):
     """Convert an comp_arrow to a tensorflow graph and add to graph"""
     assert len(inputs) == comp_arrow.num_in_ports(), "wrong # inputs"
 
@@ -73,10 +75,7 @@ def inner_interpret(conv: Callable,
             assert priority == 0, "Must resolve {} more inputs to {} first".format(priority, sub_arrow)
             # inputs = [arrow_inputs[sub_arrow][i] for i in range(len(arrow_inputs[sub_arrow]))]
             inputs = [arrow_inputs[sub_arrow][i] for i in sorted(arrow_inputs[sub_arrow].keys())]
-            outputs = conv(sub_arrow, inputs)
-            if isinstance(outputs, tuple) and len(outputs) == 2:
-                outputs, emit = outputs
-                emit_list += emit
+            outputs = conv(sub_arrow, inputs, state)
 
             assert len(outputs) == len(sub_arrow.out_ports()), "diff num outputs"
 
@@ -89,14 +88,21 @@ def inner_interpret(conv: Callable,
                     arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
                     arrow_inputs[neigh_arrow][neigh_in_port.index] = outputs[i]
 
+    # Extract some port, kind of a hack
+    for port in port_grab:
+        if port.arrow in arrow_inputs:
+            if port.index in arrow_inputs[port.arrow]:
+                port_grab[port] = arrow_inputs[port.arrow][port.index]
+
     outputs_dict = arrow_inputs[comp_arrow]
     out_port_indices = sorted(list(outputs_dict.keys()))
-    return [outputs_dict[i] for i in out_port_indices], emit_list
+    return [outputs_dict[i] for i in out_port_indices]
 
 def interpret(conv: Callable,
               comp_arrow: CompositeArrow,
               inputs: List,
-              return_emit=False) -> List:
+              state: Dict,
+              port_grab: Dict[Port, Any]) -> List:
     """
     Interpret a composite arrow on some inputs
     Args:
@@ -108,9 +114,13 @@ def interpret(conv: Callable,
     """
     arrow_colors = gen_arrow_colors(comp_arrow)
     arrow_inputs = gen_arrow_inputs(comp_arrow, inputs, arrow_colors)
+    # FIXME: A horrible horrible hack to pass through port_grab to conv(a:CompositeArrow)
+    state['port_grab'] = port_grab
     result = inner_interpret(conv,
                              comp_arrow,
                              inputs,
                              arrow_colors,
-                             arrow_inputs)
-    return result if return_emit else result[0]
+                             arrow_inputs,
+                             state,
+                             port_grab)
+    return result

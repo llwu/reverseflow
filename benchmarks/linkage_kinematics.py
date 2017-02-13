@@ -1,6 +1,7 @@
 """(Inverse) kinematics of a linkage robot arm  in two dimensions"""
 import tensorflow as tf
 from arrows.util.viz import show_tensorboard_graph
+from arrows.util.misc import print_one_per_line
 from arrows.config import floatX
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
@@ -89,6 +90,7 @@ def plot_call_back(fetch_res):
 
 from arrows.port_attributes import *
 from arrows.apply.propagate import *
+from reverseflow.train.reparam import *
 
 def test_robot_arm(batch_size=128):
     lengths = [1, 1]
@@ -101,18 +103,17 @@ def test_robot_arm(batch_size=128):
     show_tensorboard_graph()
     tf.reset_default_graph()
     inv_arrow = invert(arrow)
-    # inv_arrow = inv_fwd_loss_arrow(arrow)
     port_attr = propagate(inv_arrow)
-    lsa = list(inv_arrow.get_sub_arrows())
-    g = list(filter(lambda x: x.name == 'approx_asin', lsa))
-    print("ASIN")
-    from arrows.util.misc import print_one_per_line
-    print_one_per_line(arrow_filter(g[0], port_attr).items())
-    import pdb; pdb.set_trace()
+
+
+    rep_arrow = reparam(inv_arrow, (batch_size, len(lengths),))
 
     inv_input1 = np.tile([0.5], (batch_size, 1))
     inv_input2 = np.tile([0.5], (batch_size, 1))
-    min_approx_error_arrow(inv_arrow,
+    reparam_arrow(rep_arrow,
+                  inv_arrow.param_ports(),
+                  [inv_input1, inv_input2])
+    min_approx_error_arrow(rep_arrow,
                            [inv_input1, inv_input2],
                         #    error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
                            output_call_back=plot_call_back)
