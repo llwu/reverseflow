@@ -1,105 +1,235 @@
 """Decode an arrow into a tensoflow graph"""
 import tensorflow as tf
-from tensorflow import Tensor, Graph
-from pqdict import pqdict
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.arrows.compositearrow import CompositeArrow, EdgeMap
-from reverseflow.arrows.primitive.math_arrows import *
-from reverseflow.arrows.primitive.control_flow_arrows import *
-from typing import List, Dict, MutableMapping
-from collections import OrderedDict
+from tensorflow import Tensor, Graph, Variable
+import numpy as np
+from arrows.config import floatX
+from arrows.port import InPort
+from arrows.port_attributes import *
+from arrows.arrow import Arrow
+from arrows.sourcearrow import SourceArrow
+from arrows.compositearrow import CompositeArrow, EdgeMap
+from arrows.tfarrow import TfArrow
+from arrows.std_arrows import *
+from arrows.apply.interpret import interpret
+from arrows.apply.propagate import propagate
+from arrows.util.misc import print_one_per_line
+from tensortemplates.res_net import template
+from typing import List, Dict, MutableMapping, Union, Sequence
 from overloading import overload
 
 
-def valid(sub_arrow, arrow_tensors):
-    input_tensors = arrow_tensors[sub_arrow]
-    # TODO: Check that the number of inputs created is same as num inputs to
-    # arrow
-    return True
+def gen_input_tensors(arrow: Arrow,
+                      param_port_as_var=True):
+    """Generate tensors corresponding to in_ports
+    Args:
+        arrow: Arrow of interest
+        param_port_as_var: Whether parametric ports should be tf.Variable
+    """
+    input_tensors = []
+    state = propagate(arrow)
+    for in_port in arrow.in_ports():
+        shape = state[in_port]['shape']
+        if is_param_port(in_port) and param_port_as_var:
+            name = "param_input_%s" % in_port.index
+            var = tf.Variable(np.random.rand(*shape), name=name,
+                              dtype=floatX())
+            input_tensors.append(var)
+        elif is_in_port(in_port):
+            name = "input_%s" % in_port.index
+            inp = tf.placeholder(name=name, shape=shape, dtype=floatX())
+            input_tensors.append(inp)
+        else:
+            assert False, "Don't know how to handle %s" % in_port
+    return input_tensors
+
+TensorVarList = Union[Sequence[Tensor], Sequence[Variable]]
+
+@overload
+def conv(a: Arrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    assert False, "Error, no conversion for %s implemented" % a
 
 
 @overload
-def conv(a: AddArrow, args: List[Tensor]) -> List[Tensor]:
+def conv(a: BroadcastArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    # Tensorflow has automatic broadcasting so do nothing
+    return args
+
+
+@overload
+def conv(a: AddArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     return [tf.add(*args)]
 
 
 @overload
-def conv(a: MulArrow, args: List[Tensor]) -> List[Tensor]:
+def conv(a: ExpArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.exp(*args)]
+
+
+
+@overload
+def conv(a: NegArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.neg(*args)]
+
+
+@overload
+def conv(a: PowArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.pow(*args)]
+
+
+
+@overload
+def conv(a: LogArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.log(*args)]
+
+
+@overload
+def conv(a: LogBaseArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    # Tensorflow has no log of arbitrary base
+    # so, use log _{b}(x)=log _{k}(x)}/log _{k}(b)
+    return [tf.log(args[1]) / tf.log(args[0])]
+
+
+@overload
+def conv(a: MulArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     return [tf.mul(*args)]
 
 
 @overload
-def conv(a: DuplArrow, args: List[Tensor]) -> List[Tensor]:
-    # TODO: Genralize to n outputs
-    return [args[0], args[0]]
+def conv(a: DivArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.div(*args)]
 
+@overload
+def conv(a: SinArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.sin(*args)]
 
-def default_add(arrow_tensors: Dict[Arrow, MutableMapping[int, tf.Tensor]],
-                sub_arrow: Arrow, index: int, input_tensor: Tensor) -> None:
-    if sub_arrow in arrow_tensors:
-        arrow_tensors[sub_arrow][index] = input_tensor
-    else:
-        arrow_tensors[sub_arrow] = OrderedDict({index: input_tensor})
-
-
-def print_arrow_colors(arrow_colors):
-    for (arr, pr) in arrow_colors.items():
-        print(arr.name, ": ", pr)
+@overload
+def conv(a: SubArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.sub(*args)]
 
 
 @overload
-def arrow_to_graph(comp_arrow: CompositeArrow) -> Graph:
-    """Convert an comp_arrow to a tensorflow graph"""
+def conv(a: CosArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.cos(*args)]
 
-    graph = tf.Graph()  # type: Graph
-    with graph.as_default():
-        # A priority queue for each sub_arrow
-        # priority is the number of inputs it has which have already been seen
-        # seen inputs are inputs to the composition, or outputs of arrows that
-        # have already been converted into tensorfow
-        arrow_colors = pqdict()
+@overload
+def conv(a: ASinArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.asin(*args)]
+
+@overload
+def conv(a: ACosArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.acos(*args)]
+
+
+@overload
+def conv(a: DuplArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    # TODO: Genralize to n outputs
+    return [args[0] for i in range(a.num_out_ports())]
+
+@overload
+def conv(a: InvDuplArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    # TODO: Add assert that all args are equal
+    return [args[0]]
+
+@overload
+def conv(a: AddNArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    print("args")
+    print_one_per_line(args)
+    return [tf.add_n(args)]
+
+@overload
+def conv(a: CastArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.cast(args[0], dtype=a.to_dtype)]
+
+@overload
+def conv(a: ClipArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.clip_by_value(*args)]
+
+@overload
+def conv(a: FloorDivArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.floordiv(*args)]
+
+@overload
+def conv(a: AbsArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.abs(args[0])]
+
+@overload
+def conv(a: SquareArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.square(args[0])]
+
+@overload
+def conv(a: MaxArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.maximum(args[0], args[1])]
+
+@overload
+def conv(a: RankArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.rank(args[0])]
+
+@overload
+def conv(a: RangeArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.range(args[0], args[1])]
+
+@overload
+def conv(a: ReduceMeanArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.reduce_mean(args[0], reduction_indices=args[1])]
+
+@overload
+def conv(a: SourceArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    assert len(args) == 0, "Source arrow has no inputs"
+    return [tf.constant(a.value)]
+
+@overload
+def conv(a: GreaterArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.greater(args[0], args[1])]
+
+@overload
+def conv(a: IfArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    #import pdb; pdb.set_trace()
+    return [tf.where(*args)]
+
+@overload
+def conv(a: GatherArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.gather(*args)]
+
+@overload
+def conv(a: SparseToDenseArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.sparse_to_dense(*args)]
+
+@overload
+def conv(a: SquaredDifference, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.squared_difference(*args)]
+
+@overload
+def conv(a: TfArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    # import pdb; pdb.set_trace()
+    # FIXME: Is the correspondance correct here?
+    port_attr = state['port_attr']
+    inp_shapes = [get_port_shape(p, port_attr) for p in a.in_ports()]
+    out_shapes = [get_port_shape(p, port_attr) for p in a.out_ports()]
+    with tf.name_scope("TfArrow"):
+        r, p = template(args,
+                        inp_shapes=inp_shapes,
+                        out_shapes=out_shapes,
+                        layer_width=5,
+                        nblocks=1,
+                        block_size=2,
+                        reuse=False)
+    return r
+
+
+@overload
+def conv(a: CompositeArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    assert len(args) == a.num_in_ports()
+    with tf.name_scope(a.name):
         # import pdb; pdb.set_trace()
-        for sub_arrow in comp_arrow.get_sub_arrows():
-            arrow_colors[sub_arrow] = sub_arrow.num_in_ports()
+        # FIXME: A horrible horrible hack
+        port_grab = state['port_grab']
+        return interpret(conv, a, args, state, port_grab)
 
-        print_arrow_colors(arrow_colors)
 
-        # Store a map from an arrow to its inputs
-        # Use a dict because no guarantee we'll create input tensors in order
-        arrow_tensors = dict()  # type: Dict[Arrow, MutableMapping[int, tf.Tensor]]
-
-        # create a tensor for each in_port to the composition
-        # decrement priority for each arrow connected to inputs
-        for in_port in comp_arrow.in_ports:
-            sub_arrow = in_port.arrow
-            assert sub_arrow in arrow_colors
-            arrow_colors[sub_arrow] = arrow_colors[sub_arrow] - 1
-            input_tensor = tf.placeholder(dtype='float32')  # FIXME: Generalize
-            default_add(arrow_tensors, sub_arrow, in_port.index, input_tensor)
-
-        while len(arrow_colors) > 0:
-            print_arrow_colors(arrow_colors)
-            sub_arrow, priority = arrow_colors.popitem()
-            print("Converting ", sub_arrow.name)
-            print_arrow_colors(arrow_colors)
-            assert priority == 0, "Must resolve all inputs to sub_arrow first"
-            assert sub_arrow.is_primitive(), "Cannot convert unflat arrow"
-            assert valid(sub_arrow, arrow_tensors)
-
-            inputs = list(arrow_tensors[sub_arrow].values())
-            # import pdb; pdb.set_trace()
-            outputs = conv(sub_arrow, inputs)
-            assert len(outputs) == len(sub_arrow.out_ports), "diff num outputs"
-
-            for i, out_port in enumerate(sub_arrow.out_ports):
-                # FIXME: this is linear search, encapsulate
-                if out_port not in comp_arrow.out_ports:
-                    neigh_port = comp_arrow.neigh_in_port(out_port)
-                    neigh_arrow = neigh_port.arrow
-                    if neigh_arrow is not comp_arrow:
-                        assert neigh_arrow in arrow_colors
-                        arrow_colors[neigh_arrow] = arrow_colors[neigh_arrow] - 1
-                        default_add(arrow_tensors, neigh_arrow, neigh_port.index,
-                                    outputs[i])
-
-        return graph
+def arrow_to_graph(comp_arrow: CompositeArrow,
+                   input_tensors: Sequence[Tensor],
+                   port_grab: Dict[Port, Any]={}): #FIXME DANGERIOUS {}
+    input_tensors_wrapped = list(map(tf.identity, input_tensors))
+    port_attr = propagate(comp_arrow)
+    state = {'port_attr': port_attr}
+    return interpret(conv, comp_arrow, input_tensors_wrapped, state, port_grab)

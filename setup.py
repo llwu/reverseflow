@@ -10,10 +10,10 @@ setup(
     install_requires=['tensorflow>=0.11.0rc0',
                       'numpy>=1.7',
                       'overloading>=0.5.0',
-                      'pqdict>=1.0.0'],
+                      'pqdict>=1.0.0',
+                      'sympy'],
     url='https://github.com/wacabanga/reverseflow',
     license='Apache License 2.0',
     classifiers=['License :: OSI Approved :: Apache Software License',
-                 'Programming Language :: Python :: 2.7',
                  'Programming Language :: Python :: 3.4'],
 )

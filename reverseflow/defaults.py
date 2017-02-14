@@ -1,16 +1,17 @@
 """Default mappings between parametric inverses and inverses"""
-from reverseflow.arrows.arrow import Arrow
-from reverseflow.util.mapping import Bimap, ImageBimap
-from reverseflow.arrows.primitive.math_arrows import (AddArrow, SubArrow,
-                                                      MulArrow)
-from reverseflow.inv_primitives.inv_math_arrows import InvAddArrow
+from arrows.primitive.math_arrows import *
+from arrows.primitive.control_flow import *
+from reverseflow.dispatch import *
 
-arrows = [AddArrow, SubArrow, MulArrow]
-inv_arrows = [InvAddArrow]
-
-"""A relation between forward arrows and (possibly many) inverses"""
-INV_TO_FWD = ImageBimap()  # type: ImageBimap[Arrow, Arrow]
-
-for inv_arrow in inv_arrows:
-    a = inv_arrow # type: int
-    INV_TO_FWD.add(a, inv_arrow.inverse_of())
+default_dispatch = {AddArrow: inv_add,
+                    SubArrow: inv_sub,
+                    CosArrow: inv_cos,
+                    DuplArrow: inv_dupl_approx,
+                    ExpArrow: inv_exp,
+                    GatherArrow: inv_gather,
+                    MulArrow: inv_mul,
+                    DivArrow: inv_div,
+                    NegArrow: inv_neg,
+                    ReshapeArrow: inv_reshape,
+                    SinArrow: inv_sin,
+                    }

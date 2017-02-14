@@ -1,5 +1,5 @@
 from typing import List, Callable
-from reverseflow.arrows.arrow import Arrow
+from arrows.arrow import Arrow
 
 
 # class Strategy:

@@ -1,6 +1,5 @@
 """
 Reverse Flow is a Python library for inversion of tensor flow graphs.
-
 It is composed of three components
 
 1. An internal representation of programs called Arrows.
