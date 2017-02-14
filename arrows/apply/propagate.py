@@ -35,8 +35,8 @@ def is_equal(x, y):
 
 def update_port_attr(to_update: PortAttributes,
                      with_p: PortAttributes,
-                     fail_on_conflict=True,
-                     dont_update=set()):
+                     dont_update: Set,
+                     fail_on_conflict=True):
     for key, value in with_p.items():
         if key not in dont_update:
             if key in to_update and fail_on_conflict:
@@ -75,7 +75,7 @@ def extract_port_attr(comp_arrow, port_attr):
             attributes = get_port_attr(port)
             if port not in port_attr:
                 port_attr[port] = {}
-            update_port_attr(port_attr[port], attributes)
+            update_port_attr(port_attr[port], attributes, set())
 
 
 def propagate(comp_arrow: CompositeArrow,
@@ -96,19 +96,21 @@ def propagate(comp_arrow: CompositeArrow,
     """
     # Copy port_attr to avoid affecting input
     port_attr = {} if port_attr is None else port_attr
-    port_attr = {a: {b: c for b, c in d.items()} for a, d in port_attr.items()}
-
     _port_attr = defaultdict(lambda: dict())
+    for port, attr in port_attr.items():
+        for attr_key, attr_value in attr.items():
+            _port_attr[port][attr_key] = attr_value
+
     # if comp_arrow.parent is None:
     #     comp_arrow.toposort()
 
     # update port_attr with values stored on port
-    extract_port_attr(comp_arrow, port_attr)
+    extract_port_attr(comp_arrow, _port_attr)
 
     updated = set(comp_arrow.get_sub_arrows())
-    update_neigh(port_attr, _port_attr, comp_arrow, updated)
+    update_neigh(_port_attr, _port_attr, comp_arrow, updated)
     while len(updated) > 0:
-        print(len(updated))
+        print(len(updated), " arrows updating in proapgation iteration")
         sub_arrow = updated.pop()
         sub_port_attr = {port: _port_attr[port]
                            for port in sub_arrow.ports()

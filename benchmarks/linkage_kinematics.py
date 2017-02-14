@@ -101,7 +101,9 @@ def test_robot_arm(batch_size=256):
                            input_tensors=angles,
                            name="robot_fwd_kinematics")
     tf.reset_default_graph()
-    # inv_arrow = invert(arrow)
+    inv_arrow = invert(arrow)
+    import pdb; pdb.set_trace()
+    port_attr1 = propagate(inv_arrow)
     inv_arrow = inv_fwd_loss_arrow(arrow)
     port_attr = propagate(inv_arrow)
     rep_arrow = reparam(inv_arrow, (batch_size, len(lengths),))
@@ -117,7 +119,8 @@ def test_robot_arm(batch_size=256):
                   [inv_input1, inv_input2],
                   error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
                 #   error_filter="inv_fwd_error",
-                  batch_size=batch_size)
+                  batch_size=batch_size,
+                  output_call_back=plot_call_back)
     # min_approx_error_arrow(rep_arrow,
     #                        [inv_input1, inv_input2],
     #                     #    error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
