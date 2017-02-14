@@ -106,8 +106,10 @@ def test_robot_arm(batch_size=256):
     port_attr = propagate(inv_arrow)
     rep_arrow = reparam(inv_arrow, (batch_size, len(lengths),))
 
-    inv_input1 = np.tile([0.5], (batch_size, 1))
-    inv_input2 = np.tile([0.5], (batch_size, 1))
+    # inv_input1 = np.tile([0.5], (batch_size, 1))
+    # inv_input2 = np.tile([0.5], (batch_size, 1))
+    inv_input1 = np.random.rand(batch_size, 1)
+    inv_input2 = np.random.rand(batch_size, 1)
 
     d = [p for p in inv_arrow.out_ports() if not is_error_port(p)]
     reparam_arrow(rep_arrow,

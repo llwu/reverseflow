@@ -100,6 +100,7 @@ def reparam_arrow(arrow: Arrow,
                   error_filter=is_error_port,
                   **kwargs) -> CompositeArrow:
 
+    # FIXME: Add broadcasting nodes
     with tf.name_scope(arrow.name):
         input_tensors = gen_input_tensors(arrow, param_port_as_var=False)
         port_grab = {p: None for p in theta_ports}
@@ -115,32 +116,33 @@ def reparam_arrow(arrow: Arrow,
 
     # Make parametric inputs
     param_feed_gens = []
+    all_gen_gens = []
     for t in param_tensors:
         shape = tuple(t.get_shape().as_list())
         gen = infinite_samples(np.random.rand, batch_size, shape)
         param_feed_gens.append(attach(t, gen))
+    all_gen_gens += param_feed_gens
+
     y_feed_gens = [attach(y_tensors[i], infinite_batches(input_data[i], batch_size)) \
                    for i in range(len(input_data))]
-    all_gen_gens = y_feed_gens + param_feed_gens
+    all_gen_gens += y_feed_gens
 
-    # FIXME: Add broadcasting nodes
     # Generate permutation tensors
-    # with tf.name_scope("placeholder"):
-    #     perm = tf.placeholder(shape=(None,), dtype='int32', name='perm')
-    #     perm_idx = tf.placeholder(shape=(None,), dtype='int32', name='perm_idx')
-    # perm_feed_gen = [perm_gen(batch_size, perm, perm_idx)]
-    # all_gen_gens = param_feed_gens + y_feed_gens + perm_feed_gen
-    #
-    # min_gap_losses = [minimum_gap(t, perm, perm_idx) for t in theta_tensors]
-    # min_gap_loss = tf.reduce_min(min_gap_losses)
+    with tf.name_scope("placeholder"):
+        perm = tf.placeholder(shape=(None,), dtype='int32', name='perm')
+        perm_idx = tf.placeholder(shape=(None,), dtype='int32', name='perm_idx')
+    perm_feed_gen = [perm_gen(batch_size, perm, perm_idx)]
+    all_gen_gens += perm_feed_gen
 
+    min_gap_losses = [minimum_gap(t, perm, perm_idx) for t in theta_tensors]
+    min_gap_loss = tf.reduce_min(min_gap_losses)
     loss2 = accumulate_losses(error_tensors)
-    # loss = loss2 - min_gap_loss
-    loss = loss2
+    loss = loss2 - min_gap_loss
+    # loss = loss2
     sess = tf.Session()
     fetch = gen_fetch(sess, loss)
     fetch['output_tensors'] = output_tensors
-    # fetch['to_print'] = {'min_gap_loss': min_gap_loss, 'loss2': loss2}
+    fetch['to_print'] = {'min_gap_loss': min_gap_loss, 'loss2': loss2}
     show_tensorboard_graph()
 
     train_loop(sess,
