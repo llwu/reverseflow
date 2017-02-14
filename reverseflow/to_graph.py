@@ -46,7 +46,7 @@ TensorVarList = Union[Sequence[Tensor], Sequence[Variable]]
 
 @overload
 def conv(a: Arrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    assert False, "Error, no conversion for %s implemented" % a.name
+    assert False, "Error, no conversion for %s implemented" % a
 
 
 @overload
@@ -67,7 +67,7 @@ def conv(a: ExpArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 
 @overload
-def conv(a: NegArrow, args: Sequence[Tensor]) -> Sequence[Tensor]:
+def conv(a: NegArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     return [tf.neg(*args)]
 
 

@@ -14,6 +14,8 @@ from copy import copy
 from typing import Dict, Callable, TypeVar, Any, Set
 from collections import defaultdict
 
+import numpy as np
+
 # FIXME: Really port_attr reflects two different kinds of things.
 # This which are actually about the ports themselves, i.e. whether its an out
 # port or inport, which we dont want to propagate, and things which are Really
@@ -24,6 +26,13 @@ from collections import defaultdict
 # Do not propagate port attributes of this kind
 DONT_PROP = set(['InOut', 'parametric', 'error'])
 
+def is_equal(x, y):
+    a = (x == y)
+    if isinstance(a, np.ndarray):
+        return a.all()
+    else:
+        return a
+
 def update_port_attr(to_update: PortAttributes,
                      with_p: PortAttributes,
                      fail_on_conflict=True,
@@ -31,7 +40,7 @@ def update_port_attr(to_update: PortAttributes,
     for key, value in with_p.items():
         if key not in dont_update:
             if key in to_update and fail_on_conflict:
-                assert value == to_update[key]
+                assert is_equal(value, to_update[key]), "conflict %s, %s" % (value, to_update[key])
             to_update[key] = value
 
 

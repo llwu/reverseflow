@@ -19,10 +19,14 @@ def shape_dispatch(arr: Arrow, port_attr: PortAttributes):
     """Make all other ports the smae"""
     pts = extract_attribute('shape', port_attr)
     shapes = list(pts.values())
-    #FIXME: Remove me
-    assert same(shapes), "All shapes should be the same"
-    shape = shapes[0]
-    return {port: {'shape': shape} for port in arr.ports()}
+    # broadcast
+    shape = ()
+    for s in shapes:
+        if len(s) >= len(shape):
+            if len(shape) > 0:
+                assert s[-len(shape):] == shape, "Shapes incompatible %s %s %s" % (s, s[-len(shape):], shape)
+            shape = s
+    return {port: {'shape': shape} for port in arr.out_ports()}
 
 
 def rank_predicate_shape(a: Arrow, port_values: PortAttributes, state=None) -> bool:
@@ -58,6 +62,6 @@ def constant_to_shape(x: ndarray):
 
 def source_dispatch(a: Arrow, port_values: PortAttributes, state=None):
     assert len(a.out_ports()) == 1
-    return {a.out_ports()[0]: {'shape': constant_to_shape(float(a.value)),
+    return {a.out_ports()[0]: {'shape': constant_to_shape(a.value),
                                    'value': a.value,
                                    'constant': CONST}}
