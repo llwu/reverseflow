@@ -3,13 +3,22 @@ import numpy as np
 from pdt.util.misc import identity
 
 # Minibatching
-def infinite_samples(sampler, batchsize, shape):
+def infinite_samples(sampler, batch_size, shape, add_batch=False):
     while True:
-        to_sample_shape = (batchsize,)+shape
-        yield sampler(*to_sample_shape)
+        if add_batch:
+            shape = (batch_size,)+shape
+        yield sampler(*shape)
 
 
-def infinite_batches(inputs, batchsize, f=identity, shuffle=False):
+def infinite_batches(inputs, batch_size, f=identity, shuffle=False):
+    """Create generator which without termintation yields batch_size chunk
+    of inputs
+    Args:
+        inputs:
+        batch_size:
+        f: arbitrary function to apply to batch
+        Shuffle: If True randomly shuffles ordering
+    """
     start_idx = 0
     nelements = len(inputs)
     indices = np.arange(nelements)
@@ -17,7 +26,7 @@ def infinite_batches(inputs, batchsize, f=identity, shuffle=False):
         indices = np.arange(len(inputs))
         np.random.shuffle(indices)
     while True:
-        end_idx = start_idx + batchsize
+        end_idx = start_idx + batch_size
         if end_idx > nelements:
             diff = end_idx - nelements
             excerpt = np.concatenate([indices[start_idx:nelements], indices[0:diff]])
@@ -26,8 +35,8 @@ def infinite_batches(inputs, batchsize, f=identity, shuffle=False):
                 indices = np.arange(len(inputs))
                 np.random.shuffle(indices)
         else:
-            excerpt = indices[start_idx:start_idx + batchsize]
-            start_idx = start_idx + batchsize
+            excerpt = indices[start_idx:start_idx + batch_size]
+            start_idx = start_idx + batch_size
         yield f(inputs[excerpt])
 
 
@@ -37,13 +46,13 @@ def constant_batches(x, f):
         yield f(x, data)
 
 
-def iterate_batches(inputs, batchsize, shuffle=False):
+def iterate_batches(inputs, batch_size, shuffle=False):
     if shuffle:
         indices = np.arange(len(inputs))
         np.random.shuffle(indices)
-    for start_idx in range(0, len(inputs) - batchsize + 1, batchsize):
+    for start_idx in range(0, len(inputs) - batch_size + 1, batch_size):
         if shuffle:
-            excerpt = indices[start_idx:start_idx + batchsize]
+            excerpt = indices[start_idx:start_idx + batch_size]
         else:
-            excerpt = slice(start_idx, start_iiteratedx + batchsize)
+            excerpt = slice(start_idx, start_iiteratedx + batch_size)
         yield inputs[excerpt]

@@ -5,38 +5,9 @@ from arrows.config import floatX
 from arrows.util.viz import show_tensorboard_graph
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.to_graph import arrow_to_graph, gen_input_tensors
-from typing import List
+from typing import List, Generator, Callable
 import tensorflow as tf
 from tensorflow import Graph, Tensor, Session
-
-
-def train_y_tf(params: List[Tensor],
-               losses: List[Tensor],
-               input_tensors: List[Tensor],
-               output_tensors: List[Tensor],
-               input_data,
-               **kwargs) -> Graph:
-    """
-    """
-    loss = accumulate_losses(losses)
-    update_step = gen_update_step(loss)
-    sess = tf.InteractiveSession()
-    init = tf.initialize_all_variables()
-    sess.run(init)
-    train_loop(update_step,
-               sess,
-               loss,
-               input_tensors,
-               output_tensors,
-               input_data,
-               **kwargs)
-
-def gen_update_step(loss: Tensor) -> Tensor:
-    with tf.name_scope('optimization'):
-        optimizer = tf.train.MomentumOptimizer(0.01,
-                                               momentum=0.1)
-        update_step = optimizer.minimize(loss)
-        return update_step
 
 
 def accumulate_losses(tensors: List[Tensor]) -> Tensor:
@@ -52,26 +23,40 @@ def accumulate_losses(tensors: List[Tensor]) -> Tensor:
         return tf.add_n([tf.reduce_mean(t) for t in tensors]) / len(tensors)
 
 
+def gen_fetch(sess: Session,
+              loss,
+              debug=False):
+    update_step = gen_update_step(loss)
+    init = tf.initialize_all_variables()
+    sess.run(init)
+
+    fetch = {}
+    if debug:
+        fetch['check'] = tf.add_check_numerics_ops()
+
+    fetch['loss'] = loss
+    fetch['update_step'] = update_step
+    return fetch
+
+
+def gen_update_step(loss: Tensor) -> Tensor:
+    with tf.name_scope('optimization'):
+        # optimizer = tf.train.MomentumOptimizer(0.001,
+        #                                        momentum=0.1)
+        optimizer = tf.train.AdamOptimizer(0.01)
+        update_step = optimizer.minimize(loss)
+        return update_step
+
+
 def gen_batch(input_tensors, input_data):
     return dict(zip(input_tensors, input_data))
 
 
-def train_loop(update_step,
-               sess: Session,
-               loss,
-               input_tensors,
-               output_tensors,
-               input_data,
-               num_iterations=1000,
-               summary_gap=500,
-               save_every=10,
-               sfx='',
-               compress=False,
-               save_dir="./",
-               saver=None,
-               stop_test=None,
+def train_loop(sess: Session,
+               fetch,
+               generators: Sequence[Generator],
+               num_iterations=100000,
                output_call_back=None,
-               debug=False,
                **kwargs):
     """Perform training
     Args:
@@ -89,18 +74,15 @@ def train_loop(update_step,
         save_dir: Directory for saving logs
         saver: Tensorflow saver for saving
     """
-    fetch = {}
-    if debug:
-        fetch['check'] = tf.add_check_numerics_ops()
-
-    fetch['loss'] = loss
-    fetch['update_step'] = update_step
-    fetch['output_tensors'] = output_tensors
-
-    # fetch = fetch + [loss, update_step] + output_tensors
     for i in range(num_iterations):
-        feed_dict = gen_batch(input_tensors, input_data)
+        # Generate input
+        feed_dict = {}
+        for gen in generators:
+            sub_feed_dict = next(gen)
+            feed_dict.update(sub_feed_dict)
         fetch_res = sess.run(fetch, feed_dict=feed_dict)
         if output_call_back:
             output_call_back(fetch_res)
         print("Iteration: ", i, " Loss: ", fetch_res['loss'])
+        if "to_print" in fetch_res:
+            print(fetch_res["to_print"])

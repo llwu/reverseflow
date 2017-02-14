@@ -92,31 +92,34 @@ from arrows.port_attributes import *
 from arrows.apply.propagate import *
 from reverseflow.train.reparam import *
 
-def test_robot_arm(batch_size=128):
-    lengths = [1, 1]
+def test_robot_arm(batch_size=256):
+    lengths = [1, 1, 1]
     with tf.name_scope("fwd_kinematics"):
         angles = [tf.placeholder(floatX(), name="theta", shape=(batch_size, 1)) for i in range(len(lengths))]
         x, y = gen_robot(lengths, angles)
     arrow = graph_to_arrow([x, y],
                            input_tensors=angles,
                            name="robot_fwd_kinematics")
-    show_tensorboard_graph()
     tf.reset_default_graph()
-    inv_arrow = invert(arrow)
+    # inv_arrow = invert(arrow)
+    inv_arrow = inv_fwd_loss_arrow(arrow)
     port_attr = propagate(inv_arrow)
-
-
     rep_arrow = reparam(inv_arrow, (batch_size, len(lengths),))
 
     inv_input1 = np.tile([0.5], (batch_size, 1))
     inv_input2 = np.tile([0.5], (batch_size, 1))
+
+    d = [p for p in inv_arrow.out_ports() if not is_error_port(p)]
     reparam_arrow(rep_arrow,
-                  inv_arrow.param_ports(),
-                  [inv_input1, inv_input2])
-    min_approx_error_arrow(rep_arrow,
-                           [inv_input1, inv_input2],
-                        #    error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
-                           output_call_back=plot_call_back)
+                  d,
+                  [inv_input1, inv_input2],
+                  error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
+                #   error_filter="inv_fwd_error",
+                  batch_size=batch_size)
+    # min_approx_error_arrow(rep_arrow,
+    #                        [inv_input1, inv_input2],
+    #                     #    error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
+    #                        output_call_back=plot_call_back)
 
 
 test_robot_arm()

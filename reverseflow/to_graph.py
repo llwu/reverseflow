@@ -205,13 +205,14 @@ def conv(a: TfArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     port_attr = state['port_attr']
     inp_shapes = [get_port_shape(p, port_attr) for p in a.in_ports()]
     out_shapes = [get_port_shape(p, port_attr) for p in a.out_ports()]
-    r, p = template(args,
-                    inp_shapes=inp_shapes,
-                    out_shapes=out_shapes,
-                    layer_width=5,
-                    nblocks=2,
-                    block_size=2,
-                    reuse=False)
+    with tf.name_scope("TfArrow"):
+        r, p = template(args,
+                        inp_shapes=inp_shapes,
+                        out_shapes=out_shapes,
+                        layer_width=5,
+                        nblocks=1,
+                        block_size=2,
+                        reuse=False)
     return r
 
 
@@ -227,7 +228,7 @@ def conv(a: CompositeArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 def arrow_to_graph(comp_arrow: CompositeArrow,
                    input_tensors: Sequence[Tensor],
-                   port_grab: Dict[Port, Any]={}):
+                   port_grab: Dict[Port, Any]={}): #FIXME DANGERIOUS {}
     input_tensors_wrapped = list(map(tf.identity, input_tensors))
     port_attr = propagate(comp_arrow)
     state = {'port_attr': port_attr}

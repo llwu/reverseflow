@@ -33,5 +33,5 @@ def min_approx_error_arrow(arrow: Arrow,
     error_tensors = [t for i, t in enumerate(output_tensors) if error_filter(arrow.out_ports()[i])]
     assert len(param_tensors) > 0, "Must have parametric inports"
     assert len(error_tensors) > 0, "Must have error outports"
-    train_y_tf(param_tensors, error_tensors, input_tensors, output_tensors,
+    train_tf(param_tensors, error_tensors, input_tensors, output_tensors,
                input_data, **kwargs)

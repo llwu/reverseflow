@@ -61,6 +61,14 @@ def has_port_label(port: Port, label: str) -> bool:
     port_attr = port.arrow.port_attr[port.index]
     return "labels" in port_attr and label in port_attr['labels']
 
+def get_port_labels(port: Port):
+    """Get all the port labels"""
+    port_attr = port.arrow.port_attr[port.index]
+    if "labels" in port_attr:
+        return port_attr['labels']
+    else:
+        return set()
+
 
 Shape = Sequence[int]
 
