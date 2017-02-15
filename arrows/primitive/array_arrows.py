@@ -86,18 +86,35 @@ def std_disp1(arr: "SparseToDenseArrow", port_attr: PortAttributes):
     return {arr.out_ports()[0]: {'shape': output_shape}}
 
 
-def std_pred1(arr: "SparseToDenseArrow", port_attr: PortAttributes):
+def std_pred2(arr: "SparseToDenseArrow", port_attr: PortAttributes):
     return ports_has(arr.in_ports(), 'value', port_attr)
 
 
-def std_disp1(arr: "SparseToDenseArrow", port_attr: PortAttributes):
+def std_disp2(arr: "SparseToDenseArrow", port_attr: PortAttributes):
     inds = port_attr[arr.in_ports()[0]]['value']
-    output_shape = const_to_tuple(port_attr[arr.in_ports()[1]]['value'])
+    output_shape = const_to_tuple(port_attr[arr.in_ports()[2]]['value'])
     vals = port_attr[arr.in_ports()[2]]['value']
     output = np.zeros(output_shape)
     for i, ind in enumerate(list(inds)):
         output[ind] = vals[i]
     return {arr.out_ports()[0]: {'value': output}}
+
+
+def std_pred3(arr: "SparseToDenseArrow", port_attr: PortAttributes):
+    return ports_has(arr.in_ports()[0:1], 'value', port_attr)
+
+
+def std_disp3(arr: "SparseToDenseArrow", port_attr: PortAttributes):
+    inds_shape = port_attr[arr.in_ports()[0]]['shape']
+    return {arr.in_ports()[2]: {'shape': inds_shape}}
+
+def std_pred4(arr: "SparseToDenseArrow", port_attr: PortAttributes):
+    return ports_has(arr.in_ports()[2:], 'value', port_attr)
+
+
+def std_disp4(arr: "SparseToDenseArrow", port_attr: PortAttributes):
+    vals_shape = port_attr[arr.in_ports()[2]]['shape']
+    return {arr.in_ports()[0]: {'shape': vals_shape}}
 
 
 class SparseToDenseArrow(PrimitiveArrow):
@@ -108,7 +125,12 @@ class SparseToDenseArrow(PrimitiveArrow):
 
     def get_dispatches(self):
         disp = super().get_dispatches()
-        disp.update({std_pred1: std_disp1})
+        disp.update({
+            std_pred1: std_disp1,
+            std_pred2: std_disp2,
+            std_pred3: std_disp3,
+            std_pred4: std_disp4
+            })
         return disp
 
 # Reshape

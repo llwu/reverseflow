@@ -200,7 +200,7 @@ def conv(a: GatherArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: SparseToDenseArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    return [tf.sparse_to_dense(*args)]
+    return [tf.sparse_to_dense(*args, validate_indices=False)]
 
 @overload
 def conv(a: SquaredDifference, args: TensorVarList, state) -> Sequence[Tensor]:

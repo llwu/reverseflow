@@ -35,7 +35,7 @@ def complement(indices: Sequence, shape: tuple) -> Sequence:
     for index, value in np.ndenumerate(bools):
         if value == 0:
             output.append(index)
-    return output
+    return np.squeeze(np.array(output))
 
 
 # Generators
