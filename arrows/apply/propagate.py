@@ -43,6 +43,19 @@ def update_port_attr(to_update: PortAttributes,
                 assert is_equal(value, to_update[key]), "conflict %s, %s" % (value, to_update[key])
             to_update[key] = value
 
+def equiv_neigh(port: Port, context):
+    seen = set()
+    to_see = set([port])
+    equiv = set()
+    # import pdb; pdb.set_trace()
+    while len(to_see) > 0:
+        port = to_see.pop()
+        seen.add(port)
+        for neigh in context.neigh_ports(port):
+            equiv.add(neigh)
+            if neigh not in seen:
+                to_see.add(neigh)
+    return equiv
 
 def update_neigh(sub_port_attr: PortAttributes,
                  port_attr: PortAttributes,
@@ -57,7 +70,8 @@ def update_neigh(sub_port_attr: PortAttributes,
         working_set: Set of arrows that need further propagation
     """
     for port, attrs in sub_port_attr.items():
-        for neigh_port in context.neigh_ports(port):
+        neigh_ports = equiv_neigh(port, context)
+        for neigh_port in neigh_ports:
             # If the neighbouring node doesn't have a key which I have, then it will
             # have to be added to working set to propagate again
             if (neigh_port.arrow != context):
