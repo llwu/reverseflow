@@ -138,3 +138,21 @@ class ReshapeArrow(PrimitiveArrow):
         disp = super().get_dispatches()
         disp.update({reshape_eval_pred: reshape_eval_dispatch})
         return disp
+
+
+class SliceArrow(PrimitiveArrow):
+    """
+    tf.slice
+    """
+    def __init__(self):
+        name = 'Slice'
+        super().__init__(n_in_ports=3, n_out_ports=1, name=name)
+
+
+class SqueezeArrow(PrimitiveArrow):
+    """
+    tf.squeeze
+    """
+    def __init__(self):
+        name = 'Squeeze'
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)

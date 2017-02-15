@@ -1,4 +1,7 @@
 from arrows.primitivearrow import PrimitiveArrow
+import arrows.compositearrow as compositearrows
+import arrows.primitive.control_flow as cfarrows
+from reverseflow.util.mapping import Bimap
 from typing import Dict, List, MutableMapping, Set, Sequence
 from sympy import Expr, Rel, Gt, Ne
 import math
@@ -473,8 +476,7 @@ class ReduceMeanArrow(PrimitiveArrow):
 
 
 class SquaredDifference(PrimitiveArrow):
-    """
-    Returns (x - y)(x - y) element-wise.
+    """ Returns (x - y)(x - y) element-wise.
 
     Args:
       x: A `Tensor`. Must be one of the following types: `half`, `float32`, `float64`, `int32`, `int64`, `complex64`, `complex128`.
@@ -487,3 +489,48 @@ class SquaredDifference(PrimitiveArrow):
     def __init__(self):
         name = 'SquaredDifference'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+
+def broadcast_pred(arr: Arrow, port_attr: PortAttributes):
+    return ports_has(arr.in_ports(), 'shape', port_attr)
+
+
+def broadcast_dispatch(arr: Arrow, port_attr: PortAttributes):
+    """Decide output shape."""
+    pts = extract_attribute('shape', port_attr)
+    shapes = list(pts.values())
+    shape = ()
+    for s in shapes:
+        if len(s) >= len(shape):
+            if len(shape) > 0:
+                assert s[-len(shape):] == shape, "Shapes incompatible %s %s %s" % (s, s[-len(shape):], shape)
+            shape = s
+    print("Broadcasting %s" % pts)
+    return {port: {'shape': shape} for port in arr.out_ports()}
+
+
+class BroadcastArithArrow(compositearrows.CompositeArrow):
+    """
+    Broadcasts the inputs.
+    """
+
+    def __init__(self, arith_arrow: PrimitiveArrow):
+        name = "BroadcastArith"
+        edges = Bimap()
+        in_ports = []
+        out_ports = arith_arrow.out_ports()
+        for in_port in arith_arrow.in_ports():
+            broadcast = cfarrows.BroadcastArrow()
+            in_ports += broadcast.in_ports()
+            edges.add(broadcast.out_ports()[0], in_port)
+        super().__init__(edges=edges,
+                         in_ports=in_ports,
+                         out_ports=out_ports,
+                         name=name)
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({
+            broadcast_pred: broadcast_dispatch
+            })
+        return disp

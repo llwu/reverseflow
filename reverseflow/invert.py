@@ -1,7 +1,7 @@
 """Parametric Inversion"""
 from arrows import Arrow, Port, InPort
 from arrows.compositearrow import CompositeArrow, is_projecting, is_receiving
-from arrows.apply.constants import CONST, VAR
+from arrows.apply.constants import CONST, VAR, is_constant
 from arrows.std_arrows import *
 from arrows.port_attributes import *
 from arrows.apply.propagate import propagate
@@ -60,7 +60,10 @@ def inner_invert(comp_arrow: CompositeArrow,
     for port in comp_arrow.ports():
         inv_port = inv_comp_arrow.add_port()
         if is_in_port(port):
-            make_out_port(inv_port)
+            if is_constant(port, port_attr):
+                make_in_port(inv_port)
+            else:
+                make_out_port(inv_port)
         elif is_out_port(port):
             make_in_port(inv_port)
         # Transfer port information
@@ -94,9 +97,12 @@ def inner_invert(comp_arrow: CompositeArrow,
             assert is_in_port(right_inv_port)
             inv_comp_arrow.add_edge(right_inv_port, left_inv_port)
         elif left_inv_port.arrow is inv_comp_arrow:
-            assert is_out_port(left_inv_port)
-            assert is_out_port(right_inv_port)
-            inv_comp_arrow.add_edge(right_inv_port, left_inv_port)
+            if is_out_port(right_inv_port) and is_out_port(left_inv_port):
+                inv_comp_arrow.add_edge(right_inv_port, left_inv_port)
+            elif is_in_port(right_inv_port) and is_in_port(left_inv_port):
+                inv_comp_arrow.add_edge(left_inv_port, right_inv_port)
+            else:
+                assert False, "%s, %s" % (left_inv_port, right_inv_port)
         elif right_inv_port.arrow is inv_comp_arrow:
             assert is_in_port(right_inv_port)
             assert is_in_port(left_inv_port)
@@ -131,7 +137,7 @@ def inner_invert(comp_arrow: CompositeArrow,
                 make_out_port(error_port)
                 make_error_port(error_port)
 
-    return inv_comp_arrow
+    return inv_comp_arrow, comp_port_map
 
 
 def invert(comp_arrow: CompositeArrow,
@@ -145,4 +151,4 @@ def invert(comp_arrow: CompositeArrow,
     # Replace multiedges with dupls and propagate
     comp_arrow.duplify()
     port_attr = propagate(comp_arrow)
-    return inner_invert(comp_arrow, port_attr, dispatch)
+    return inner_invert(comp_arrow, port_attr, dispatch)[0]

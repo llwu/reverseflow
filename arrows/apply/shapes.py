@@ -28,7 +28,7 @@ def shape_dispatch(arr: Arrow, port_attr: PortAttributes):
     #         shape = s
     # return {port: {'shape': shape} for port in arr.out_ports()}
     #
-    assert same(shapes), "All shapes should be the same"
+    assert same(shapes), "All shapes should be the same %s" % pts
     shape = shapes[0]
     return {port: {'shape': shape} for port in arr.ports()}
 

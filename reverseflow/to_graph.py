@@ -145,6 +145,14 @@ def conv(a: ClipArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     return [tf.clip_by_value(*args)]
 
 @overload
+def conv(a: SliceArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.slice(*args)]
+
+@overload
+def conv(a: SqueezeArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.squeeze(*args)]
+
+@overload
 def conv(a: FloorDivArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     return [tf.floordiv(*args)]
 
