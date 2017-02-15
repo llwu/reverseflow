@@ -116,13 +116,15 @@ def propagate(comp_arrow: CompositeArrow,
                            for port in sub_arrow.ports()
                            if port in _port_attr}
 
+        pred_dispatches = sub_arrow.get_dispatches()
+        for pred, dispatch in pred_dispatches.items():
+            if pred(sub_arrow, sub_port_attr):
+                new_sub_port_attr = dispatch(sub_arrow, sub_port_attr)
+                update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
         if isinstance(sub_arrow, CompositeArrow):
+            sub_port_attr = {port: _port_attr[port]
+                            for port in sub_arrow.ports()
+                            if port in _port_attr}
             new_sub_port_attr = propagate(sub_arrow, sub_port_attr, state)
             update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
-        else:
-            pred_dispatches = sub_arrow.get_dispatches()
-            for pred, dispatch in pred_dispatches.items():
-                if pred(sub_arrow, sub_port_attr):
-                    new_sub_port_attr = dispatch(sub_arrow, sub_port_attr)
-                    update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
     return _port_attr

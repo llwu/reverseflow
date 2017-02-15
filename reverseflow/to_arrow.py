@@ -22,12 +22,15 @@ def get_const_op_value(const_op: Operation):
     return val
 
 
+def broadcast_wrap(arr: Arrow):
+    return BroadcastArithArrow(arr)
+
 #FIXME: DRY
 def conv_Add(add_op: Operation):
-    return AddArrow()
+    return broadcast_wrap(AddArrow())
 
 def conv_Sub(sub_op: Operation):
-    return SubArrow()
+    return broadcast_wrap(SubArrow())
 
 def conv_AddN(addm_op: Operation):
     return AddNArrow(len(addm_op.inputs))
@@ -51,7 +54,7 @@ def conv_Gather(gather_op: Operation):
 
 
 def conv_Mul(mul_op: Operation):
-    return MulArrow()
+    return broadcast_wrap(MulArrow())
 
 
 def conv_Neg(neg_op: Operation):
