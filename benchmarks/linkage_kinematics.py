@@ -7,19 +7,25 @@ from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.train_y import min_approx_error_arrow
 from reverseflow.train.loss import inv_fwd_loss_arrow
+from arrows.port_attributes import *
+from arrows.apply.propagate import *
+from reverseflow.train.reparam import *
+
 from typing import Sequence
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import numpy as np
 
+
 # Interactive Plotting
 plt.ion()
 fig = plt.figure()
 ax = fig.add_subplot(111, autoscale_on=False)
-ax.set_xlim(0, 2)
-ax.set_ylim(0, 2)
+ax.set_xlim(-3, 3)
+ax.set_ylim(-3, 3)
 # axis = plt.axis([-3, 3, -3, 3])
 lines = None
+circle = None
 
 
 def accum_sum(xs: Sequence):
@@ -62,38 +68,51 @@ def gen_robot(lengths: Sequence, angles: Sequence):
 
 def draw_lines(n_links, angles):
     accum_angles, total_angles = accum_sum(angles)
-    x_terms = [0.0] + [np.cos(accum_angles[i]) for i in range(n_links)]
-    y_terms = [0.0] + [np.sin(accum_angles[i]) for i in range(n_links)]
-    return x_terms, y_terms
+    x_terms = [np.cos(accum_angles[i]) for i in range(n_links)]
+    y_terms = [np.sin(accum_angles[i]) for i in range(n_links)]
+    x_accum, x = accum_sum(x_terms)
+    y_accum, y = accum_sum(y_terms)
+    return [0.0] + x_accum, [0.0] + y_accum
 
+batch_num = 0
+i = 0
 def plot_call_back(fetch_res):
     # import pdb; pdb.set_trace()
     global lines
     global ax
-    # n_links = 2
-    # angles = fetch_res['output_tensors'][0:n_links]
-    # x, y = draw_lines(n_links, angles)
-    # # import pdb; pdb.set_trace()
-    # print(sum(x), sum(y))
-    # if lines is None:
-    #     lines = Line2D(x, y)
-    #     ax.add_line(lines)
-    #     plt.draw()
-    # else:
-    #     lines.set_data(x, y)
-    # plt.draw()
-    # plt.show()
-    # plt.pause(0.05)
+    global i
+    global batch_num
+    global circle
+    i = i + 1
+    n_links = 2
+    batch_angles = fetch_res['output_tensors'][0:n_links]
+    if i % 30 == 0:
+        batch_num = np.random.randint(128)
+
+    angles = [batch_angles[i][batch_num, 0] for i in range(len(batch_angles))]
+    x, y = draw_lines(n_links, angles)
+    if lines is None:
+        lines = Line2D(x, y)
+        ax.add_line(lines)
+        x = fetch_res['input_tensors'][1][batch_num, 0]
+        y = fetch_res['input_tensors'][2][batch_num, 0]
+        circle = plt.Circle((x, y), 0.1, color='r')
+        ax.add_artist(circle)
+        plt.draw()
+    else:
+        lines.set_data(x, y)
+        x = fetch_res['input_tensors'][1][batch_num, 0]
+        y = fetch_res['input_tensors'][2][batch_num, 0]
+        circle.center = (x, y)
+    plt.draw()
+    plt.show()
+    plt.pause(0.05)
     # robot_joints = output_values[3:3+6]
     # r = np.array(robot_joints).flatten()
     # plot_robot_arm(list(r), target)
 
-from arrows.port_attributes import *
-from arrows.apply.propagate import *
-from reverseflow.train.reparam import *
-
-def test_robot_arm(batch_size=256):
-    lengths = [1, 1, 1]
+def test_robot_arm(batch_size=512):
+    lengths = [1, 1]
     with tf.name_scope("fwd_kinematics"):
         angles = [tf.placeholder(floatX(), name="theta", shape=(batch_size, 1)) for i in range(len(lengths))]
         x, y = gen_robot(lengths, angles)
@@ -101,17 +120,17 @@ def test_robot_arm(batch_size=256):
                            input_tensors=angles,
                            name="robot_fwd_kinematics")
     tf.reset_default_graph()
-    inv_arrow = invert(arrow)
-    import pdb; pdb.set_trace()
-    port_attr1 = propagate(inv_arrow)
+    # inv_arrow = invert(arrow)
     inv_arrow = inv_fwd_loss_arrow(arrow)
-    port_attr = propagate(inv_arrow)
     rep_arrow = reparam(inv_arrow, (batch_size, len(lengths),))
+    import pdb; pdb.set_trace()
+    port_attr = propagate(rep_arrow)
 
     # inv_input1 = np.tile([0.5], (batch_size, 1))
     # inv_input2 = np.tile([0.5], (batch_size, 1))
-    inv_input1 = np.random.rand(batch_size, 1)
-    inv_input2 = np.random.rand(batch_size, 1)
+    nlinks = len(lengths)
+    inv_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
+    inv_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
 
     d = [p for p in inv_arrow.out_ports() if not is_error_port(p)]
     reparam_arrow(rep_arrow,

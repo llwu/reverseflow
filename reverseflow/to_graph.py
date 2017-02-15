@@ -209,9 +209,9 @@ def conv(a: TfArrow, args: TensorVarList, state) -> Sequence[Tensor]:
         r, p = template(args,
                         inp_shapes=inp_shapes,
                         out_shapes=out_shapes,
-                        layer_width=5,
+                        layer_width=10,
                         nblocks=1,
-                        block_size=2,
+                        block_size=1,
                         reuse=False)
     return r
 
