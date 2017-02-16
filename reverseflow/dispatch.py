@@ -3,7 +3,7 @@ from arrows import Arrow, Port, InPort
 from arrows.port_attributes import (PortAttributes, make_error_port,
     make_param_port, get_port_attr)
 from arrows.std_arrows import *
-from arrows.apply.constants import CONST, VAR
+from arrows.apply.constants import CONST, VAR, is_constant
 from arrows.util.misc import extract
 from reverseflow.inv_primitives.inv_math_arrows import *
 from reverseflow.util.mapping import Bimap
@@ -13,9 +13,6 @@ from typing import Set, Tuple, Dict, Sequence
 from copy import deepcopy
 
 PortMap = Dict[int, int]
-
-def is_constant(p: Port, pv: PortAttributes):
-    return p in pv and 'constant' in pv[p] and pv[p]['constant'] == CONST
 
 
 def generic_binary_inv(arrow: Arrow,
@@ -96,6 +93,27 @@ def inv_cos(arrow: CosArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]
 #     inv_arrow = InvDuplArrow(n_duplications=n_duplications)
 #     port_map = {arrow.in_ports()[0].index: inv_arrow.out_ports()[0].index}
 #     port_map.update({arrow.out_ports()[i].index: inv_arrow.in_ports()[i].index for i in range(n_duplications)})
+#     return inv_arrow, port_map
+
+# def inv_dupl_approx(arrow: DuplArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
+#     # FIXME: Propagate errors
+#     inv_arrow = CompositeArrow(name="InvDuplApprox")
+#     n_duplications = arrow.n_out_ports
+#     approx_id = ApproxIdentityNoErrorArrow(n_inputs=n_duplications)
+#     inv_dupl = InvDuplArrow(n_duplications=n_duplications)
+#     # assert port_values[arrow.in_ports()[0]] == VAR, "Dupl is constant"
+#     for i in range(n_duplications):
+#         in_port = inv_arrow.add_port()
+#         make_in_port(in_port)
+#         inv_arrow.add_edge(in_port, approx_id.in_port(i))
+#         inv_arrow.add_edge(approx_id.out_port(i), inv_dupl.in_port(i))
+#
+#     out_port = inv_arrow.add_port()
+#     make_out_port(out_port)
+#     inv_arrow.add_edge(inv_dupl.out_port(0), out_port)
+#     port_map = {0: out_port.index}
+#     port_map.update({i+1:i for i in range(n_duplications)})
+#     assert inv_arrow.is_wired_correctly()
 #     return inv_arrow, port_map
 
 def inv_dupl_approx(arrow: DuplArrow, port_values: PortAttributes) -> Tuple[Arrow, PortMap]:
@@ -231,6 +249,35 @@ def inv_neg(arrow: NegArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]
     sub_port_attr = extract(arrow.ports(), port_attr)
     neg = NegArrow()
     return neg, {0: 1, 1: 0}
+
+
+def inv_broadcast(arrow: BroadcastArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
+    if all((is_constant(port, port_attr) for port in arrow.in_ports())):
+        return BroadcastArrow(), {0:0, 1:1}
+
+    inv_arrow = IdentityArrow()
+    port_map = {0: 0, 1: 1} if is_constant(arrow.out_ports()[0], port_attr) else {0: 1, 1: 0}
+    if ports_has(arrow.ports(), 'shape', port_attr):
+        in_shape = port_attr[arrow.in_ports()[0]]['shape']
+        out_shape = port_attr[arrow.out_ports()[0]]['shape']
+        start = np.zeros(len(out_shape), dtype=np.int)
+        size = np.concatenate((np.ones(len(out_shape) - len(in_shape)), np.array(in_shape))).astype(int)
+        source_start = SourceArrow(start)
+        source_size = SourceArrow(size)
+        slicer = SliceArrow()
+        squeeze = SqueezeArrow()
+        edges = Bimap()
+        edges.add(source_start.out_ports()[0], slicer.in_ports()[1])
+        edges.add(source_size.out_ports()[0], slicer.in_ports()[2])
+        edges.add(slicer.out_ports()[0], squeeze.in_ports()[0])
+        in_ports = [slicer.in_ports()[0]]
+        out_ports = squeeze.out_ports()
+        inv_arrow = CompositeArrow(in_ports=in_ports,
+                            out_ports=out_ports,
+                            edges=edges,
+                            name="InvBroadcast")
+
+    return inv_arrow, port_map
 
 
 def inv_reshape(arrow: ReshapeArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:

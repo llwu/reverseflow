@@ -51,9 +51,13 @@ def reparam(comp_arrow: CompositeArrow,
     set_port_shape(phi, phi_shape)
     make_in_port(phi)
     make_param_port(phi)
-    nn = TfArrow(n_in_ports=1, n_out_ports=comp_arrow.num_param_ports())
+    n_in_ports = 1
+    if nn_takes_input:
+        n_in_ports += comp_arrow.num_in_ports() - comp_arrow.num_param_ports()
+    nn = TfArrow(n_in_ports=n_in_ports, n_out_ports=comp_arrow.num_param_ports())
     reparam.add_edge(phi, nn.in_port(0))
     i = 0
+    j = 1
     for port in comp_arrow.ports():
         if is_param_port(port):
             reparam.add_edge(nn.out_port(i), port)
@@ -66,36 +70,51 @@ def reparam(comp_arrow: CompositeArrow,
             if is_in_port(port):
                 make_in_port(re_port)
                 reparam.add_edge(re_port, port)
+                if nn_takes_input:
+                    reparam.add_edge(re_port, nn.in_port(j))
+                    j += 1
             if is_error_port(port):
                 make_error_port(re_port)
             for label in get_port_labels(port):
                 add_port_label(re_port, label)
 
-
     assert reparam.is_wired_correctly()
     return reparam
 
-
-def minimum_gap(t: Tensor, perm, perm_idx):
-    with tf.name_scope("minimum_gap"):
+def pairwise_dists(t, perm, perm_idx):
+    with tf.name_scope("pairwise_dists"):
         ts_shrunk = tf.gather(t, perm_idx)
         ts_permute = tf.gather(t, perm)
         diff = ts_permute - ts_shrunk + EPS
         sqrdiff = tf.abs(diff)
         reduction_indices = list(range(1, sqrdiff.get_shape().ndims))
         euclids = tf.reduce_sum(sqrdiff, reduction_indices=reduction_indices) + EPS
+        return euclids
+
+
+def minimum_gap(euclids):
+    with tf.name_scope("minimum_gap"):
         rp = tf.reduce_min(euclids)
     return rp
 
+def mean_gap(euclids):
+    with tf.name_scope("mean_gap"):
+        rp = tf.reduce_mean(euclids)
+    return rp
 
 def attach(tensor, gen):
     while True:
         res = next(gen)
         yield {tensor: res}
 
+def gen_gens(ts, data, batch_size):
+    return [attach(ts[i], infinite_batches(data[i], batch_size)) \
+                 for i in range(len(data))]
+
 def reparam_arrow(arrow: Arrow,
                   theta_ports: Sequence[Port],
-                  input_data: List,
+                  train_data: List,
+                  test_data: List,
                   batch_size,
                   error_filter=is_error_port,
                   **kwargs) -> CompositeArrow:
@@ -112,40 +131,55 @@ def reparam_arrow(arrow: Arrow,
     error_tensors = [t for i, t in enumerate(output_tensors) if error_filter(arrow.out_ports()[i])]
     assert len(param_tensors) > 0, "Must have parametric inports"
     assert len(error_tensors) > 0, "Must have error outports"
-    assert len(y_tensors) == len(input_data)
+    assert len(y_tensors) == len(train_data)
 
     # Make parametric inputs
+    train_gen_gens = []
+    test_gen_gens = []
+
     param_feed_gens = []
-    all_gen_gens = []
     for t in param_tensors:
         shape = tuple(t.get_shape().as_list())
         gen = infinite_samples(np.random.rand, batch_size, shape)
         param_feed_gens.append(attach(t, gen))
-    all_gen_gens += param_feed_gens
+    train_gen_gens += param_feed_gens
+    test_gen_gens += param_feed_gens
 
-    y_feed_gens = [attach(y_tensors[i], infinite_batches(input_data[i], batch_size)) \
-                   for i in range(len(input_data))]
-    all_gen_gens += y_feed_gens
+    train_gen_gens += gen_gens(y_tensors, train_data, batch_size)
+    test_gen_gens += gen_gens(y_tensors, test_data, batch_size)
+
+    loss2 = accumulate_losses(error_tensors)
 
     # Generate permutation tensors
     with tf.name_scope("placeholder"):
         perm = tf.placeholder(shape=(None,), dtype='int32', name='perm')
         perm_idx = tf.placeholder(shape=(None,), dtype='int32', name='perm_idx')
     perm_feed_gen = [perm_gen(batch_size, perm, perm_idx)]
-    all_gen_gens += perm_feed_gen
+    train_gen_gens += perm_feed_gen
+    test_gen_gens += perm_feed_gen
 
-    min_gap_losses = [minimum_gap(t, perm, perm_idx) for t in theta_tensors]
-    min_gap_loss = tf.reduce_min(min_gap_losses)
-    loss2 = accumulate_losses(error_tensors)
-    loss = loss2 - min_gap_loss
-    # loss = loss2
+    euclids = [pairwise_dists(t, perm, perm_idx) for t in theta_tensors]
+    min_gap_losses = [minimum_gap(euclid) for euclid in euclids]
+    min_gap_loss = tf.reduce_sum(min_gap_losses)
+    mean_gap_losses = [mean_gap(euclid) for euclid in euclids]
+    mean_gap_loss = tf.reduce_mean(mean_gap_losses)
+    min_gap_loss = min_gap_loss
+    losses = [loss2]
+    loss_ratios = [1]
+    loss_updates = [gen_update_step(loss) for loss in losses]
     sess = tf.Session()
-    fetch = gen_fetch(sess, loss)
+    fetch = gen_fetch(sess, **kwargs)
+    fetch['input_tensors'] = input_tensors
     fetch['output_tensors'] = output_tensors
-    fetch['to_print'] = {'min_gap_loss': min_gap_loss, 'loss2': loss2}
-    show_tensorboard_graph()
+    fetch['loss'] = losses
+    # fetch['to_print'] = {'min_gap_loss': min_gap_loss,
+    #                      'mean_gap_loss': mean_gap_loss,
+    #                      'loss2': loss2}
 
     train_loop(sess,
+               loss_updates,
                fetch,
-               all_gen_gens,
+               train_gen_gens,
+               test_gen_gens,
+               loss_ratios=loss_ratios,
                **kwargs)

@@ -12,6 +12,7 @@ default_dispatch = {AddArrow: inv_add,
                     MulArrow: inv_mul,
                     DivArrow: inv_div,
                     NegArrow: inv_neg,
+                    BroadcastArrow: inv_broadcast,
                     ReshapeArrow: inv_reshape,
                     SinArrow: inv_sin,
                     }

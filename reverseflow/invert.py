@@ -1,7 +1,8 @@
 """Parametric Inversion"""
 from arrows import Arrow, Port, InPort
 from arrows.compositearrow import CompositeArrow, is_projecting, is_receiving
-from arrows.apply.constants import CONST, VAR
+from arrows.compositearrow import CompositeArrow, would_project, would_receive
+from arrows.apply.constants import CONST, VAR, is_constant
 from arrows.std_arrows import *
 from arrows.port_attributes import *
 from arrows.apply.propagate import propagate
@@ -55,14 +56,21 @@ def inner_invert(comp_arrow: CompositeArrow,
         error_ports and param_ports will follow"""
     # Empty compositon for inverse
     inv_comp_arrow = CompositeArrow(name="%s_inv" % comp_arrow.name)
+    # import pdb; pdb.set_trace()
 
     # Add a port on inverse arrow for every port on arrow
     for port in comp_arrow.ports():
         inv_port = inv_comp_arrow.add_port()
         if is_in_port(port):
-            make_out_port(inv_port)
+            if is_constant(port, port_attr):
+                make_in_port(inv_port)
+            else:
+                make_out_port(inv_port)
         elif is_out_port(port):
-            make_in_port(inv_port)
+            if is_constant(port, port_attr):
+                make_out_port(inv_port)
+            else:
+                make_in_port(inv_port)
         # Transfer port information
         # FIXME: What port_attr go transfered from port to inv_port
         set_port_shape(inv_port, get_port_shape(port, port_attr))
@@ -89,29 +97,12 @@ def inner_invert(comp_arrow: CompositeArrow,
     for out_port, in_port in comp_arrow.edges.items():
         left_inv_port = get_inv_port(out_port, arrow_to_port_map, arrow_to_inv)
         right_inv_port = get_inv_port(in_port, arrow_to_port_map, arrow_to_inv)
-        if left_inv_port.arrow is inv_comp_arrow and right_inv_port.arrow is inv_comp_arrow:
-            assert is_out_port(left_inv_port)
-            assert is_in_port(right_inv_port)
-            inv_comp_arrow.add_edge(right_inv_port, left_inv_port)
-        elif left_inv_port.arrow is inv_comp_arrow:
-            assert is_out_port(left_inv_port)
-            assert is_out_port(right_inv_port)
-            inv_comp_arrow.add_edge(right_inv_port, left_inv_port)
-        elif right_inv_port.arrow is inv_comp_arrow:
-            assert is_in_port(right_inv_port)
-            assert is_in_port(left_inv_port)
-            inv_comp_arrow.add_edge(right_inv_port, left_inv_port)
-        else:
-            if is_out_port(left_inv_port) and is_in_port(right_inv_port):
-                inv_comp_arrow.add_edge(left_inv_port, right_inv_port)
-            elif is_in_port(left_inv_port) and is_out_port(right_inv_port):
-                inv_comp_arrow.add_edge(right_inv_port, left_inv_port)
-            else:
-                print(arrow_to_port_map[out_port.arrow])
-                print(out_port)
-                print(arrow_to_port_map[in_port.arrow])
-                print(in_port)
-                assert False, "One must be projecting and one receiving"
+        both = [left_inv_port, right_inv_port]
+        projecting = list(filter(lambda x: would_project(x, inv_comp_arrow), both))
+        receiving = list(filter(lambda x: would_receive(x, inv_comp_arrow), both))
+        assert len(projecting) == 1, "Should be only 1 projecting"
+        assert len(receiving) == 1, "Should be only 1 receiving"
+        inv_comp_arrow.add_edge(projecting[0], receiving[0])
 
     # Craete new ports on inverse compositions for parametric and error ports
     for sub_arrow in inv_comp_arrow.get_sub_arrows():
@@ -131,7 +122,7 @@ def inner_invert(comp_arrow: CompositeArrow,
                 make_out_port(error_port)
                 make_error_port(error_port)
 
-    return inv_comp_arrow
+    return inv_comp_arrow, comp_port_map
 
 
 def invert(comp_arrow: CompositeArrow,
@@ -145,4 +136,4 @@ def invert(comp_arrow: CompositeArrow,
     # Replace multiedges with dupls and propagate
     comp_arrow.duplify()
     port_attr = propagate(comp_arrow)
-    return inner_invert(comp_arrow, port_attr, dispatch)
+    return inner_invert(comp_arrow, port_attr, dispatch)[0]

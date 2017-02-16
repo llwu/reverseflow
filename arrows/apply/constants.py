@@ -1,4 +1,5 @@
 """Propagate constants through graph"""
+from arrows.port import Port
 from arrows.port_attributes import PortAttributes
 from enum import Enum
 from arrows.port_attributes import extract_attribute, ports_has
@@ -22,3 +23,6 @@ def constant_dispatch(arr, port_attr: PortAttributes, state=None):
     else:
         return {port: {'constant': ptc[port]} if port in ptc \
     else {'constant': VAR} for port in arr.ports()}
+
+def is_constant(p: Port, pv: PortAttributes):
+    return p in pv and 'constant' in pv[p] and pv[p]['constant'] == CONST

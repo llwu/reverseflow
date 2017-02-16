@@ -1,10 +1,10 @@
 """Convert a tensoflow graph into an arrow"""
 from arrows import (Arrow, CompositeArrow,)
 from arrows import InPort, OutPort
+from arrows.primitive.control_flow import BroadcastArrow
 from arrows.port_attributes import make_in_port, make_out_port, set_port_shape
 from arrows.std_arrows import *
 from reverseflow.util.mapping import Relation
-
 from tensorflow import Tensor, Operation
 import tensorflow as tf
 from typing import List, Tuple, Dict, Sequence
@@ -22,12 +22,18 @@ def get_const_op_value(const_op: Operation):
     return val
 
 
+def broadcast_wrap(arr: Arrow):
+    return BroadcastArithArrow(arr)
+
+def broadcast_wrap(x):
+    return x
+
 #FIXME: DRY
 def conv_Add(add_op: Operation):
-    return AddArrow()
+    return broadcast_wrap(AddArrow())
 
 def conv_Sub(sub_op: Operation):
-    return SubArrow()
+    return broadcast_wrap(SubArrow())
 
 def conv_AddN(addm_op: Operation):
     return AddNArrow(len(addm_op.inputs))
@@ -35,7 +41,16 @@ def conv_AddN(addm_op: Operation):
 
 def conv_Const(const_op: Operation):
     value = get_const_op_value(const_op)
-    return SourceArrow(value=value)
+    c = CompositeArrow(name="BroadCastedSource")
+    out_port = c.add_port()
+    make_out_port(out_port)
+    src = SourceArrow(value=value)
+    bc = BroadcastArrow()
+    c.add_edge(src.out_port(0), bc.in_port(0))
+    c.add_edge(bc.out_port(0), c.out_port(0))
+    assert c.is_wired_correctly()
+    return c
+    # return SourceArrow(value=value)
 
 
 def conv_Cos(sin_op: Operation):
@@ -51,7 +66,7 @@ def conv_Gather(gather_op: Operation):
 
 
 def conv_Mul(mul_op: Operation):
-    return MulArrow()
+    return broadcast_wrap(MulArrow())
 
 
 def conv_Neg(neg_op: Operation):

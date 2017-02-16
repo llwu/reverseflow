@@ -96,7 +96,12 @@ def conv(a: MulArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: DivArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    return [tf.div(*args)]
+    # FIXME Deal with me in a better way
+    with tf.name_scope("Safe_Divide"):
+        num = args[0]
+        den = args[1]
+        safe_den = den # + 1e-4
+        return [tf.div(num, safe_den)]
 
 @overload
 def conv(a: SinArrow, args: TensorVarList, state) -> Sequence[Tensor]:
@@ -104,7 +109,7 @@ def conv(a: SinArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: SubArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    return [tf.sub(*args)]
+    return [tf.subtract(*args)]
 
 
 @overload
@@ -143,6 +148,14 @@ def conv(a: CastArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 @overload
 def conv(a: ClipArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     return [tf.clip_by_value(*args)]
+
+@overload
+def conv(a: SliceArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.slice(*args)]
+
+@overload
+def conv(a: SqueezeArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.squeeze(*args)]
 
 @overload
 def conv(a: FloorDivArrow, args: TensorVarList, state) -> Sequence[Tensor]:
@@ -192,7 +205,7 @@ def conv(a: GatherArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: SparseToDenseArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    return [tf.sparse_to_dense(*args)]
+    return [tf.sparse_to_dense(*args, validate_indices=False)]
 
 @overload
 def conv(a: SquaredDifference, args: TensorVarList, state) -> Sequence[Tensor]:
@@ -209,8 +222,8 @@ def conv(a: TfArrow, args: TensorVarList, state) -> Sequence[Tensor]:
         r, p = template(args,
                         inp_shapes=inp_shapes,
                         out_shapes=out_shapes,
-                        layer_width=5,
-                        nblocks=1,
+                        layer_width=10,
+                        nblocks=2,
                         block_size=2,
                         reuse=False)
     return r
