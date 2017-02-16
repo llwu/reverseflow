@@ -231,6 +231,9 @@ def inv_neg(arrow: NegArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]
 
 
 def inv_broadcast(arrow: BroadcastArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
+    if all((is_constant(port, port_attr) for port in arrow.in_ports())):
+        return BroadcastArrow(), {0:0, 1:1}
+
     inv_arrow = IdentityArrow()
     port_map = {0: 0, 1: 1} if is_constant(arrow.out_ports()[0], port_attr) else {0: 1, 1: 0}
     if ports_has(arrow.ports(), 'shape', port_attr):

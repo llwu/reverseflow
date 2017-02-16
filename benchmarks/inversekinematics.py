@@ -11,6 +11,7 @@ from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.train_y import min_approx_error_arrow
 from reverseflow.train.loss import inv_fwd_loss_arrow
+from reverseflow.train.reparam import *
 
 
 plt.ion()
@@ -126,17 +127,17 @@ def plot_3dline(x1, y1, z1, x2, y2, z2, ax):
     ax.plot(x, y, z, label='robot_arm')
 
 
-def ik_gen_graph(g, batch_size, is_placeholder):
+def ik_gen_graph(g, batch_size):
     with g.name_scope("fwd_g"):
         inputs = [0]*6
-        inputs[0] = tf.placeholder(tf.float32, name="phi1", shape=())
-        inputs[1] = tf.placeholder(tf.float32, name="phi2", shape=())
+        inputs[0] = tf.placeholder(tf.float32, name="phi1", shape=(batch_size, 1))
+        inputs[1] = tf.placeholder(tf.float32, name="phi2", shape=(batch_size, 1))
         # inputs['phi3'] = placeholder(tf.float32, name="phi3", shape=(batch_size, 1))
-        inputs[2] = tf.placeholder(tf.float32, name="phi4", shape=())
-        inputs[3] = tf.placeholder(tf.float32, name="phi5", shape=())
-        inputs[4] = tf.placeholder(tf.float32, name="phi6", shape=())
+        inputs[2] = tf.placeholder(tf.float32, name="phi4", shape=(batch_size, 1))
+        inputs[3] = tf.placeholder(tf.float32, name="phi5", shape=(batch_size, 1))
+        inputs[4] = tf.placeholder(tf.float32, name="phi6", shape=(batch_size, 1))
 
-        inputs[5] = tf.placeholder(tf.float32, name="d2", shape=())
+        inputs[5] = tf.placeholder(tf.float32, name="d2", shape=(batch_size, 1))
         # inputs[6] = tf.placeholder(tf.float32, name="d3", shape=())
         # inputs[7] = tf.Variable(1.0, name="h1")
 
@@ -145,31 +146,53 @@ def ik_gen_graph(g, batch_size, is_placeholder):
 
 
 def test_ik():
+    batch_size = 1
     with tf.name_scope("ik_stanford_manipulator"):
-        in_out = ik_gen_graph(tf.Graph(), 1, is_placeholder)
-        input_values = [30, 45, 90, 0, 60, 1]
+        in_out = ik_gen_graph(tf.Graph(), batch_size)
+        train_input = [[[30]], [[45]], [[90]], [[0]], [[60]], [[1]]]
+        test_input = train_input
+        train_input = [np.random.rand(batch_size, 1) for i in range(6)]
+        test_input = [np.random.rand(batch_size, 1) for i in range(6)]
         with tf.Session() as sess:
-            output_values = sess.run(in_out["outputs"], feed_dict={in_out["inputs"][i]: input_values[i] for i in range(len(input_values))})
-        print(output_values)
-        # plot_robot_arm(input_values, (output_values[0], output_values[1], output_values[2]))
+            feed_dict = {in_out["inputs"][i]: train_input[i] for i in range(len(train_input))}
+            inv_train_data = sess.run(in_out["outputs"], feed_dict=feed_dict)
+            feed_dict = {in_out["inputs"][i]: test_input[i] for i in range(len(train_input))}
+            inv_test_data = sess.run(in_out["outputs"], feed_dict=feed_dict)
+
+    # plot_robot_arm(train_input, (output_values[0], output_values[1], output_values[2]))
     arrow = graph_to_arrow(output_tensors=in_out["outputs"],
                            input_tensors=in_out["inputs"],
                            name="ik_stanford")
     # show_tensorboard_graph()
     tf.reset_default_graph()
-    inverse = invert(arrow)
-    inv_fwd_arrow = inv_fwd_loss_arrow(arrow)
-    target = (output_values[0], output_values[1], output_values[2])
-    def plot_call_back(fetch_res, target=target):
-        robot_joints = fetch_res['output_tensors'][0:6]
-        r = np.array(robot_joints).flatten()
-        fig.clear()
-        plot_robot_arm(list(r), target)
-        plt.pause(0.01)
+    # inverse = invert(arrow)
+    inv_arrow = inv_fwd_loss_arrow(arrow)
+    phi_shape = (batch_size, 6) # 6 DOF Robot so why not
+    rep_arrow = reparam(inv_arrow, phi_shape)
+    # target = (output_values[0], output_values[1], output_values[2])
+    def plot_call_back(fetch_res):
+        return 10
+        # robot_joints = fetch_res['output_tensors'][0:6]
+        # r = np.array(robot_joints).flatten()
+        # fig.clear()
+        # plot_robot_arm(list(r), target)
+        # plt.pause(0.01)
+        #
+
+    d = [p for p in inv_arrow.out_ports() if not is_error_port(p)]
+    reparam_arrow(rep_arrow,
+                  d,
+                  inv_train_data,
+                  inv_test_data,
+                  error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
+                #   error_filter="inv_fwd_error",
+                  batch_size=batch_size,
+                  output_call_back=plot_call_back)
 
     min_approx_error_arrow(inv_fwd_arrow,
                            output_values,
                            error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
-                           output_call_back=plot_call_back)
+                           output_call_back=plot_call_back,
+                           debug=True)
 
 test_ik()

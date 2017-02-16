@@ -6,7 +6,7 @@ from overloading import overload
 from numpy import ndarray
 from arrows.compositearrow import *
 from arrows.util.misc import *
-
+import numpy
 
 
 def shape_pred(arr: Arrow, port_attr: PortAttributes):
@@ -61,6 +61,11 @@ def constant_to_shape(x: float):
 
 @overload
 def constant_to_shape(x: ndarray):
+    return x.shape
+
+
+@overload
+def constant_to_shape(x: numpy.number):
     return x.shape
 
 

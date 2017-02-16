@@ -108,6 +108,7 @@ def propagate(comp_arrow: CompositeArrow,
     Returns:
         port->value map for all ports in composite arrow
     """
+    print("Propagating")
     # Copy port_attr to avoid affecting input
     port_attr = {} if port_attr is None else port_attr
     _port_attr = defaultdict(lambda: dict())
@@ -124,7 +125,7 @@ def propagate(comp_arrow: CompositeArrow,
     updated = set(comp_arrow.get_sub_arrows())
     update_neigh(_port_attr, _port_attr, comp_arrow, updated)
     while len(updated) > 0:
-        print(len(updated), " arrows updating in proapgation iteration")
+        # print(len(updated), " arrows updating in proapgation iteration")
         sub_arrow = updated.pop()
         sub_port_attr = {port: _port_attr[port]
                            for port in sub_arrow.ports()
@@ -141,4 +142,5 @@ def propagate(comp_arrow: CompositeArrow,
                             if port in _port_attr}
             new_sub_port_attr = propagate(sub_arrow, sub_port_attr, state)
             update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
+    print("Done Propagating")
     return _port_attr

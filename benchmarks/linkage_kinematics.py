@@ -76,6 +76,8 @@ def draw_lines(n_links, angles):
 
 batch_num = 0
 i = 0
+BATCH_SIZE = 20
+
 def plot_call_back(fetch_res):
     # import pdb; pdb.set_trace()
     global lines
@@ -83,11 +85,13 @@ def plot_call_back(fetch_res):
     global i
     global batch_num
     global circle
+    global BATCH_SIZE
+    batch_size = BATCH_SIZE
     i = i + 1
-    n_links = 2
+    n_links = 3
     batch_angles = fetch_res['output_tensors'][0:n_links]
     if i % 30 == 0:
-        batch_num = np.random.randint(128)
+        batch_num = np.random.randint(batch_size)
 
     angles = [batch_angles[i][batch_num, 0] for i in range(len(batch_angles))]
     x, y = draw_lines(n_links, angles)
@@ -111,8 +115,10 @@ def plot_call_back(fetch_res):
     # r = np.array(robot_joints).flatten()
     # plot_robot_arm(list(r), target)
 
-def test_robot_arm(batch_size=512):
-    lengths = [1, 1]
+def test_robot_arm(batch_size=20):
+    global BATCH_SIZE
+    batch_size = batch_size
+    lengths = [1, 1, 1]
     with tf.name_scope("fwd_kinematics"):
         angles = [tf.placeholder(floatX(), name="theta", shape=(batch_size, 1)) for i in range(len(lengths))]
         x, y = gen_robot(lengths, angles)
@@ -123,19 +129,22 @@ def test_robot_arm(batch_size=512):
     # inv_arrow = invert(arrow)
     inv_arrow = inv_fwd_loss_arrow(arrow)
     rep_arrow = reparam(inv_arrow, (batch_size, len(lengths),))
-    import pdb; pdb.set_trace()
     port_attr = propagate(rep_arrow)
 
-    # inv_input1 = np.tile([0.5], (batch_size, 1))
-    # inv_input2 = np.tile([0.5], (batch_size, 1))
+    inv_input1 = np.tile([0.5], (batch_size, 1))
+    inv_input2 = np.tile([0.5], (batch_size, 1))
     nlinks = len(lengths)
     inv_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
     inv_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
+    test_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
+    test_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
+
 
     d = [p for p in inv_arrow.out_ports() if not is_error_port(p)]
     reparam_arrow(rep_arrow,
                   d,
                   [inv_input1, inv_input2],
+                  [test_input1, test_input2],
                   error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
                 #   error_filter="inv_fwd_error",
                   batch_size=batch_size,

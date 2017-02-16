@@ -19,7 +19,6 @@ def is_exposed(port: Port, context: "CompositeArrow") -> bool:
        to an edge."""
     return context == port.arrow or port.arrow.parent == context
 
-
 def is_projecting(port: Port, context: "CompositeArrow") -> bool:
     """Is this port projecting in this context"""
     if port.arrow == context:
@@ -30,10 +29,19 @@ def is_projecting(port: Port, context: "CompositeArrow") -> bool:
         assert False, "Port %s is not in context %s" % (port, context)
 
 
+def would_project(port: Port, context: "CompositeArrow") -> bool:
+    """Is this port projecting in this context"""
+    if port.arrow == context:
+        return is_in_port(port)
+    else:
+        return is_out_port(port)
+
 def is_receiving(port: Port, context: "CompositeArrow") -> bool:
     """A port is receiving (in some context) if it is not projecting."""
     return not is_projecting(port, context)
 
+def would_receive(port: Port, context: "CompositeArrow") -> bool:
+    return not would_project(port, context)
 
 class CompositeArrow(Arrow):
     """Composite arrow

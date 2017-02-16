@@ -2,7 +2,6 @@ from arrows import (Arrow, CompositeArrow, compose_comb_modular, compose_comb)
 from arrows.port_attributes import is_param_port, is_error_port
 from arrows.std_arrows import *
 from arrows.config import floatX
-from arrows.util.viz import show_tensorboard_graph
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.to_graph import arrow_to_graph, gen_input_tensors
 from typing import List, Generator, Callable
@@ -43,7 +42,7 @@ def gen_update_step(loss: Tensor) -> Tensor:
     with tf.name_scope('optimization'):
         # optimizer = tf.train.MomentumOptimizer(0.001,
         #                                        momentum=0.1)
-        optimizer = tf.train.AdamOptimizer(0.001)
+        optimizer = tf.train.AdamOptimizer(0.0001)
         update_step = optimizer.minimize(loss)
         return update_step
 
@@ -55,6 +54,8 @@ def gen_batch(input_tensors, input_data):
 def train_loop(sess: Session,
                fetch,
                generators: Sequence[Generator],
+               test_generators,
+               test_every_n=100,
                num_iterations=100000,
                output_call_back=None,
                **kwargs):
@@ -74,15 +75,28 @@ def train_loop(sess: Session,
         save_dir: Directory for saving logs
         saver: Tensorflow saver for saving
     """
+    # Main loop
     for i in range(num_iterations):
         # Generate input
         feed_dict = {}
         for gen in generators:
             sub_feed_dict = next(gen)
             feed_dict.update(sub_feed_dict)
+        # Optimizeation Step
         fetch_res = sess.run(fetch, feed_dict=feed_dict)
+
         if output_call_back:
             output_call_back(fetch_res)
         print("Iteration: ", i, " Loss: ", fetch_res['loss'])
         if "to_print" in fetch_res:
             print(fetch_res["to_print"])
+
+        # Evaluate on test data every test_every_n iterations
+        if i % test_every_n == 0:
+            test_feed_dict = {}
+            for gen in test_generators:
+                sub_feed_dict = next(gen)
+                test_feed_dict.update(sub_feed_dict)
+            test_feed_dict = {k: v for k, v in test_feed_dict.items() if k != "update_step"}
+            test_fetch_res = sess.run(fetch, feed_dict=test_feed_dict)
+            print("Test Loss", test_fetch_res['loss'])
