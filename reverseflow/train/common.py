@@ -23,10 +23,8 @@ def accumulate_losses(tensors: List[Tensor]) -> Tensor:
 
 
 def gen_fetch(sess: Session,
-              loss,
               debug=False,
               **kwargs):
-    update_step = gen_update_step(loss)
     init = tf.initialize_all_variables()
     sess.run(init)
 
@@ -34,8 +32,6 @@ def gen_fetch(sess: Session,
     if debug:
         fetch['check'] = tf.add_check_numerics_ops()
 
-    fetch['loss'] = loss
-    fetch['update_step'] = update_step
     return fetch
 
 
@@ -53,18 +49,19 @@ def gen_batch(input_tensors, input_data):
 
 
 def train_loop(sess: Session,
+               loss_updates: Sequence[Tensor],
                fetch,
                generators: Sequence[Generator],
                test_generators,
+               loss_ratios: Sequence[int]=None,
                test_every_n=100,
                num_iterations=100000,
                output_call_back=None,
                **kwargs):
     """Perform training
     Args:
-        update_step:
         sess: Tensorflow session
-        loss: tensor to minimize
+        loss_updates: tensor to minimize
         input_tensors:
         output_tensors:
         input_data:
@@ -76,15 +73,20 @@ def train_loop(sess: Session,
         save_dir: Directory for saving logs
         saver: Tensorflow saver for saving
     """
+    # Default 1 for loss_ratios and normalize
+    loss_ratios = [1 for i in range(len(loss_updates))] if loss_ratios is None else loss_ratios
+    loss_ratios = loss_ratios / np.sum(loss_ratios)
     # Main loop
     for i in range(num_iterations):
         # Generate input
+        curr_fetch = {}
+        curr_fetch.update(fetch)
+        curr_fetch["update_loss"] = np.random.choice(loss_updates, loss_ratios)
         feed_dict = {}
         for gen in generators:
             sub_feed_dict = next(gen)
             feed_dict.update(sub_feed_dict)
         # Optimizeation Step
-        import pdb; pdb.set_trace()
         fetch_res = sess.run(fetch, feed_dict=feed_dict)
         if output_call_back:
             output_call_back(fetch_res)

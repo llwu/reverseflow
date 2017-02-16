@@ -151,33 +151,39 @@ def reparam_arrow(arrow: Arrow,
     loss2 = accumulate_losses(error_tensors)
 
     # Generate permutation tensors
-    # with tf.name_scope("placeholder"):
-    #     perm = tf.placeholder(shape=(None,), dtype='int32', name='perm')
-    #     perm_idx = tf.placeholder(shape=(None,), dtype='int32', name='perm_idx')
-    # perm_feed_gen = [perm_gen(batch_size, perm, perm_idx)]
-    # train_gen_gens += perm_feed_gen
-    # test_gen_gens += perm_feed_gen
+    with tf.name_scope("placeholder"):
+        perm = tf.placeholder(shape=(None,), dtype='int32', name='perm')
+        perm_idx = tf.placeholder(shape=(None,), dtype='int32', name='perm_idx')
+    perm_feed_gen = [perm_gen(batch_size, perm, perm_idx)]
+    train_gen_gens += perm_feed_gen
+    test_gen_gens += perm_feed_gen
+
+    euclids = [pairwise_dists(t, perm, perm_idx) for t in theta_tensors]
+    min_gap_losses = [minimum_gap(euclid) for euclid in euclids]
+    min_gap_loss = tf.reduce_min(min_gap_losses)
+    mean_gap_losses = [mean_gap(euclid) for euclid in euclids]
+    mean_gap_loss = tf.reduce_mean(mean_gap_losses)
     #
-    # euclids = [pairwise_dists(t, perm, perm_idx) for t in theta_tensors]
-    # min_gap_losses = [minimum_gap(euclid) for euclid in euclids]
-    # min_gap_loss = tf.reduce_min(min_gap_losses)
-    # mean_gap_losses = [mean_gap(euclid) for euclid in euclids]
-    # mean_gap_loss = tf.reduce_mean(mean_gap_losses)
-    #
-    # lmbda = 10.0
-    # min_gap_loss = lmbda * min_gap_loss
+    lmbda = 10.0
+    min_gap_loss = lmbda * min_gap_loss
     # loss = loss2 / min_gap_loss
-    loss = loss2
+    # loss = loss2
+    losses = [min_gap_loss, loss2]
+    loss_ratios = [10, 1]
+    loss_updates = [gen_update_step(loss) for loss in losses]
     sess = tf.Session()
-    fetch = gen_fetch(sess, loss, **kwargs)
+    fetch = gen_fetch(sess, **kwargs)
     fetch['input_tensors'] = input_tensors
     fetch['output_tensors'] = output_tensors
+    fetch['loss'] = losses
     # fetch['to_print'] = {'min_gap_loss': min_gap_loss,
     #                      'mean_gap_loss': mean_gap_loss,
     #                      'loss2': loss2}
 
     train_loop(sess,
+               loss_updates,
                fetch,
                train_gen_gens,
                test_gen_gens,
+               loss_ratios=loss_ratios,
                **kwargs)
