@@ -163,13 +163,9 @@ def reparam_arrow(arrow: Arrow,
     min_gap_loss = tf.reduce_min(min_gap_losses)
     mean_gap_losses = [mean_gap(euclid) for euclid in euclids]
     mean_gap_loss = tf.reduce_mean(mean_gap_losses)
-    #
-    lmbda = 10.0
-    min_gap_loss = lmbda * min_gap_loss
-    # loss = loss2 / min_gap_loss
-    # loss = loss2
-    losses = [min_gap_loss, loss2]
-    loss_ratios = [10, 1]
+    min_gap_loss = -min_gap_loss
+    losses = [loss2]
+    loss_ratios = [1]
     loss_updates = [gen_update_step(loss) for loss in losses]
     sess = tf.Session()
     fetch = gen_fetch(sess, **kwargs)

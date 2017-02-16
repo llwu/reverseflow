@@ -76,7 +76,7 @@ def draw_lines(n_links, angles):
 
 batch_num = 0
 i = 0
-BATCH_SIZE = 20
+BATCH_SIZE = 256
 
 def plot_call_back(fetch_res):
     # import pdb; pdb.set_trace()
@@ -115,9 +115,9 @@ def plot_call_back(fetch_res):
     # r = np.array(robot_joints).flatten()
     # plot_robot_arm(list(r), target)
 
-def test_robot_arm(batch_size=20):
+def test_robot_arm():
     global BATCH_SIZE
-    batch_size = batch_size
+    batch_size = BATCH_SIZE
     lengths = [1, 1, 1]
     with tf.name_scope("fwd_kinematics"):
         angles = [tf.placeholder(floatX(), name="theta", shape=(batch_size, 1)) for i in range(len(lengths))]
@@ -134,8 +134,8 @@ def test_robot_arm(batch_size=20):
     inv_input1 = np.tile([0.5], (batch_size, 1))
     inv_input2 = np.tile([0.5], (batch_size, 1))
     nlinks = len(lengths)
-    inv_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
-    inv_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
+    # inv_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
+    # inv_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
     test_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
     test_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
 

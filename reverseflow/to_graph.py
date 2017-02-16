@@ -100,7 +100,7 @@ def conv(a: DivArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     with tf.name_scope("Safe_Divide"):
         num = args[0]
         den = args[1]
-        safe_den = den + 1e-4
+        safe_den = den # + 1e-4
         return [tf.div(num, safe_den)]
 
 @overload
