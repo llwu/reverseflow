@@ -96,7 +96,12 @@ def conv(a: MulArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: DivArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    return [tf.div(*args)]
+    # FIXME Deal with me in a better way
+    with tf.name_scope("Safe_Divide"):
+        num = args[0]
+        den = args[1]
+        safe_den = den + 1e-4
+        return [tf.div(num, safe_den)]
 
 @overload
 def conv(a: SinArrow, args: TensorVarList, state) -> Sequence[Tensor]:

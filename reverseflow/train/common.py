@@ -24,7 +24,8 @@ def accumulate_losses(tensors: List[Tensor]) -> Tensor:
 
 def gen_fetch(sess: Session,
               loss,
-              debug=False):
+              debug=False,
+              **kwargs):
     update_step = gen_update_step(loss)
     init = tf.initialize_all_variables()
     sess.run(init)
@@ -83,8 +84,8 @@ def train_loop(sess: Session,
             sub_feed_dict = next(gen)
             feed_dict.update(sub_feed_dict)
         # Optimizeation Step
+        import pdb; pdb.set_trace()
         fetch_res = sess.run(fetch, feed_dict=feed_dict)
-
         if output_call_back:
             output_call_back(fetch_res)
         print("Iteration: ", i, " Loss: ", fetch_res['loss'])

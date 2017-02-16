@@ -38,6 +38,31 @@ class ApproxIdentityArrow(CompositeArrow):
         make_error_port(self.out_ports()[-1])
 
 
+class ApproxIdentityNoErrorArrow(CompositeArrow):
+    """Approximate Identity Arrow
+    f(x_1,..,x_n) = mean(x_1,,,,.x_n), var(x_1, ..., x_n)
+
+    Last out_port is the error port
+    """
+
+    def __init__(self, n_inputs: int):
+        name = "ApproxIdentity"
+        super().__init__(name=name)
+        comp_arrow = self
+        mean = MeanArrow(n_inputs)
+        for i in range(n_inputs):
+            in_port = comp_arrow.add_port()
+            make_in_port(in_port)
+            comp_arrow.add_edge(in_port, mean.in_port(i))
+            out_port = comp_arrow.add_port()
+            make_out_port(out_port)
+            comp_arrow.add_edge(mean.out_port(0), out_port)
+
+        assert comp_arrow.is_wired_correctly()
+
+
+
+
 class IntervalBound(CompositeArrow):
 
     def __init__(self, l, u):

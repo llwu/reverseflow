@@ -169,7 +169,7 @@ def reparam_arrow(arrow: Arrow,
     # loss = loss2 / min_gap_loss
     loss = loss2
     sess = tf.Session()
-    fetch = gen_fetch(sess, loss)
+    fetch = gen_fetch(sess, loss, **kwargs)
     fetch['input_tensors'] = input_tensors
     fetch['output_tensors'] = output_tensors
     # fetch['to_print'] = {'min_gap_loss': min_gap_loss,

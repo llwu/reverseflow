@@ -146,13 +146,13 @@ def ik_gen_graph(g, batch_size):
 
 
 def test_ik():
-    batch_size = 1
+    batch_size = 6
     with tf.name_scope("ik_stanford_manipulator"):
         in_out = ik_gen_graph(tf.Graph(), batch_size)
         train_input = [[[30]], [[45]], [[90]], [[0]], [[60]], [[1]]]
         test_input = train_input
-        train_input = [np.random.rand(batch_size, 1) for i in range(6)]
-        test_input = [np.random.rand(batch_size, 1) for i in range(6)]
+        train_input = [np.random.rand(batch_size, 1)*90 for i in range(6)]
+        test_input = [np.random.rand(batch_size, 1)*90 for i in range(6)]
         with tf.Session() as sess:
             feed_dict = {in_out["inputs"][i]: train_input[i] for i in range(len(train_input))}
             inv_train_data = sess.run(in_out["outputs"], feed_dict=feed_dict)
@@ -171,6 +171,7 @@ def test_ik():
     rep_arrow = reparam(inv_arrow, phi_shape)
     # target = (output_values[0], output_values[1], output_values[2])
     def plot_call_back(fetch_res):
+        import pdb; pdb.set_trace()
         return 10
         # robot_joints = fetch_res['output_tensors'][0:6]
         # r = np.array(robot_joints).flatten()
@@ -187,7 +188,8 @@ def test_ik():
                   error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
                 #   error_filter="inv_fwd_error",
                   batch_size=batch_size,
-                  output_call_back=plot_call_back)
+                  output_call_back=plot_call_back,
+                  debug=False)
 
     min_approx_error_arrow(inv_fwd_arrow,
                            output_values,
