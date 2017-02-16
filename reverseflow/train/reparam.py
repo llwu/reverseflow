@@ -4,6 +4,7 @@ from arrows.port_attributes import *
 from arrows.compositearrow import CompositeArrow
 from arrows.tfarrow import TfArrow
 from arrows.util.generators import *
+from arrows.util.io import mk_dir, save_dict_csv
 from typing import Tuple, Callable
 from reverseflow.train.common import *
 import numpy as np
@@ -102,23 +103,16 @@ def mean_gap(euclids):
         rp = tf.reduce_mean(euclids)
     return rp
 
-def attach(tensor, gen):
-    while True:
-        res = next(gen)
-        yield {tensor: res}
-
-def gen_gens(ts, data, batch_size):
-    return [attach(ts[i], infinite_batches(data[i], batch_size)) \
-                 for i in range(len(data))]
 
 def reparam_arrow(arrow: Arrow,
                   theta_ports: Sequence[Port],
                   train_data: List,
                   test_data: List,
-                  batch_size,
+                  output_call_back=None,
                   error_filter=is_error_port,
-                  **kwargs) -> CompositeArrow:
+                  options={}) -> CompositeArrow:
 
+    batch_size = options['batch_size']
     # FIXME: Add broadcasting nodes
     with tf.name_scope(arrow.name):
         input_tensors = gen_input_tensors(arrow, param_port_as_var=False)
@@ -167,11 +161,21 @@ def reparam_arrow(arrow: Arrow,
     losses = [loss2]
     loss_ratios = [1]
     loss_updates = [gen_update_step(loss) for loss in losses]
+
+    #
     sess = tf.Session()
-    fetch = gen_fetch(sess, **kwargs)
+    fetch = gen_fetch(sess, **options)
     fetch['input_tensors'] = input_tensors
     fetch['output_tensors'] = output_tensors
     fetch['loss'] = losses
+
+    save_dir = mk_dir(options['sfx'])
+    options_path = os.path.join(save_dir, "options")
+    save_dict_csv(options_path, options)
+    saver = tf.train.Saver()
+    if options['load_params'] is True:
+        saver.restore(sess, options['params_file'])
+
     # fetch['to_print'] = {'min_gap_loss': min_gap_loss,
     #                      'mean_gap_loss': mean_gap_loss,
     #                      'loss2': loss2}
@@ -182,4 +186,5 @@ def reparam_arrow(arrow: Arrow,
                train_gen_gens,
                test_gen_gens,
                loss_ratios=loss_ratios,
-               **kwargs)
+               output_call_back=output_call_back,
+               **options)

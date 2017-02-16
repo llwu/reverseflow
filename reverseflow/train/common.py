@@ -7,7 +7,7 @@ from reverseflow.to_graph import arrow_to_graph, gen_input_tensors
 from typing import List, Generator, Callable
 import tensorflow as tf
 from tensorflow import Graph, Tensor, Session
-
+import os
 
 def accumulate_losses(tensors: List[Tensor]) -> Tensor:
     """
@@ -20,6 +20,27 @@ def accumulate_losses(tensors: List[Tensor]) -> Tensor:
     """
     with tf.name_scope('loss'):
         return tf.add_n([tf.reduce_mean(t) for t in tensors]) / len(tensors)
+
+
+def load_train_save(sess, options, sfx, save_dir):
+    options_path = os.path.join(save_dir, "options")
+    save_dict_csv(options_path, options)
+    saver = tf.train.Saver()
+
+    if options['load_params'] is True:
+        saver.restore(sess, options['params_file'])
+        # adt.load_params(options['params_file'])
+
+    # if options['save_params'] is True:
+    #     path = os.path.join(save_dir, "final" + sfx)
+    #     # adt.save_params(path)
+
+    if options['train'] is True:
+        train(adt, pbt, sess, num_epochs=options['num_epochs'],
+              sfx=sfx, save_dir=save_dir, save_every=options['save_every'],
+              compress=options['compress'], saver=saver)
+
+    return sess
 
 
 def gen_fetch(sess: Session,

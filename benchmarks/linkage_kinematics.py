@@ -10,6 +10,9 @@ from reverseflow.train.loss import inv_fwd_loss_arrow
 from arrows.port_attributes import *
 from arrows.apply.propagate import *
 from reverseflow.train.reparam import *
+from arrows.util.io import mk_dir
+from common import handle_options, gen_sfx_key
+import sys
 
 from typing import Sequence
 import matplotlib.pyplot as plt
@@ -19,13 +22,6 @@ import numpy as np
 
 # Interactive Plotting
 plt.ion()
-fig = plt.figure()
-ax = fig.add_subplot(111, autoscale_on=False)
-ax.set_xlim(-3, 3)
-ax.set_ylim(-3, 3)
-# axis = plt.axis([-3, 3, -3, 3])
-lines = None
-circle = None
 
 
 def accum_sum(xs: Sequence):
@@ -74,53 +70,55 @@ def draw_lines(n_links, angles):
     y_accum, y = accum_sum(y_terms)
     return [0.0] + x_accum, [0.0] + y_accum
 
-batch_num = 0
-i = 0
-BATCH_SIZE = 512
 
-def plot_call_back(fetch_res):
-    # import pdb; pdb.set_trace()
-    global lines
-    global ax
-    global i
-    global batch_num
-    global circle
-    global BATCH_SIZE
-    batch_size = BATCH_SIZE
-    i = i + 1
-    n_links = 3
-    batch_angles = fetch_res['output_tensors'][0:n_links]
-    if i % 30 == 0:
-        batch_num = np.random.randint(batch_size)
+def plot_call_back(batch_size):
+    i = 0
+    fig = plt.figure()
+    ax = fig.add_subplot(111, autoscale_on=False)
+    ax.set_xlim(-3, 3)
+    ax.set_ylim(-3, 3)
+    # axis = plt.axis([-3, 3, -3, 3])
+    lines = None
+    circle = None
+    batch_num = 10
+    def closure(fetch_res):
+        nonlocal i, fig, ax, lines, circle, batch_num
+        i = i + 1
+        n_links = 3
+        batch_angles = fetch_res['output_tensors'][0:n_links]
+        if i % 30 == 0:
+            batch_num = np.random.randint(batch_size)
 
-    angles = [batch_angles[i][batch_num, 0] for i in range(len(batch_angles))]
-    x, y = draw_lines(n_links, angles)
-    if lines is None:
-        lines = Line2D(x, y)
-        ax.add_line(lines)
-        x = fetch_res['input_tensors'][1][batch_num, 0]
-        y = fetch_res['input_tensors'][2][batch_num, 0]
-        circle = plt.Circle((x, y), 0.1, color='r')
-        ax.add_artist(circle)
+        angles = [batch_angles[i][batch_num, 0] for i in range(len(batch_angles))]
+        x, y = draw_lines(n_links, angles)
+        if lines is None:
+            lines = Line2D(x, y)
+            ax.add_line(lines)
+            x = fetch_res['input_tensors'][1][batch_num, 0]
+            y = fetch_res['input_tensors'][2][batch_num, 0]
+            circle = plt.Circle((x, y), 0.1, color='r')
+            ax.add_artist(circle)
+            plt.draw()
+        else:
+            lines.set_data(x, y)
+            x = fetch_res['input_tensors'][1][batch_num, 0]
+            y = fetch_res['input_tensors'][2][batch_num, 0]
+            circle.center = (x, y)
         plt.draw()
-    else:
-        lines.set_data(x, y)
-        x = fetch_res['input_tensors'][1][batch_num, 0]
-        y = fetch_res['input_tensors'][2][batch_num, 0]
-        circle.center = (x, y)
-    plt.draw()
-    plt.show()
-    plt.pause(0.05)
-    # robot_joints = output_values[3:3+6]
-    # r = np.array(robot_joints).flatten()
-    # plot_robot_arm(list(r), target)
+        plt.show()
+        plt.pause(0.05)
+    return closure
 
-def test_robot_arm():
-    global BATCH_SIZE
-    batch_size = BATCH_SIZE
-    lengths = [1, 1, 1]
+def robot_arm(options):
+    batch_size = options['batch_size']
+    n_links = 3
+    lengths = [1 for i in range(n_links)]
     with tf.name_scope("fwd_kinematics"):
-        angles = [tf.placeholder(floatX(), name="theta", shape=(batch_size, 1)) for i in range(len(lengths))]
+        angles = []
+        for i in range(n_links):
+            angles.append(tf.placeholder(floatX(),
+                                         name="theta",
+                                         shape=(batch_size, 1)))
         x, y = gen_robot(lengths, angles)
     arrow = graph_to_arrow([x, y],
                            input_tensors=angles,
@@ -129,7 +127,6 @@ def test_robot_arm():
     # inv_arrow = invert(arrow)
     inv_arrow = inv_fwd_loss_arrow(arrow)
     rep_arrow = reparam(inv_arrow, (batch_size, len(lengths),))
-    port_attr = propagate(rep_arrow)
 
     # inv_input1 = np.tile([0.5], (batch_size, 1))
     # inv_input2 = np.tile([0.5], (batch_size, 1))
@@ -139,8 +136,9 @@ def test_robot_arm():
     test_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
     test_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
 
-
     d = [p for p in inv_arrow.out_ports() if not is_error_port(p)]
+    cb = plot_call_back(batch_size)
+
     reparam_arrow(rep_arrow,
                   d,
                   [inv_input1, inv_input2],
@@ -148,12 +146,22 @@ def test_robot_arm():
                   error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
                 #   error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
                 #   error_filter="inv_fwd_error",
-                  batch_size=batch_size,
-                  output_call_back=plot_call_back)
+                  output_call_back=cb,
+                  options=options)
     # min_approx_error_arrow(rep_arrow,
     #                        [inv_input1, inv_input2],
     #                     #    error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
     #                        output_call_back=plot_call_back)
 
 
-test_robot_arm()
+def main(argv):
+    options = handle_options('dictionary', argv)
+    sfx = gen_sfx_key(('nblocks', 'block_size'), options)
+    options['sfx'] = sfx
+    robot_arm(options)
+
+if __name__ == "__main__":
+    """To run
+    ipython -- examples/stack.py --template=res_net --nblocks=1 --block_size=1 -u adam -l 0.0001 --nitems=1 --batch_size=128 --train 1 --num_epochs=1000
+    """
+    main(sys.argv[1:])

@@ -56,3 +56,14 @@ def iterate_batches(inputs, batch_size, shuffle=False):
         else:
             excerpt = slice(start_idx, start_iiteratedx + batch_size)
         yield inputs[excerpt]
+
+
+def attach(tensor, gen):
+    while True:
+        res = next(gen)
+        yield {tensor: res}
+
+
+def gen_gens(ts, data, batch_size):
+    return [attach(ts[i], infinite_batches(data[i], batch_size)) \
+                 for i in range(len(data))]
