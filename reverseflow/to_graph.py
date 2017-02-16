@@ -223,8 +223,8 @@ def conv(a: TfArrow, args: TensorVarList, state) -> Sequence[Tensor]:
                         inp_shapes=inp_shapes,
                         out_shapes=out_shapes,
                         layer_width=10,
-                        nblocks=1,
-                        block_size=1,
+                        nblocks=2,
+                        block_size=2,
                         reuse=False)
     return r
 

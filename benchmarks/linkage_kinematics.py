@@ -76,7 +76,7 @@ def draw_lines(n_links, angles):
 
 batch_num = 0
 i = 0
-BATCH_SIZE = 256
+BATCH_SIZE = 512
 
 def plot_call_back(fetch_res):
     # import pdb; pdb.set_trace()
@@ -146,6 +146,7 @@ def test_robot_arm():
                   [inv_input1, inv_input2],
                   [test_input1, test_input2],
                   error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
+                #   error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
                 #   error_filter="inv_fwd_error",
                   batch_size=batch_size,
                   output_call_back=plot_call_back)

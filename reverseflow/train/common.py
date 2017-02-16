@@ -39,7 +39,7 @@ def gen_update_step(loss: Tensor) -> Tensor:
     with tf.name_scope('optimization'):
         # optimizer = tf.train.MomentumOptimizer(0.001,
         #                                        momentum=0.1)
-        optimizer = tf.train.AdamOptimizer(0.1)
+        optimizer = tf.train.AdamOptimizer(0.001)
         update_step = optimizer.minimize(loss)
         return update_step
 
@@ -81,13 +81,13 @@ def train_loop(sess: Session,
         # Generate input
         curr_fetch = {}
         curr_fetch.update(fetch)
-        curr_fetch["update_loss"] = np.random.choice(loss_updates, loss_ratios)[0]
+        curr_fetch["update_loss"] = np.random.choice(loss_updates, p=loss_ratios)
         feed_dict = {}
         for gen in generators:
             sub_feed_dict = next(gen)
             feed_dict.update(sub_feed_dict)
         # Optimizeation Step
-        fetch_res = sess.run(fetch, feed_dict=feed_dict)
+        fetch_res = sess.run(curr_fetch, feed_dict=feed_dict)
         if output_call_back:
             output_call_back(fetch_res)
         print("Iteration: ", i, " Loss: ", fetch_res['loss'])
