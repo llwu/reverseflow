@@ -109,7 +109,7 @@ def conv(a: SinArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: SubArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    return [tf.sub(*args)]
+    return [tf.subtract(*args)]
 
 
 @overload

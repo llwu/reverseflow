@@ -131,11 +131,11 @@ def test_robot_arm():
     rep_arrow = reparam(inv_arrow, (batch_size, len(lengths),))
     port_attr = propagate(rep_arrow)
 
-    inv_input1 = np.tile([0.5], (batch_size, 1))
-    inv_input2 = np.tile([0.5], (batch_size, 1))
+    # inv_input1 = np.tile([0.5], (batch_size, 1))
+    # inv_input2 = np.tile([0.5], (batch_size, 1))
     nlinks = len(lengths)
-    # inv_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
-    # inv_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
+    inv_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
+    inv_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
     test_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
     test_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
 
