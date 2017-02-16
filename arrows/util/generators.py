@@ -9,14 +9,14 @@ def infinite_samples(sampler, batch_size, shape, add_batch=False):
             shape = (batch_size,)+shape
         yield sampler(*shape)
 
-def repeated_random(batchsize, nrepeats, shape):
+def repeated_random(sampler, batchsize, nrepeats, shape):
     ndata = batchsize // nrepeats
     def tile_shape(x, y):
         shape = [x]
         shape.extend([1] * y)
         return tuple(shape)
     while True:
-        data = np.random.rand(ndata, *shape)
+        data = sampler(ndata, *shape)
         batch_data = np.tile(data, tile_shape(nrepeats, len(shape)))
         np.append(batch_data, np.tile(data, tile_shape(batchsize - nrepeats * ndata, len(shape))))
         np.random.shuffle(batch_data)

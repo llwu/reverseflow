@@ -106,8 +106,8 @@ def mean_gap(euclids):
 
 def reparam_arrow(arrow: Arrow,
                   theta_ports: Sequence[Port],
-                  train_data: List,
-                  test_data: List,
+                  train_data: List[Generator],
+                  test_data: List[Generator],
                   output_call_back=None,
                   error_filter=is_error_port,
                   options={}) -> CompositeArrow:
@@ -139,8 +139,9 @@ def reparam_arrow(arrow: Arrow,
     train_gen_gens += param_feed_gens
     test_gen_gens += param_feed_gens
 
-    train_gen_gens += gen_gens(y_tensors, train_data, batch_size)
-    test_gen_gens += gen_gens(y_tensors, test_data, batch_size)
+    n = len(y_tensors)
+    train_gen_gens += [attach(y_tensors[i], train_data[i]) for i in range(n)]
+    test_gen_gens += [attach(y_tensors[i], test_data[i]) for i in range(n)]
 
     loss2 = accumulate_losses(error_tensors)
 
@@ -158,7 +159,7 @@ def reparam_arrow(arrow: Arrow,
     mean_gap_losses = [mean_gap(euclid) for euclid in euclids]
     mean_gap_loss = tf.reduce_mean(mean_gap_losses)
     min_gap_loss = min_gap_loss
-    losses = [loss2]
+    losses = [loss2 - min_gap_loss]
     loss_ratios = [1]
     loss_updates = [gen_update_step(loss) for loss in losses]
 
@@ -168,6 +169,9 @@ def reparam_arrow(arrow: Arrow,
     fetch['input_tensors'] = input_tensors
     fetch['output_tensors'] = output_tensors
     fetch['loss'] = losses
+    fetch['to_print'] = {'min_gap_loss': min_gap_loss,
+                         'mean_gap_loss': mean_gap_loss,
+                         'loss2': loss2}
 
     save_dir = mk_dir(options['sfx'])
     options_path = os.path.join(save_dir, "options")
@@ -176,9 +180,7 @@ def reparam_arrow(arrow: Arrow,
     if options['load_params'] is True:
         saver.restore(sess, options['params_file'])
 
-    # fetch['to_print'] = {'min_gap_loss': min_gap_loss,
-    #                      'mean_gap_loss': mean_gap_loss,
-    #                      'loss2': loss2}
+
 
     train_loop(sess,
                loss_updates,

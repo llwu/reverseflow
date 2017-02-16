@@ -128,20 +128,33 @@ def robot_arm(options):
     inv_arrow = inv_fwd_loss_arrow(arrow)
     rep_arrow = reparam(inv_arrow, (batch_size, len(lengths),))
 
-    # inv_input1 = np.tile([0.5], (batch_size, 1))
-    # inv_input2 = np.tile([0.5], (batch_size, 1))
+    # train_input1 = np.tile([0.5], (batch_size, 1))
+    # train_input2 = np.tile([0.5], (batch_size, 1))
     nlinks = len(lengths)
-    inv_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
-    inv_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
+    train_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
+    train_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
     test_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
     test_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
+
+    def sampler(*x):
+        return np.random.rand(*x)*nlinks
+    # train_input1 = infinite_samples(sampler, batch_size, shape=(batch_size, 1))
+    # train_input2 = infinite_samples(sampler, batch_size, shape=(batch_size, 1))
+    # test_input1 = infinite_samples(sampler, batch_size, shape=(batch_size, 1))
+    # test_input2 = infinite_samples(sampler, batch_size, shape=(batch_size, 1))
+
+    train_input1 = repeated_random(sampler, batch_size, 8, shape=(1,))
+    train_input2 = repeated_random(sampler, batch_size, 8, shape=(1,))
+    test_input1 = repeated_random(sampler, batch_size, 8, shape=(1,))
+    test_input2 = repeated_random(sampler, batch_size, 8, shape=(1,))
+
 
     d = [p for p in inv_arrow.out_ports() if not is_error_port(p)]
     cb = plot_call_back(batch_size)
 
     reparam_arrow(rep_arrow,
                   d,
-                  [inv_input1, inv_input2],
+                  [train_input1, train_input2],
                   [test_input1, test_input2],
                   error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
                 #   error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
@@ -149,7 +162,7 @@ def robot_arm(options):
                   output_call_back=cb,
                   options=options)
     # min_approx_error_arrow(rep_arrow,
-    #                        [inv_input1, inv_input2],
+    #                        [train_input1, train_input2],
     #                     #    error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
     #                        output_call_back=plot_call_back)
 
