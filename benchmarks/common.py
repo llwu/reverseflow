@@ -6,6 +6,12 @@ from pdt.util.misc import stringy_dict
 import tensortemplates.res_net as res_net
 import tensortemplates.conv_res_net as conv_res_net
 
+def stringy_dict(d):
+    out = ""
+    for (key, val) in d.items():
+        if val is not None and val is not '':
+            out = out + "%s_%s__" % (str(key), str(val))
+    return out
 
 def gen_sfx_key(keys, options):
     sfx_dict = {}
