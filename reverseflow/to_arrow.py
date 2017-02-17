@@ -25,8 +25,8 @@ def get_const_op_value(const_op: Operation):
 def broadcast_wrap(arr: Arrow):
     return BroadcastArithArrow(arr)
 
-def broadcast_wrap(x):
-    return x
+# def broadcast_wrap(x):
+#     return x
 
 #FIXME: DRY
 def conv_Add(add_op: Operation):
@@ -41,16 +41,16 @@ def conv_AddN(addm_op: Operation):
 
 def conv_Const(const_op: Operation):
     value = get_const_op_value(const_op)
-    c = CompositeArrow(name="BroadCastedSource")
-    out_port = c.add_port()
-    make_out_port(out_port)
-    src = SourceArrow(value=value)
-    bc = BroadcastArrow()
-    c.add_edge(src.out_port(0), bc.in_port(0))
-    c.add_edge(bc.out_port(0), c.out_port(0))
-    assert c.is_wired_correctly()
-    return c
-    # return SourceArrow(value=value)
+    # c = CompositeArrow(name="BroadCastedSource")
+    # out_port = c.add_port()
+    # make_out_port(out_port)
+    # src = SourceArrow(value=value)
+    # bc = BroadcastArrow()
+    # c.add_edge(src.out_port(0), bc.in_port(0))
+    # c.add_edge(bc.out_port(0), c.out_port(0))
+    # assert c.is_wired_correctly()
+    # return c
+    return SourceArrow(value=value)
 
 
 def conv_Cos(sin_op: Operation):
@@ -77,7 +77,7 @@ def conv_Sin(sin_op: Operation):
     return SinArrow()
 
 
-def conv_Reshape(sin_op: Operation):
+def conv_Reshape(res_op: Operation):
     return ReshapeArrow()
 
 def conv_Greater(gt_op: Operation):
