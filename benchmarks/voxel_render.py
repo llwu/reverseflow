@@ -168,7 +168,7 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
     t04 = t04*1.001
     t14 = t14*0.999
 
-    nvoxgrids = voxels.get_shape()[0]
+    nvoxgrids = voxels.get_shape()[0] if len(voxels.get_shape()) > 1 else 1
     print("hello", nvoxgrids)
     left_over = np.ones((nvoxgrids, nmatrices * width * height,))
     step_size = (t14 - t04)/nsteps
@@ -212,7 +212,7 @@ def render_fwd_f(inputs):
     width = options['width'] = 32
     height = options['height'] = 32
     res = options['res'] = 32
-    nsteps = options['nsteps'] = 3
+    nsteps = options['nsteps'] = 30
     nvoxgrids = options['nvoxgrids'] = 1
     nviews = options['nviews'] = 1
     rotation_matrices = rand_rotation_matrices(nviews)
