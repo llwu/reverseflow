@@ -1,6 +1,5 @@
 """Generators"""
 import numpy as np
-from pdt.util.misc import identity
 
 # Minibatching
 def infinite_samples(sampler, batch_size, shape, add_batch=False):
@@ -23,7 +22,7 @@ def repeated_random(sampler, batchsize, nrepeats, shape):
         yield batch_data
 
 
-def infinite_batches(inputs, batch_size, f=identity, shuffle=False):
+def infinite_batches(inputs, batch_size, f=lambda x: x, shuffle=False):
     """Create generator which without termintation yields batch_size chunk
     of inputs
     Args:

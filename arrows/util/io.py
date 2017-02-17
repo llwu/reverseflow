@@ -2,7 +2,6 @@ import getopt
 import os
 import csv
 import time
-import pdt.config
 import sys
 from optparse import (OptionParser,BadOptionError,AmbiguousOptionError)
 
