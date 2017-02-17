@@ -145,6 +145,28 @@ def reshape_eval_dispatch(arr: "ReshapeArrow", port_attr: PortAttributes):
     res = np.reshape(ptv[i[0]], ptv[i[1]])
     return {o[0]: {'value': res}}
 
+def reshape_pred1(arr: "ReshapeArrow", port_attr: PortAttributes):
+    return ports_has(arr.in_ports()[:1], 'shape', port_attr) and ports_has(arr.out_ports()[:1], 'value', port_attr)
+
+def reshape_dispatch1(arr: "ReshapeArrow", port_attr: PortAttributes):
+    o = port_attr[arr.out_ports()[0]]['value']
+    s = port_attr[arr.in_ports()[0]]['shape']
+    return {arr.in_ports()[0]: {'value': np.reshape(o, const_to_tuple(s))}}
+
+def reshape_pred2(arr: "ReshapeArrow", port_attr: PortAttributes):
+    return ports_has(arr.out_ports()[:1], 'shape', port_attr)
+
+def reshape_dispatch2(arr: "ReshapeArrow", port_attr: PortAttributes):
+    o = port_attr[arr.out_ports()[0]]['shape']
+    return {arr.in_ports()[1]: {'value': np.array(o)}}
+
+def reshape_pred3(arr: "ReshapeArrow", port_attr: PortAttributes):
+    return ports_has(arr.in_ports()[1:2], 'value', port_attr)
+
+def reshape_dispatch3(arr: "ReshapeArrow", port_attr: PortAttributes):
+    i = port_attr[arr.in_ports()[1]]['value']
+    return {arr.out_ports()[0]: {'shape': const_to_tuple(i)}}
+
 class ReshapeArrow(PrimitiveArrow):
     """
     Port0:  Tensor
@@ -158,7 +180,11 @@ class ReshapeArrow(PrimitiveArrow):
 
     def get_dispatches(self):
         disp = super().get_dispatches()
-        disp.update({reshape_eval_pred: reshape_eval_dispatch})
+        disp.update({reshape_eval_pred: reshape_eval_dispatch,
+            reshape_pred1: reshape_dispatch1,
+            reshape_pred2: reshape_dispatch2,
+            reshape_pred3: reshape_dispatch3
+            })
         return disp
 
 

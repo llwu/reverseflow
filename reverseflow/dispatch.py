@@ -265,13 +265,15 @@ def inv_broadcast(arrow: BroadcastArrow, port_attr: PortAttributes) -> Tuple[Arr
         source_start = SourceArrow(start)
         source_size = SourceArrow(size)
         slicer = SliceArrow()
-        squeeze = SqueezeArrow()
+        source = SourceArrow(np.array(in_shape, dtype=np.int32))
+        reshape = ReshapeArrow()
         edges = Bimap()
         edges.add(source_start.out_ports()[0], slicer.in_ports()[1])
         edges.add(source_size.out_ports()[0], slicer.in_ports()[2])
-        edges.add(slicer.out_ports()[0], squeeze.in_ports()[0])
+        edges.add(slicer.out_ports()[0], reshape.in_ports()[0])
+        edges.add(source.out_ports()[0], reshape.in_ports()[1])
         in_ports = [slicer.in_ports()[0]]
-        out_ports = squeeze.out_ports()
+        out_ports = reshape.out_ports()
         inv_arrow = CompositeArrow(in_ports=in_ports,
                             out_ports=out_ports,
                             edges=edges,

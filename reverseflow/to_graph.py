@@ -154,7 +154,12 @@ def conv(a: SliceArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     return [tf.slice(*args)]
 
 @overload
+def conv(a: ReshapeArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.reshape(*args)]
+
+@overload
 def conv(a: SqueezeArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    import pdb; pdb.set_trace()
     return [tf.squeeze(*args)]
 
 @overload

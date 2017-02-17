@@ -149,7 +149,7 @@ def mk_dir(sfx=''):
     "Create directory with timestamp"
     datadir = os.environ['DATADIR']
     newdirname = str(time.time()) + sfx
-    full_dir_name = os.path.join(datadir, "pdt", newdirname)
+    full_dir_name = os.path.join(datadir, "rf", newdirname)
     print("Data will be saved to", full_dir_name)
     os.mkdir(full_dir_name)
     return full_dir_name
