@@ -68,7 +68,7 @@ def conv(a: ExpArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: NegArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    return [tf.neg(*args)]
+    return [tf.negative(*args)]
 
 
 @overload

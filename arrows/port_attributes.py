@@ -80,6 +80,7 @@ def get_port_shape(port: Port, port_attr: PortAttributes=None) -> Shape:
     # add port_attr is None for all these functions
     port_attr = port.arrow.port_attr[port.index] if port_attr is None \
         else port_attr[port]
+    assert "shape" in port_attr, "%s has no shape attr" % (port)
     return port_attr["shape"]
 
 
