@@ -86,27 +86,36 @@ def plot_call_back(batch_size):
         i = i + 1
         n_links = 3
         batch_angles = fetch_res['output_tensors'][0:n_links]
-        if i % 30 == 0:
-            batch_num = np.random.randint(batch_size)
+        x = fetch_res['input_tensors'][1][0, 0]
+        y = fetch_res['input_tensors'][2][0, 0]
+        repeats = 0
+        for j in range(len(fetch_res['input_tensors'][1])):
+            repeats += 1
+            if fetch_res['input_tensors'][1][j, 0] != x:
+                break
+            if fetch_res['input_tensors'][2][j, 0] != y:
+                break
 
-        angles = [batch_angles[i][batch_num, 0] for i in range(len(batch_angles))]
-        x, y = draw_lines(n_links, angles)
-        if lines is None:
-            lines = Line2D(x, y)
-            ax.add_line(lines)
-            x = fetch_res['input_tensors'][1][batch_num, 0]
-            y = fetch_res['input_tensors'][2][batch_num, 0]
-            circle = plt.Circle((x, y), 0.1, color='r')
-            ax.add_artist(circle)
-            plt.draw()
-        else:
-            lines.set_data(x, y)
-            x = fetch_res['input_tensors'][1][batch_num, 0]
-            y = fetch_res['input_tensors'][2][batch_num, 0]
-            circle.center = (x, y)
-        plt.draw()
-        plt.show()
-        plt.pause(0.05)
+        for j in range(repeats):
+            angles = [batch_angles[i][j, 0] for i in range(len(batch_angles))]
+            x, y = draw_lines(n_links, angles)
+            if lines is None:
+                lines = Line2D(x, y)
+                ax.add_line(lines)
+                x = fetch_res['input_tensors'][1][j, 0]
+                y = fetch_res['input_tensors'][2][j, 0]
+                circle = plt.Circle((x, y), 0.1, color='r')
+                ax.add_artist(circle)
+                plt.draw()
+            else:
+                lines.set_data(x, y)
+                x = fetch_res['input_tensors'][1][j, 0]
+                y = fetch_res['input_tensors'][2][j, 0]
+                circle.center = (x, y)
+                plt.draw()
+                plt.show()
+                plt.pause(0.05)
+        plt.pause(0.2)
     return closure
 
 def robot_arm(options):

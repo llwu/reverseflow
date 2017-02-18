@@ -16,9 +16,7 @@ def repeated_random(sampler, batchsize, nrepeats, shape):
         return tuple(shape)
     while True:
         data = sampler(ndata, *shape)
-        batch_data = np.tile(data, tile_shape(nrepeats, len(shape)))
-        np.append(batch_data, np.tile(data, tile_shape(batchsize - nrepeats * ndata, len(shape))))
-        np.random.shuffle(batch_data)
+        batch_data = np.repeat(data, nrepeats, axis=0)
         yield batch_data
 
 
