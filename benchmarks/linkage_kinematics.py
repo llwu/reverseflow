@@ -162,6 +162,29 @@ def robot_arm(options):
     #                     #    error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
     #                        output_callback=plot_callback)
 
+def layer_width(i, o, n, p):
+    """Compute the layer width for a desired number of parameters
+    Args:
+        i: Length of input
+        o: Length of output
+        p: Desired number of parameters
+        n: Number of layers
+    Returns:
+        Size of inner layers"""
+    b = i + 1 + o + n
+    a = n
+    c = o - p
+    inner = np.sqrt(b*b - 4*a*c)
+    return (-b + inner)/(2*a), (-b - inner)/(2*a)
+
+
+def vanilla_nn():
+    template = res_net.template
+    options = {'layer_width': layer_width,
+               'num_layers': num_layers}
+    t = TfArrow(template=template, options=options)
+    supervised(nnet_arrow, xy_gen, callbacks=[plot_cb, save_callback])
+
 
 def main(argv):
     options = handle_options('linkage_kinematics', argv)

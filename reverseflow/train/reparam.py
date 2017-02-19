@@ -103,6 +103,39 @@ def mean_gap(euclids):
         rp = tf.reduce_mean(euclids)
     return rp
 
+def extract_tensors(arrow):
+    # Convert to tensorflow graph and get input, output, error, and parma_tensors
+    with tf.name_scope(arrow.name):
+        input_tensors = gen_input_tensors(arrow, param_port_as_var=False)
+        port_grab = {p: None for p in theta_ports}
+        output_tensors = arrow_to_graph(arrow, input_tensors, port_grab=port_grab)
+
+    theta_tensors = list(port_grab.values())
+    inp_tensors = [t for i, t in enumerate(input_tensors) if not is_param_port(arrow.in_ports()[i])]
+    param_tensors = [t for i, t in enumerate(input_tensors) if is_param_port(arrow.in_ports()[i])]
+    error_tensors = [t for i, t in enumerate(output_tensors) if error_filter(arrow.out_ports()[i])]
+    assert len(param_tensors) > 0, "Must have parametric inports"
+    assert len(error_tensors) > 0, "Must have error outports"
+    assert len(inp_tensors) == len(train_data)
+    return {'input': input_tensors,
+            'output': output_tensors,
+            'param': param_tensors,
+            'error': error_tensors}
+
+def prepare_save(sess: Session, save, load_params):
+    save_params = {}
+    if save or load_params:
+        saver = tf.train.Saver()
+    if save is True:
+        save_dir = mk_dir(sfx)
+        save_params['save_dir'] = save_dir
+        options_path = os.path.join(save_dir, "options")
+        save_dict_csv(options_path, options)
+        save_params['saver'] = saver = tf.train.Saver()
+    if load_params is True:
+        saver.restore(sess, params_file)
+    return save_params
+
 
 def reparam_arrow(arrow: Arrow,
                   theta_ports: Sequence[Port],
@@ -112,20 +145,8 @@ def reparam_arrow(arrow: Arrow,
                   error_filter=is_error_port,
                   options={}) -> CompositeArrow:
 
-    batch_size = options['batch_size']
-    # FIXME: Add broadcasting nodes
-    with tf.name_scope(arrow.name):
-        input_tensors = gen_input_tensors(arrow, param_port_as_var=False)
-        port_grab = {p: None for p in theta_ports}
-        output_tensors = arrow_to_graph(arrow, input_tensors, port_grab=port_grab)
-
-    theta_tensors = list(port_grab.values())
-    y_tensors = [t for i, t in enumerate(input_tensors) if not is_param_port(arrow.in_ports()[i])]
-    param_tensors = [t for i, t in enumerate(input_tensors) if is_param_port(arrow.in_ports()[i])]
-    error_tensors = [t for i, t in enumerate(output_tensors) if error_filter(arrow.out_ports()[i])]
-    assert len(param_tensors) > 0, "Must have parametric inports"
-    assert len(error_tensors) > 0, "Must have error outports"
-    assert len(y_tensors) == len(train_data)
+    tensors = extract_tensors(arrow)
+    inp_tensors = tensors['input']
 
     # Make parametric inputs
     train_gen_gens = []
@@ -139,9 +160,9 @@ def reparam_arrow(arrow: Arrow,
     train_gen_gens += param_feed_gens
     test_gen_gens += param_feed_gens
 
-    n = len(y_tensors)
-    train_gen_gens += [attach(y_tensors[i], train_data[i]) for i in range(n)]
-    test_gen_gens += [attach(y_tensors[i], test_data[i]) for i in range(n)]
+    n = len(inp_tensors)
+    train_gen_gens += [attach(inp_tensors[i], train_data[i]) for i in range(n)]
+    test_gen_gens += [attach(inp_tensors[i], test_data[i]) for i in range(n)]
 
     loss2 = accumulate_losses(error_tensors)
 
@@ -173,16 +194,7 @@ def reparam_arrow(arrow: Arrow,
                          'mean_gap_loss': mean_gap_loss,
                          'loss2': loss2}
 
-    save_dir = mk_dir(options['sfx'])
-    options['save_dir'] = save_dir
-    options_path = os.path.join(save_dir, "options")
-    save_dict_csv(options_path, options)
-    saver = tf.train.Saver()
-
-    if options['save'] or options['load_params']:
-        options['saver'] = saver = tf.train.Saver()
-    if options['load_params'] is True:
-        saver.restore(sess, options['params_file'])
+    options.update(prepare_save(sess, options['save'], options['load_params'])
 
     train_loop(sess,
                loss_updates,
