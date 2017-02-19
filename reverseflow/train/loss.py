@@ -59,8 +59,8 @@ def inv_fwd_loss_arrow(arrow: Arrow,
     return c
 
 
-def make_supervised(arrow: Arrow,
-                    DiffArrow=SquaredDifference) -> CompositeArrow:
+def supervised_loss_arrow(arrow: Arrow,
+                          DiffArrow=SquaredDifference) -> CompositeArrow:
     """
     Arrow which computes |f(y) - x|
     Args:
@@ -72,11 +72,11 @@ def make_supervised(arrow: Arrow,
 
     # Make all in_ports of inverse inputs to composition
     for in_port in arrow.in_ports():
-        in_port = c.add_port()
-        make_in_port(in_port)
+        c_in_port = c.add_port()
+        make_in_port(c_in_port)
         if is_param_port(in_port):
-            make_param_port(in_port)
-        c.add_edge(in_port, in_port)
+            make_param_port(c_in_port)
+        c.add_edge(c_in_port, in_port)
 
     # find difference between inputs to inverse and outputs of fwd
     # make error port for each
@@ -96,7 +96,7 @@ def make_supervised(arrow: Arrow,
             diff = DiffArrow()
             in_port = c.add_port()
             make_in_port(in_port)
-            add_port_label(error_port, "training_output")
+            add_port_label(in_port, "training_output")
             c.add_edge(in_port, diff.in_port(0))
             c.add_edge(out_port, diff.in_port(1))
             error_port = c.add_port()

@@ -5,6 +5,12 @@ def extract(keys: Sequence, dict: Dict):
     """Restrict dict to keys in `keys`"""
     return {key: dict[key] for key in keys}
 
+def getn(dict: Dict, *keys):
+    return (dict[k] for k in keys)
+
+def inn(seq, *keys):
+    return all((k in seq for k in keys))
+
 
 def print_one_per_line(xs:Sequence):
     """Simple printing of one element of xs per line"""

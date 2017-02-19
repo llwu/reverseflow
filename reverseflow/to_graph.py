@@ -13,7 +13,6 @@ from arrows.std_arrows import *
 from arrows.apply.interpret import interpret
 from arrows.apply.propagate import propagate
 from arrows.util.misc import print_one_per_line
-from tensortemplates.res_net import template
 from typing import List, Dict, MutableMapping, Union, Sequence
 from overloading import overload
 
@@ -224,13 +223,10 @@ def conv(a: TfArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     inp_shapes = [get_port_shape(p, port_attr) for p in a.in_ports()]
     out_shapes = [get_port_shape(p, port_attr) for p in a.out_ports()]
     with tf.name_scope("TfArrow"):
-        r, p = template(args,
-                        inp_shapes=inp_shapes,
-                        out_shapes=out_shapes,
-                        layer_width=10,
-                        nblocks=2,
-                        block_size=2,
-                        reuse=False)
+        template = a.template
+        options = a.options
+        r, p = template(args, inp_shapes=inp_shapes, out_shapes=out_shapes,
+                        **options)
     return r
 
 

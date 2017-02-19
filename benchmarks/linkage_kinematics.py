@@ -6,7 +6,7 @@ from arrows.config import floatX
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.train_y import min_approx_error_arrow
-from reverseflow.train.loss import inv_fwd_loss_arrow
+from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
 from arrows.port_attributes import *
 from arrows.apply.propagate import *
 from reverseflow.train.reparam import *
@@ -148,7 +148,7 @@ def robot_arm(options):
     d = [p for p in inv_arrow.out_ports() if not is_error_port(p)]
     plot_cb = plot_callback(batch_size)
 
-    reparam_arrow(rep_arrow,
+    reparam_train(rep_arrow,
                   d,
                   [train_input1, train_input2],
                   [test_input1, test_input2],
@@ -177,13 +177,19 @@ def layer_width(i, o, n, p):
     inner = np.sqrt(b*b - 4*a*c)
     return (-b + inner)/(2*a), (-b - inner)/(2*a)
 
-
-def vanilla_nn():
+from tensortemplates import res_net
+from reverseflow.train.supervised import supervised_train
+def vanilla_nn(options):
+    # TODO: 1. Generate data
+    # 2. move template and options into actual arrow
+    num_layers = 5
+    layer_width = 5
     template = res_net.template
     options = {'layer_width': layer_width,
                'num_layers': num_layers}
-    t = TfArrow(template=template, options=options)
-    supervised(nnet_arrow, xy_gen, callbacks=[plot_cb, save_callback])
+    tf_arrow = TfArrow(1, 1, template=template, options=options)
+    sup_tf_arrow = supervised_loss_arrow(tf_arrow)
+    supervised_train(sup_tf_arrow, xy_gen, callbacks=[plot_cb, save_callback])
 
 
 def main(argv):
@@ -200,7 +206,7 @@ def generalization_bench():
     sfx = gen_sfx_key(('nblocks', 'block_size'), options)
     options['sfx'] = sfx
     options['description'] = "Benchmark Test"
-    test_generalization(robot_arm, options)
+    test_generalization(vanilla_nn, options)
 
 if __name__ == "__main__":
     """To run

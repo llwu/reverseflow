@@ -21,15 +21,49 @@ def accumulate_losses(tensors: List[Tensor]) -> Tensor:
     with tf.name_scope('loss'):
         return tf.add_n([tf.reduce_mean(t) for t in tensors]) / len(tensors)
 
+def extract_tensors(arrow, extra_ports=[], error_filter=is_error_port):
+    # Convert to tensorflow graph and get input, output, error, and parma_tensors
+    with tf.name_scope(arrow.name):
+        input_tensors = gen_input_tensors(arrow, param_port_as_var=False)
+        port_grab = {p: None for p in extra_ports}
+        output_tensors = arrow_to_graph(arrow, input_tensors, port_grab=port_grab)
+
+    extra_tensors = list(port_grab.values())
+    inp_tensors = [t for i, t in enumerate(input_tensors) if not is_param_port(arrow.in_ports()[i])]
+    param_tensors = [t for i, t in enumerate(input_tensors) if is_param_port(arrow.in_ports()[i])]
+    error_tensors = [t for i, t in enumerate(output_tensors) if error_filter(arrow.out_ports()[i])]
+    assert len(param_tensors) > 0, "Must have parametric inports"
+    assert len(error_tensors) > 0, "Must have error outports"
+    return {'input': inp_tensors,
+            'output': output_tensors,
+            'param': param_tensors,
+            'error': error_tensors,
+            'extra': extra_tensors}
+
+
+def prep_save(sess: Session, save, sfx, params_file, load):
+    save_params = {}
+    if save or load:
+        saver = tf.train.Saver()
+    if save is True:
+        save_dir = mk_dir(sfx)
+        save_params['save_dir'] = save_dir
+        options_path = os.path.join(save_dir, "options")
+        # save_dict_csv(options_path, options)
+        save_params['saver'] = saver = tf.train.Saver()
+    if load is True:
+        saver.restore(sess, params_file)
+    return save_params
+
 
 def load_train_save(sess, options, sfx, save_dir):
     options_path = os.path.join(save_dir, "options")
     save_dict_csv(options_path, options)
     saver = tf.train.Saver()
 
-    if options['load_params'] is True:
+    if options['load'] is True:
         saver.restore(sess, options['params_file'])
-        # adt.load_params(options['params_file'])
+        # adt.load(options['params_file'])
 
     # if options['save_params'] is True:
     #     path = os.path.join(save_dir, "final" + sfx)
@@ -78,20 +112,13 @@ def train_loop(sess: Session,
     """Perform training
     Args:
         sess: Tensorflow session
-        loss_updates: tensor to minimize
-        input_tensors:
-        output_tensors:
-        input_data:
+        loss_updates: gradient update tensors:
+        test_generators:
+        loss_ratios:
         num_iterations: number of iterations to run
-        summary_gap:
-        save_every: save data every save_every iterations
         test_every: evaluate test data set test_every iterations
         num_iterations: number of iterations
-        output_callback: a function to be called with result from fetch
-        sfx: String suffix to append to log data
-        compress: Using numpy compression for paramter saving
-        save_dir: Directory for saving logs
-        saver: Tensorflow saver for saving
+        callbacks: functions to be called with result from fetch
     """
     # Default 1 for loss_ratios and normalize
     loss_ratios = [1 for i in range(len(loss_updates))] if loss_ratios is None else loss_ratios

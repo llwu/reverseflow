@@ -94,7 +94,7 @@ def handle_args(argv, cust_opts):
     long_opts = ["params_file=", "learning_rate=", "momentum=", "update=",
                  "description=", "template=", "batch_size="] + custom_long_opts
     options = {'params_file': '', 'learning_rate': 0.1, 'momentum': 0.9,
-               'load_params': False, 'update': 'momentum', 'description': '',
+               'load': False, 'update': 'momentum', 'description': '',
                'template': 'res_net', 'batch_size': 128}
     help_msg = """-p <paramfile> -l <learning_rate> -m <momentum> -u <update algorithm> -d
                   <job description> -t <template>"""
@@ -110,7 +110,7 @@ def handle_args(argv, cust_opts):
             sys.exit()
         elif opt in ("-p", "--params_file"):
             options['params_file'] = arg
-            options['load_params'] = True
+            options['load'] = True
         elif opt in ("-l", "--learning_rate"):
             options['learning_rate'] = float(arg)
         elif opt in ("-m", "--momentum"):

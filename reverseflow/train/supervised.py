@@ -1,8 +1,12 @@
 """Supervised Training of Arrows"""
 from arrows.arrow import Arrow
 from arrows.compositearrow import CompositeArrow
-from reverseflow.train.reparam import extract_tensors
+from arrows.port_attributes import is_error_port
+from reverseflow.train.common import extract_tensors, prep_save, train_loop
 from typing import List, Generator
+
+from reverseflow.train.common import accumulate_losses, gen_update_step
+import tensorflow as tf
 
 def okOK(input_data, output_data, input_tensors, output_tensors):
     assert len(input_data) == len(input_tensors)
@@ -11,14 +15,14 @@ def okOK(input_data, output_data, input_tensors, output_tensors):
 
 
 def supervised_train(arrow: Arrow,
-                     train_data: List[Generator],
-                     test_data: List[Generator],
+                     train_input_data: List[Generator],
+                     train_output_data: List[Generator],
+                     test_input_data: List[Generator],
+                     test_output_data: List[Generator],
                      callbacks=[],
-                     error_filter=is_error_port,
                      options={}) -> CompositeArrow:
 
-    batch_size = options['batch_size']
-    tensors = extract_tensors(arrow)
+    tensors = extract_tensors(arrow, error_filter=is_error_port)
     inp_tensors = tensors['input']
 
     # Attach each tensor to its generator
@@ -28,19 +32,17 @@ def supervised_train(arrow: Arrow,
     # Accumulate error tensors into single loss term
     sound_loss = accumulate_losses(tensors['error'])
     losses = [sound_loss]
-    loss_ratios = [1]
-
-    # Do the grap that tensorflow needs done
     loss_updates = [gen_update_step(loss) for loss in losses]
+
     sess = tf.Session()
     fetch = gen_fetch(sess, **options)
-    fetch['input_tensors'] = input_tensors
-    fetch['output_tensors'] = output_tensors
+    fetch['input_tensors'] = tensors['input']
+    fetch['output_tensors'] = tensors['output']
     fetch['loss'] = losses
-    fetch['to_print'] = {'min_gap_loss': min_gap_loss,
-                         'mean_gap_loss': mean_gap_loss,
-                         'sound_loss': sound_loss}
 
+    if inn(options, 'save', 'sfx', 'params_file', 'load'):
+        ops = prep_save(sess, *getn(options, 'save', 'sfx', 'params_file', 'load'))
+        options.update(ops)
 
     train_loop(sess,
                loss_updates,

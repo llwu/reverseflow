@@ -5,10 +5,11 @@ from arrows.compositearrow import CompositeArrow
 from arrows.tfarrow import TfArrow
 from arrows.util.generators import *
 from arrows.util.io import mk_dir, save_dict_csv
+from arrows.util.misc import getn, inn
 from typing import Tuple, Callable
 from reverseflow.train.common import *
+from arrows.config import EPS
 import numpy as np
-EPS = 1e-5
 
 
 def non_iden(perm):
@@ -46,7 +47,6 @@ def reparam(comp_arrow: CompositeArrow,
         comp_arrow: Arrow to reparameterize
         phi_shape: Shape of parameter input
     """
-    port_attr = propagate(comp_arrow)
     reparam = CompositeArrow(name="%s_reparam" % comp_arrow.name)
     phi = reparam.add_port()
     set_port_shape(phi, phi_shape)
@@ -103,98 +103,66 @@ def mean_gap(euclids):
         rp = tf.reduce_mean(euclids)
     return rp
 
-def extract_tensors(arrow):
-    # Convert to tensorflow graph and get input, output, error, and parma_tensors
-    with tf.name_scope(arrow.name):
-        input_tensors = gen_input_tensors(arrow, param_port_as_var=False)
-        port_grab = {p: None for p in theta_ports}
-        output_tensors = arrow_to_graph(arrow, input_tensors, port_grab=port_grab)
 
-    theta_tensors = list(port_grab.values())
-    inp_tensors = [t for i, t in enumerate(input_tensors) if not is_param_port(arrow.in_ports()[i])]
-    param_tensors = [t for i, t in enumerate(input_tensors) if is_param_port(arrow.in_ports()[i])]
-    error_tensors = [t for i, t in enumerate(output_tensors) if error_filter(arrow.out_ports()[i])]
-    assert len(param_tensors) > 0, "Must have parametric inports"
-    assert len(error_tensors) > 0, "Must have error outports"
-    assert len(inp_tensors) == len(train_data)
-    return {'input': input_tensors,
-            'output': output_tensors,
-            'param': param_tensors,
-            'error': error_tensors}
-
-def prepare_save(sess: Session, save, load_params):
-    save_params = {}
-    if save or load_params:
-        saver = tf.train.Saver()
-    if save is True:
-        save_dir = mk_dir(sfx)
-        save_params['save_dir'] = save_dir
-        options_path = os.path.join(save_dir, "options")
-        save_dict_csv(options_path, options)
-        save_params['saver'] = saver = tf.train.Saver()
-    if load_params is True:
-        saver.restore(sess, params_file)
-    return save_params
-
-
-def reparam_arrow(arrow: Arrow,
-                  theta_ports: Sequence[Port],
+def reparam_train(arrow: Arrow,
+                  extra_ports: Sequence[Port],
                   train_data: List[Generator],
                   test_data: List[Generator],
                   callbacks=[],
                   error_filter=is_error_port,
-                  options={}) -> CompositeArrow:
+                  options=None) -> CompositeArrow:
 
-    tensors = extract_tensors(arrow)
-    inp_tensors = tensors['input']
+    options = {} if options is None else options
+    tensors = extract_tensors(arrow, extra_ports, error_filter=error_filter)
 
     # Make parametric inputs
     train_gen_gens = []
     test_gen_gens = []
 
     param_feed_gens = []
-    for t in param_tensors:
+    for t in tensors['param']:
         shape = tuple(t.get_shape().as_list())
-        gen = infinite_samples(np.random.rand, batch_size, shape)
+        gen = infinite_samples(np.random.rand, options['batch_size'], shape)
         param_feed_gens.append(attach(t, gen))
     train_gen_gens += param_feed_gens
     test_gen_gens += param_feed_gens
 
-    n = len(inp_tensors)
-    train_gen_gens += [attach(inp_tensors[i], train_data[i]) for i in range(n)]
-    test_gen_gens += [attach(inp_tensors[i], test_data[i]) for i in range(n)]
+    n = len(tensors['input'])
+    train_gen_gens += [attach(tensors['input'][i], train_data[i]) for i in range(n)]
+    test_gen_gens += [attach(tensors['input'][i], test_data[i]) for i in range(n)]
 
-    loss2 = accumulate_losses(error_tensors)
+    sound_loss = accumulate_losses(tensors['error'])
 
     # Generate permutation tensors
     with tf.name_scope("placeholder"):
         perm = tf.placeholder(shape=(None,), dtype='int32', name='perm')
         perm_idx = tf.placeholder(shape=(None,), dtype='int32', name='perm_idx')
-    perm_feed_gen = [perm_gen(batch_size, perm, perm_idx)]
+    perm_feed_gen = [perm_gen(options['batch_size'], perm, perm_idx)]
     train_gen_gens += perm_feed_gen
     test_gen_gens += perm_feed_gen
 
-    euclids = [pairwise_dists(t, perm, perm_idx) for t in theta_tensors]
+    euclids = [pairwise_dists(t, perm, perm_idx) for t in tensors['extra']]
     min_gap_losses = [minimum_gap(euclid) for euclid in euclids]
     min_gap_loss = tf.reduce_sum(min_gap_losses)
     mean_gap_losses = [mean_gap(euclid) for euclid in euclids]
     mean_gap_loss = tf.reduce_mean(mean_gap_losses)
     min_gap_loss = min_gap_loss
-    losses = [loss2 - min_gap_loss]
+    losses = [sound_loss - min_gap_loss]
     loss_ratios = [1]
     loss_updates = [gen_update_step(loss) for loss in losses]
 
-    #
     sess = tf.Session()
     fetch = gen_fetch(sess, **options)
-    fetch['input_tensors'] = input_tensors
-    fetch['output_tensors'] = output_tensors
+    fetch['input_tensors'] = tensors['input']
+    fetch['output_tensors'] = tensors['output']
     fetch['loss'] = losses
     fetch['to_print'] = {'min_gap_loss': min_gap_loss,
                          'mean_gap_loss': mean_gap_loss,
-                         'loss2': loss2}
+                         'sound_loss': sound_loss}
 
-    options.update(prepare_save(sess, options['save'], options['load_params'])
+    if inn(options, 'save', 'sfx', 'params_file', 'load'):
+        ops = prep_save(sess, *getn(options, 'save', 'sfx', 'params_file', 'load'))
+        options.update(ops)
 
     train_loop(sess,
                loss_updates,
