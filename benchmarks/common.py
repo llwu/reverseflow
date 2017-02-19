@@ -32,28 +32,41 @@ def boolify(x):
     else:
         assert False, "couldn't convert to bool"
 
-def handle_options(adt, argv):
+
+def default_kwargs():
+    """Default kwargs"""
+    options = {}
+    options['learning_rate'] = (float, 0.1)
+    options['update'] = (str, 'momentum')
+    options['params_file'] = (str, 28)
+    options['momentum'] = (float, 0.9)
+    options['description'] = (str, "")
+    options['batch_size'] = (int, 128)
+    options['save_every'] = (int, 3)
+    options['compress'] = (boolify, 0,)
+    options['num_iterations'] = (int, 1000)
+    options['save'] = (boolify, True)
+    options['template'] = (str, 'res_net')
+    options['train'] = (boolify, True)
+    return options
+
+
+def handle_options(name, argv):
+    """Parse options from the command line and populate with defaults"""
     parser = PassThroughOptionParser()
     parser.add_option('-t', '--template', dest='template', nargs=1, type='string')
     (poptions, args) = parser.parse_args(argv)
-    options = {}
+    # Get default options
+    options = default_kwargs()
     if poptions.template is None:
         options['template'] = 'res_net'
     else:
         options['template'] = poptions.template
+
+    # Get template specific options
     template_kwargs = template_module[options['template']].kwargs()
     options.update(template_kwargs)
-    options['train'] = (boolify, 1)
-    options['nitems'] = (int, 3)
-    options['width'] = (int, 28)
-    options['height'] = (int, 28)
-    options['num_epochs'] = (int, 100)
-    options['save_every'] = (int, 100)
-    options['batch_size'] = (int, 512)
-    options['compress'] = (boolify, 0)
-    options['compile_fns'] = (boolify, 1)
-    options['save_params'] = (boolify, 1)
-    options['adt'] = (str, adt)
+    options['name'] = (str, name)
     options = handle_args(argv, options)
     options['template'] = template_module[options['template']].template
     return options

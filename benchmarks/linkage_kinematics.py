@@ -10,6 +10,7 @@ from reverseflow.train.loss import inv_fwd_loss_arrow
 from arrows.port_attributes import *
 from arrows.apply.propagate import *
 from reverseflow.train.reparam import *
+from reverseflow.train.callbacks import save_callback
 from arrows.util.io import mk_dir
 from common import handle_options, gen_sfx_key
 import sys
@@ -71,8 +72,7 @@ def draw_lines(n_links, angles):
     return [0.0] + x_accum, [0.0] + y_accum
 
 
-def plot_call_back(batch_size):
-    i = 0
+def plot_callback(batch_size):
     fig = plt.figure()
     ax = fig.add_subplot(111, autoscale_on=False)
     ax.set_xlim(-3, 3)
@@ -81,9 +81,8 @@ def plot_call_back(batch_size):
     lines = None
     circle = None
     batch_num = 10
-    def closure(fetch_res):
-        nonlocal i, fig, ax, lines, circle, batch_num
-        i = i + 1
+    def closure(fetch_res, feed_dict, i, **kwargs):
+        nonlocal fig, ax, lines, circle, batch_num
         n_links = 3
         batch_angles = fetch_res['output_tensors'][0:n_links]
         x = fetch_res['input_tensors'][1][0, 0]
@@ -137,29 +136,17 @@ def robot_arm(options):
     inv_arrow = inv_fwd_loss_arrow(arrow)
     rep_arrow = reparam(inv_arrow, (batch_size, len(lengths),))
 
-    # train_input1 = np.tile([0.5], (batch_size, 1))
-    # train_input2 = np.tile([0.5], (batch_size, 1))
-    nlinks = len(lengths)
-    train_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
-    train_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
-    test_input1 = np.random.rand(batch_size, 1)*(nlinks-1)
-    test_input2 = np.random.rand(batch_size, 1)*(nlinks-1)
-
     def sampler(*x):
-        return np.random.rand(*x)*nlinks
-    # train_input1 = infinite_samples(sampler, batch_size, shape=(batch_size, 1))
-    # train_input2 = infinite_samples(sampler, batch_size, shape=(batch_size, 1))
-    # test_input1 = infinite_samples(sampler, batch_size, shape=(batch_size, 1))
-    # test_input2 = infinite_samples(sampler, batch_size, shape=(batch_size, 1))
-
-    train_input1 = repeated_random(sampler, batch_size, 8, shape=(1,))
-    train_input2 = repeated_random(sampler, batch_size, 8, shape=(1,))
-    test_input1 = repeated_random(sampler, batch_size, 8, shape=(1,))
-    test_input2 = repeated_random(sampler, batch_size, 8, shape=(1,))
-
+        return np.random.rand(*x)*n_links
+    frac_repeat = 0.25
+    nrepeats = int(np.ceil(batch_size * frac_repeat))
+    train_input1 = repeated_random(sampler, batch_size, nrepeats, shape=(1,))
+    train_input2 = repeated_random(sampler, batch_size, nrepeats, shape=(1,))
+    test_input1 = repeated_random(sampler, batch_size, nrepeats, shape=(1,))
+    test_input2 = repeated_random(sampler, batch_size, nrepeats, shape=(1,))
 
     d = [p for p in inv_arrow.out_ports() if not is_error_port(p)]
-    cb = plot_call_back(batch_size)
+    plot_cb = plot_callback(batch_size)
 
     reparam_arrow(rep_arrow,
                   d,
@@ -168,22 +155,33 @@ def robot_arm(options):
                   error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
                 #   error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
                 #   error_filter="inv_fwd_error",
-                  output_call_back=cb,
+                  callbacks=[plot_cb, save_callback],
                   options=options)
     # min_approx_error_arrow(rep_arrow,
     #                        [train_input1, train_input2],
     #                     #    error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
-    #                        output_call_back=plot_call_back)
+    #                        output_callback=plot_callback)
 
 
 def main(argv):
-    options = handle_options('dictionary', argv)
+    options = handle_options('linkage_kinematics', argv)
     sfx = gen_sfx_key(('nblocks', 'block_size'), options)
     options['sfx'] = sfx
     robot_arm(options)
+
+
+# Benchmarks
+from metrics.generalization import test_generalization
+def generalization_bench():
+    options = handle_options('linkage_kinematics', sys.argv[1:])
+    sfx = gen_sfx_key(('nblocks', 'block_size'), options)
+    options['sfx'] = sfx
+    options['description'] = "Benchmark Test"
+    test_generalization(robot_arm, options)
 
 if __name__ == "__main__":
     """To run
     ipython -- examples/stack.py --template=res_net --nblocks=1 --block_size=1 -u adam -l 0.0001 --nitems=1 --batch_size=128 --train 1 --num_epochs=1000
     """
+    generalization_bench()
     main(sys.argv[1:])

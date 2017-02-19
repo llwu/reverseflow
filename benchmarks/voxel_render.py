@@ -212,7 +212,7 @@ def render_fwd_f(inputs):
     width = options['width'] = 32
     height = options['height'] = 32
     res = options['res'] = 32
-    nsteps = options['nsteps'] = 30
+    nsteps = options['nsteps'] = 3
     nvoxgrids = options['nvoxgrids'] = 1
     nviews = options['nviews'] = 1
     rotation_matrices = rand_rotation_matrices(nviews)

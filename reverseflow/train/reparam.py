@@ -108,7 +108,7 @@ def reparam_arrow(arrow: Arrow,
                   theta_ports: Sequence[Port],
                   train_data: List[Generator],
                   test_data: List[Generator],
-                  output_call_back=None,
+                  callbacks=[],
                   error_filter=is_error_port,
                   options={}) -> CompositeArrow:
 
@@ -174,13 +174,15 @@ def reparam_arrow(arrow: Arrow,
                          'loss2': loss2}
 
     save_dir = mk_dir(options['sfx'])
+    options['save_dir'] = save_dir
     options_path = os.path.join(save_dir, "options")
     save_dict_csv(options_path, options)
     saver = tf.train.Saver()
+
+    if options['save'] or options['load_params']:
+        options['saver'] = saver = tf.train.Saver()
     if options['load_params'] is True:
         saver.restore(sess, options['params_file'])
-
-
 
     train_loop(sess,
                loss_updates,
@@ -188,5 +190,5 @@ def reparam_arrow(arrow: Arrow,
                train_gen_gens,
                test_gen_gens,
                loss_ratios=loss_ratios,
-               output_call_back=output_call_back,
+               callbacks=callbacks,
                **options)

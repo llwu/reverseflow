@@ -65,19 +65,15 @@ def gen_update_step(loss: Tensor) -> Tensor:
         return update_step
 
 
-def gen_batch(input_tensors, input_data):
-    return dict(zip(input_tensors, input_data))
-
-
 def train_loop(sess: Session,
                loss_updates: Sequence[Tensor],
                fetch,
                generators: Sequence[Generator],
                test_generators,
                loss_ratios: Sequence[int]=None,
-               test_every_n=100,
+               test_every=100,
                num_iterations=100000,
-               output_call_back=None,
+               callbacks=[],
                **kwargs):
     """Perform training
     Args:
@@ -88,7 +84,10 @@ def train_loop(sess: Session,
         input_data:
         num_iterations: number of iterations to run
         summary_gap:
-        save_every
+        save_every: save data every save_every iterations
+        test_every: evaluate test data set test_every iterations
+        num_iterations: number of iterations
+        output_callback: a function to be called with result from fetch
         sfx: String suffix to append to log data
         compress: Using numpy compression for paramter saving
         save_dir: Directory for saving logs
@@ -97,6 +96,12 @@ def train_loop(sess: Session,
     # Default 1 for loss_ratios and normalize
     loss_ratios = [1 for i in range(len(loss_updates))] if loss_ratios is None else loss_ratios
     loss_ratios = loss_ratios / np.sum(loss_ratios)
+
+    # Prepare dict to be passed to callbacks
+    callback_dict = {}
+    callback_dict.update(kwargs)
+    callback_dict.update({'sess': sess})
+
     # Main loop
     for i in range(num_iterations):
         # Generate input
@@ -109,14 +114,14 @@ def train_loop(sess: Session,
             feed_dict.update(sub_feed_dict)
         # Optimizeation Step
         fetch_res = sess.run(curr_fetch, feed_dict=feed_dict)
-        if output_call_back:
-            output_call_back(fetch_res)
+        for cb in callbacks:
+            cb(fetch_res, feed_dict, i, **callback_dict)
         print("Iteration: ", i, " Loss: ", fetch_res['loss'])
         if "to_print" in fetch_res:
             print(fetch_res["to_print"])
 
-        # Evaluate on test data every test_every_n iterations
-        if i % test_every_n == 0:
+        # Evaluate on test data every test_every iterations
+        if i % test_every == 0:
             test_feed_dict = {}
             for gen in test_generators:
                 sub_feed_dict = next(gen)

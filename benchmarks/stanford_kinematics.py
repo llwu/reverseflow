@@ -170,7 +170,7 @@ def test_ik():
     phi_shape = (batch_size, 6) # 6 DOF Robot so why not
     rep_arrow = reparam(inv_arrow, phi_shape)
     # target = (output_values[0], output_values[1], output_values[2])
-    def plot_call_back(fetch_res):
+    def plot_callback(fetch_res):
         import pdb; pdb.set_trace()
         return 10
         # robot_joints = fetch_res['output_tensors'][0:6]
@@ -188,13 +188,13 @@ def test_ik():
                   error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
                 #   error_filter="inv_fwd_error",
                   batch_size=batch_size,
-                  output_call_back=plot_call_back,
+                  output_callback=plot_callback,
                   debug=False)
 
     min_approx_error_arrow(inv_fwd_arrow,
                            output_values,
                            error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
-                           output_call_back=plot_call_back,
+                           output_callback=plot_callback,
                            debug=True)
 
 test_ik()
