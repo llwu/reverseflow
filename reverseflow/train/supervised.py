@@ -38,9 +38,10 @@ def supervised_train(arrow: Arrow,
                      train_output_data: List[Generator],
                      test_input_data: List[Generator],
                      test_output_data: List[Generator],
-                     callbacks=[],
+                     callbacks=None,
                      options=None) -> CompositeArrow:
 
+    callbacks = [] if callbacks is None else callbacks
     options = {} if options is None else options
     grabs = ({'input': lambda p: is_in_port(p) and not is_param_port(p) and not has_port_label(p, 'train_output'),
               'train_output': lambda p: has_port_label(p, 'train_output'),

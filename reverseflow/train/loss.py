@@ -62,10 +62,15 @@ def inv_fwd_loss_arrow(arrow: Arrow,
 def supervised_loss_arrow(arrow: Arrow,
                           DiffArrow=SquaredDifference) -> CompositeArrow:
     """
-    Arrow which computes |f(y) - x|
+    Creates an arrow that  computes |f(y) - x|
     Args:
         Arrow: The arrow to modify
         DiffArrow: Arrow for computing difference
+    Returns:
+        Arrow with same input and output as arrow except that it takes an
+        addition input with label 'train_output' that should contain examples
+        in Y, and it returns an additional error output labelled
+        'supervised_error' which is the |f(y) - x|
     """
     c = CompositeArrow(name="%s_supervised" % arrow.name)
     # Pipe all inputs of composite to inputs of arrow

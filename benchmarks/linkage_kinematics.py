@@ -224,6 +224,7 @@ def generalization_bench():
     sfx = gen_sfx_key(('nblocks', 'block_size'), options)
     options['sfx'] = sfx
     options['description'] = "Benchmark Test"
+    import pdb; pdb.set_trace()
     test_generalization(vanilla_nn, options)
 
 if __name__ == "__main__":
