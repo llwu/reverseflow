@@ -182,14 +182,32 @@ from reverseflow.train.supervised import supervised_train
 def vanilla_nn(options):
     # TODO: 1. Generate data
     # 2. move template and options into actual arrow
-    num_layers = 5
-    layer_width = 5
+    num_layers = 2
+    layer_width = 2
+    batch_size = options['batch_size']
+    train_input_data = [np.random.rand(500, 10)]
+    train_output_data = [np.random.rand(500, 10)]
+    test_input_data = [np.random.rand(500, 10)]
+    test_output_data = [np.random.rand(500, 10)]
+
     template = res_net.template
-    options = {'layer_width': layer_width,
-               'num_layers': num_layers}
-    tf_arrow = TfArrow(1, 1, template=template, options=options)
+    tp_options = {'layer_width': layer_width,
+                  'num_layers': num_layers,
+                  'nblocks': 1,
+                  'block_size': 1,
+                  'reuse': False}
+
+    tf_arrow = TfArrow(1, 1, template=template, options=tp_options)
+    set_port_shape(tf_arrow.in_port(0), (batch_size, 10))
+    set_port_shape(tf_arrow.out_port(0), (batch_size, 10))
     sup_tf_arrow = supervised_loss_arrow(tf_arrow)
-    supervised_train(sup_tf_arrow, xy_gen, callbacks=[plot_cb, save_callback])
+    supervised_train(sup_tf_arrow,
+                     train_input_data,
+                     train_output_data,
+                     test_input_data,
+                     test_output_data,
+                     callbacks=[],
+                     options=options)
 
 
 def main(argv):

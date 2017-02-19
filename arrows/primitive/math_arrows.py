@@ -490,6 +490,11 @@ class SquaredDifference(PrimitiveArrow):
         name = 'SquaredDifference'
         super().__init__(n_in_ports=2, n_out_ports=1, name=name)
 
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({shape_pred: shape_dispatch})
+        return disp
+
 
 def broadcast_pred(arr: Arrow, port_attr: PortAttributes):
     return ports_has(arr.in_ports(), 'shape', port_attr)

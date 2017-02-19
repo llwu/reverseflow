@@ -96,7 +96,7 @@ def supervised_loss_arrow(arrow: Arrow,
             diff = DiffArrow()
             in_port = c.add_port()
             make_in_port(in_port)
-            add_port_label(in_port, "training_output")
+            add_port_label(in_port, "train_output")
             c.add_edge(in_port, diff.in_port(0))
             c.add_edge(out_port, diff.in_port(1))
             error_port = c.add_port()

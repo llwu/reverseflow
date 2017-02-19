@@ -11,7 +11,6 @@ import numpy
 
 def shape_pred(arr: Arrow, port_attr: PortAttributes):
     """True if any of the ports have a shape"""
-    # FIXME: Assert that all shapes are the same
     return any((port_has(port, 'shape', port_attr) for port in arr.ports()))
 
 
