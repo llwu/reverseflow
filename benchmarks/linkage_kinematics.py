@@ -180,6 +180,7 @@ def layer_width(i, o, n, p):
 from tensortemplates import res_net
 from reverseflow.train.supervised import supervised_train
 def vanilla_nn(options):
+    tf.reset_default_graph()
     # TODO: 1. Generate data
     # 2. move template and options into actual arrow
     num_layers = 2
