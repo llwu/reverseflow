@@ -120,7 +120,7 @@ def plot_callback(batch_size):
         plt.pause(0.2)
     return closure
 
-def robot_arm_arrow(batch_size, n_links):
+def robo_tensorflow(batch_size, n_links):
     lengths = [1 for i in range(n_links)]
     with tf.name_scope("fwd_kinematics"):
         angles = []
@@ -129,10 +129,26 @@ def robot_arm_arrow(batch_size, n_links):
                                          name="theta",
                                          shape=(batch_size, 1)))
         x, y = gen_robot(lengths, angles)
-    arrow = graph_to_arrow([x, y],
+    return {'inputs':angles, 'outputs':[x,y]}
+
+def robot_arm_arrow(batch_size, n_links):
+    angles, outputs = getn(robo_tensorflow(batch_size, n_links), 'inputs', 'outputs')
+    arrow = graph_to_arrow(outputs,
                            input_tensors=angles,
                            name="robot_fwd_kinematics")
     return arrow
+
+def gen_data(batch_size, n_links):
+    """Generate data for training"""
+    graph = tf.Graph()
+    with graph.as_default():
+        inputs, outputs = getn(robo_tensorflow(batch_size, n_links), 'inputs', 'outputs')
+        input_data = [np.random.rand(batch_size, 1) for i in range(n_links)]
+        sess = tf.Session()
+        output_data = sess.run(outputs, feed_dict=dict(zip(inputs, input_data)))
+        sess.close()
+    return {'inputs': input_data, 'outputs': output_data}
+
 
 def robot_arm(options):
     n_links = 3
@@ -169,17 +185,25 @@ def robot_arm(options):
 
 
 def pi_supervised(options):
+    """Neural network enhanced Parametric inverse! to do supervised learning"""
+    tf.reset_default_graph()
     n_links = 3
     batch_size = options['batch_size']
     arrow = robot_arm_arrow(batch_size, n_links)
     inv_arrow = inv_fwd_loss_arrow(arrow)
     right_inv = unparam(inv_arrow)
     sup_right_inv = supervised_loss_arrow(right_inv)
+    # Get training and test_data
+    train_data = gen_data(batch_size, n_links)
+    test_data = gen_data(1024, n_links)
 
-    train_input_data = [np.random.rand(500, 10)]
-    train_output_data = [np.random.rand(500, 10)]
-    test_input_data = [np.random.rand(500, 10)]
-    test_output_data = [np.random.rand(500, 10)]
+    # Have to switch input from output because data is from fwd model
+    train_input_data = train_data['outputs']
+    train_output_data = train_data['inputs']
+    test_input_data = test_data['outputs']
+    test_output_data = test_data['inputs']
+    num_params = get_tf_num_params(right_inv)
+    print("Number of params", num_params)
     supervised_train(sup_right_inv,
                      train_input_data,
                      train_output_data,
@@ -190,30 +214,35 @@ def pi_supervised(options):
 
 
 def nn_supervised(options):
+    """Plain neural network to do supervised learning"""
     tf.reset_default_graph()
-    # TODO: 1. Generate data
-    # 2. move template and options into actual arrow
-    # num_vars = get_tf_num_params(rep_arrow)
-
-    num_layers = 2
-    layer_width = 2
+    n_links = 3
     batch_size = options['batch_size']
-    train_input_data = [np.random.rand(500, 10)]
-    train_output_data = [np.random.rand(500, 10)]
-    test_input_data = [np.random.rand(500, 10)]
-    test_output_data = [np.random.rand(500, 10)]
+    # Get training and test_data
+    train_data = gen_data(batch_size, n_links)
+    test_data = gen_data(1024, n_links)
+
+    # Have to switch input from output because data is from fwd model
+    train_input_data = train_data['outputs']
+    train_output_data = train_data['inputs']
+    test_input_data = test_data['outputs']
+    test_output_data = test_data['inputs']
 
     template = res_net.template
-    tp_options = {'layer_width': layer_width,
-                  'num_layers': num_layers,
+    n_layers = 2
+    l = round(max(*layer_width(2, n_links, n_layers, 630))) * 2
+    tp_options = {'layer_width': l,
+                  'num_layers': 2,
                   'nblocks': 1,
                   'block_size': 1,
                   'reuse': False}
 
-    tf_arrow = TfArrow(1, 1, template=template, options=tp_options)
-    set_port_shape(tf_arrow.in_port(0), (batch_size, 10))
-    set_port_shape(tf_arrow.out_port(0), (batch_size, 10))
+    tf_arrow = TfArrow(2, n_links, template=template, options=tp_options)
+    for port in tf_arrow.ports():
+        set_port_shape(port, (batch_size, 1))
     sup_tf_arrow = supervised_loss_arrow(tf_arrow)
+    num_params = get_tf_num_params(sup_tf_arrow)
+    print("NNet Number of params", num_params)
     supervised_train(sup_tf_arrow,
                      train_input_data,
                      train_output_data,

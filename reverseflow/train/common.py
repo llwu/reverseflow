@@ -226,6 +226,7 @@ def train_loop(sess: Session,
             for gen in test_generators:
                 sub_feed_dict = next(gen)
                 test_feed_dict.update(sub_feed_dict)
+            import pdb; pdb.set_trace()
             test_feed_dict = {k: v for k, v in test_feed_dict.items() if k != "update_step"}
             test_fetch_res = sess.run(fetch, feed_dict=test_feed_dict)
             print("Test Loss", test_fetch_res['loss'])

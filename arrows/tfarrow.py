@@ -14,10 +14,9 @@ class TfArrow(PrimitiveArrow):
         self.template = res_net_template if template is None else template
         if options:
             self.options = options
-        else:                
+        else:
             self.options = {'layer_width': 10,
-                            'nblocks': 2,
+                            'nblocks': 1,
                             'block_size': 2,
-                            'reuse': False,
-                            'batch_norm': True}
+                            'reuse': False}
         super().__init__(n_in_ports, n_out_ports, name=name)
