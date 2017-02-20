@@ -58,6 +58,7 @@ def supervised_train(arrow: Arrow,
 
 
     # Accumulate error tensors into single loss term
+    # FIXME: Training All the errors here homeboy, even the node loss
     sound_loss = accumulate_losses(tensors['error'])
     losses = [sound_loss]
     loss_updates = [gen_update_step(loss) for loss in losses]
