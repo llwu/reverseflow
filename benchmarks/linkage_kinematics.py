@@ -3,27 +3,28 @@ import tensorflow as tf
 from arrows.util.viz import show_tensorboard_graph
 from arrows.util.misc import print_one_per_line
 from arrows.config import floatX
+from arrows.util.io import mk_dir
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.train_y import min_approx_error_arrow
 from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
+from reverseflow.train.common import get_tf_num_params
 from arrows.port_attributes import *
 from arrows.apply.propagate import *
 from reverseflow.train.reparam import *
+from reverseflow.train.unparam import unparam
 from reverseflow.train.callbacks import save_callback
-from arrows.util.io import mk_dir
+from reverseflow.train.supervised import supervised_train
+from tensortemplates import res_net
 from common import handle_options, gen_sfx_key
 import sys
-
 from typing import Sequence
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import numpy as np
 
-
 # Interactive Plotting
 plt.ion()
-
 
 def accum_sum(xs: Sequence):
     """Return accumulative reduction
@@ -39,6 +40,7 @@ def accum_sum(xs: Sequence):
         total = total + xs[i]
         accum.append(total)
     return accum, total
+
 
 def gen_robot(lengths: Sequence, angles: Sequence):
     """
@@ -62,6 +64,7 @@ def gen_robot(lengths: Sequence, angles: Sequence):
     x_accum, x = accum_sum(x_terms)
     y_accum, y = accum_sum(y_terms)
     return x, y
+
 
 def draw_lines(n_links, angles):
     accum_angles, total_angles = accum_sum(angles)
@@ -117,9 +120,7 @@ def plot_callback(batch_size):
         plt.pause(0.2)
     return closure
 
-def robot_arm(options):
-    batch_size = options['batch_size']
-    n_links = 3
+def robot_arm_arrow(batch_size, n_links):
     lengths = [1 for i in range(n_links)]
     with tf.name_scope("fwd_kinematics"):
         angles = []
@@ -131,10 +132,18 @@ def robot_arm(options):
     arrow = graph_to_arrow([x, y],
                            input_tensors=angles,
                            name="robot_fwd_kinematics")
+    return arrow
+
+def robot_arm(options):
+    n_links = 3
+    batch_size = options['batch_size']
+    arrow = robot_arm_arrow(batch_size, n_links)
     tf.reset_default_graph()
     # inv_arrow = invert(arrow)
     inv_arrow = inv_fwd_loss_arrow(arrow)
-    rep_arrow = reparam(inv_arrow, (batch_size, len(lengths),))
+    rep_arrow = reparam(inv_arrow, (batch_size, n_links))
+    import pdb; pdb.set_trace()
+
 
     def sampler(*x):
         return np.random.rand(*x)*n_links
@@ -157,32 +166,35 @@ def robot_arm(options):
                 #   error_filter="inv_fwd_error",
                   callbacks=[plot_cb, save_callback],
                   options=options)
-    # min_approx_error_arrow(rep_arrow,
-    #                        [train_input1, train_input2],
-    #                     #    error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
-    #                        output_callback=plot_callback)
 
-def layer_width(i, o, n, p):
-    """Compute the layer width for a desired number of parameters
-    Args:
-        i: Length of input
-        o: Length of output
-        p: Desired number of parameters
-        n: Number of layers
-    Returns:
-        Size of inner layers"""
-    b = i + 1 + o + n
-    a = n
-    c = o - p
-    inner = np.sqrt(b*b - 4*a*c)
-    return (-b + inner)/(2*a), (-b - inner)/(2*a)
 
-from tensortemplates import res_net
-from reverseflow.train.supervised import supervised_train
-def vanilla_nn(options):
+def pi_supervised(options):
+    n_links = 3
+    batch_size = options['batch_size']
+    arrow = robot_arm_arrow(batch_size, n_links)
+    inv_arrow = inv_fwd_loss_arrow(arrow)
+    right_inv = unparam(inv_arrow)
+    sup_right_inv = supervised_loss_arrow(right_inv)
+
+    train_input_data = [np.random.rand(500, 10)]
+    train_output_data = [np.random.rand(500, 10)]
+    test_input_data = [np.random.rand(500, 10)]
+    test_output_data = [np.random.rand(500, 10)]
+    supervised_train(sup_right_inv,
+                     train_input_data,
+                     train_output_data,
+                     test_input_data,
+                     test_output_data,
+                     callbacks=[],
+                     options=options)
+
+
+def nn_supervised(options):
     tf.reset_default_graph()
     # TODO: 1. Generate data
     # 2. move template and options into actual arrow
+    # num_vars = get_tf_num_params(rep_arrow)
+
     num_layers = 2
     layer_width = 2
     batch_size = options['batch_size']
@@ -224,9 +236,8 @@ def generalization_bench():
     options = handle_options('linkage_kinematics', sys.argv[1:])
     sfx = gen_sfx_key(('nblocks', 'block_size'), options)
     options['sfx'] = sfx
-    options['description'] = "Benchmark Test"
-    import pdb; pdb.set_trace()
-    test_generalization(vanilla_nn, options)
+    options['description'] = "Linkage Generalization Benchmark"
+    test_generalization(pi_supervised, options)
 
 if __name__ == "__main__":
     """To run

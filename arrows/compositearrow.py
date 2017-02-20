@@ -117,7 +117,7 @@ class CompositeArrow(Arrow):
             assert num > 0, "No projection from %s" % port
 
         for port, num in rec_ports.items():
-            assert num == 1, "Non inputs to %s is not 1" % port
+            assert num == 1, "Num inputs to %s is not 1" % port
 
         return True
 

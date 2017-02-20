@@ -89,6 +89,7 @@ def supervised_loss_arrow(arrow: Arrow,
         if is_error_port(out_port):
             # if its an error port just pass through
             error_port = c.add_port()
+            make_out_port(error_port)
             make_error_port(error_port)
             c.add_edge(out_port, error_port)
         else:

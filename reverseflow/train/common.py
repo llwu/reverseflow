@@ -23,6 +23,30 @@ def accumulate_losses(tensors: List[Tensor]) -> Tensor:
         return tf.add_n([tf.reduce_mean(t) for t in tensors]) / len(tensors)
 
 
+def layer_width(i, o, n, p):
+    """Compute the layer width for a desired number of parameters
+    Args:
+        i: Length of input
+        o: Length of output
+        p: Desired number of parameters
+        n: Number of layers
+    Returns:
+        Size of inner layers"""
+    b = i + 1 + o + n
+    a = n
+    c = o - p
+    inner = np.sqrt(b*b - 4*a*c)
+    return (-b + inner)/(2*a), (-b - inner)/(2*a)
+
+
+def get_tf_num_params(arrow):
+    graph = tf.Graph()
+    with graph.as_default():
+        input_tensors = gen_input_tensors(arrow, param_port_as_var=False)
+        output_tensors = arrow_to_graph(arrow, input_tensors)
+        vs = tf.global_variables()
+        return sum([v.get_shape().num_elements() for v in vs])
+
 def extract_tensors(arrow: Arrow,
                     extra_ports=[],
                     append_default=True,

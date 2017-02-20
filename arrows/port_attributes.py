@@ -69,6 +69,13 @@ def get_port_labels(port: Port):
     else:
         return set()
 
+def transfer_labels(from_port: Port, to_port: Port):
+    """Transfer all the labels from from_port to to_port"""
+    # FIXME: Should we just propagate labels?
+    pls = get_port_labels(from_port)
+    for label in pls:
+        add_port_label(to_port, label)
+
 
 Shape = Sequence[int]
 
