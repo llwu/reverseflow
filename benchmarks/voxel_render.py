@@ -3,6 +3,7 @@ from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.train_y import min_approx_error_arrow
 from arrows.util.viz import show_tensorboard_graph, show_tensorboard
+from arrows.util.misc import getn
 from arrows.config import floatX
 import sys
 import getopt
@@ -168,9 +169,9 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
     t04 = t04*1.001
     t14 = t14*0.999
 
-    nvoxgrids = voxels.get_shape()[0] if len(voxels.get_shape()) > 1 else 1
-    print("hello", nvoxgrids)
-    left_over = np.ones((nvoxgrids, nmatrices * width * height,))
+    batched = len(voxels.get_shape()) > 1
+    batch_size = int(voxels.get_shape()[0]) if batched else 1
+    left_over = np.ones((batch_size, nmatrices * width * height,))
     step_size = (t14 - t04)/nsteps
     orig = np.reshape(ro, (nmatrices, 1, 1, 3)) + rd * np.reshape(t04,(nmatrices, width, height, 1))
     xres = yres = zres = res
@@ -191,12 +192,18 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
         flat_indices = indices[:, 0] + res * (indices[:, 1] + res * indices[:, 2])
         # print("ishape", flat_indices.shape, "vshape", voxels.get_shape())
         # attenuation = voxels[:, indices[:,0],indices[:,1],indices[:,2]]
-        attenuation = tf.gather(voxels, flat_indices)
+        attenuation = None
+        if batched:
+            x = np.arange(batch_size)
+            batched_indices = np.transpose([np.tile(x, len(flat_indices)), np.repeat(flat_indices, len(x))])
+            attenuation = tf.reshape(tf.gather_nd(voxels, batched_indices), np.array([batch_size, len(flat_indices)]))
+        else:
+            attenuation = tf.gather(voxels, flat_indices)
         print("attenuation step", attenuation.get_shape(), step_sz.shape)
         left_over = left_over*tf.exp(-attenuation*step_sz.reshape(nmatrices * width * height))
 
     img = left_over
-    img_shape = tf.TensorShape((nvoxgrids, nmatrices, width, height))
+    img_shape = tf.TensorShape((batch_size, nmatrices, width, height))
     # # print("OKOK", tf.TensorShape((nvoxgrids, nmatrices, width, height)))
     return img
     # pixels = tf.reshape(img, img_shape)
@@ -227,7 +234,7 @@ def render_gen_graph(g, batch_size):
     res = 32
     with g.name_scope("fwd_g"):
         voxels = tf.placeholder(floatX(), name="voxels",
-                                shape=nvoxgrids*res*res*res)
+                                shape=(batch_size, nvoxgrids*res*res*res))
                                 # shape=(nvoxgrids, res, res, res))
         inputs = {"voxels": voxels}
         outputs = render_fwd_f(inputs)
@@ -258,13 +265,65 @@ def draw_random_voxels():
 
 def test_render_graph():
     g = tf.get_default_graph()
-    results = render_gen_graph(g, 1)
+    results = render_gen_graph(g, 4)
     out_img_tensor = results['outputs']['out_img']
-    show_tensorboard_graph()
+    import pdb;pdb.set_trace()
     arrow_renderer = graph_to_arrow([out_img_tensor])
     inv_renderer = invert(arrow_renderer)
-    show_tensorboard(inv_renderer)
     import pdb; pdb.set_trace()
+
+
+def gen_data(batch_size, n_links):
+    """Generate data for training"""
+    graph = tf.Graph()
+    with graph.as_default():
+        inputs, outputs = getn(render_gen_graph(graph, batch_size), 'inputs', 'output')
+        input_data = [np.random.rand(batch_size, *(i.get_shape())) for i in inputs]
+        sess = tf.Session()
+        output_data = sess.run(outputs, feed_dict=dict(zip(inputs, input_data)))
+        sess.close()
+    return {'inputs': input_data, 'outputs': output_data}
+
+
+def pi_supervised(options):
+    """Neural network enhanced Parametric inverse! to do supervised learning"""
+    tf.reset_default_graph()
+    g = tf.get_default_graph()
+    batch_size = options['batch_size']
+    results = render_gen_graph(g, batch_size)
+    out_img_tensor = results['outputs']['out_img']
+    arrow_renderer = graph_to_arrow([out_img_tensor])
+    inv_arrow = inv_fwd_loss_arrow(arrow_renderer)
+    right_inv = unparam(inv_arrow)
+    sup_right_inv = supervised_loss_arrow(right_inv)
+    # Get training and test_data
+    train_data = gen_data(batch_size, n_links)
+    test_data = gen_data(1024, n_links)
+
+    # Have to switch input from output because data is from fwd model
+    train_input_data = train_data['outputs']
+    train_output_data = train_data['inputs']
+    test_input_data = test_data['outputs']
+    test_output_data = test_data['inputs']
+    num_params = get_tf_num_params(right_inv)
+    print("Number of params", num_params)
+    supervised_train(sup_right_inv,
+                     train_input_data,
+                     train_output_data,
+                     test_input_data,
+                     test_output_data,
+                     callbacks=[],
+                     options=options)
+
+
+# Benchmarks
+from metrics.generalization import test_generalization
+def generalization_bench():
+    options = handle_options('voxel_render', sys.argv[1:])
+    sfx = gen_sfx_key(('nblocks', 'block_size'), options)
+    options['sfx'] = sfx
+    options['description'] = "Voxel Generalization Benchmark"
+    test_generalization(pi_supervised, options)
 
 
 if __name__ == "__main__":
