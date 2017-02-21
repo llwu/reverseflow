@@ -97,55 +97,21 @@ def extract_tensors(arrow: Arrow,
         if len(all_dem) > 0:
             output[grab_key] = all_dem
 
-    output['extra'] = list(port_grab.values())
+    output['extra'] = extra_tensors
     return output
-    #
-    # inp_tensors = [t for i, t in enumerate(input_tensors) if not is_param_port(arrow.in_ports()[i])]
-    # param_tensors = [t for i, t in enumerate(input_tensors) if is_param_port(arrow.in_ports()[i])]
-    # error_tensors = [t for i, t in enumerate(output_tensors) if error_filter(arrow.out_ports()[i])]
-    # assert len(param_tensors) > 0, "Must have parametric inports"
-    # assert len(error_tensors) > 0, "Must have error outports"
-    # return {'input': inp_tensors,
-    #         'output': output_tensors,
-    #         'param': param_tensors,
-    #         'error': error_tensors,
-    #         'extra': extra_tensors}
 
 
-def prep_save(sess: Session, save: bool, sfx: str, params_file: str, load: bool):
+def prep_save(sess: Session, save: bool, dirname: str, params_file: str, load: bool):
     save_params = {}
     if save or load:
         saver = tf.train.Saver()
     if save is True:
-        save_dir = mk_dir(sfx)
+        save_dir = mk_dir(dirname=dirname)
         save_params['save_dir'] = save_dir
-        options_path = os.path.join(save_dir, "options")
-        # save_dict_csv(options_path, options)
         save_params['saver'] = saver = tf.train.Saver()
     if load is True:
         saver.restore(sess, params_file)
     return save_params
-
-
-# def load_train_save(sess, options, sfx, save_dir):
-#     options_path = os.path.join(save_dir, "options")
-#     save_dict_csv(options_path, options)
-#     saver = tf.train.Saver()
-#
-#     if options['load'] is True:
-#         saver.restore(sess, options['params_file'])
-#         # adt.load(options['params_file'])
-#
-#     # if options['save_params'] is True:
-#     #     path = os.path.join(save_dir, "final" + sfx)
-#     #     # adt.save_params(path)
-#
-#     if options['train'] is True:
-#         train(adt, pbt, sess, num_epochs=options['num_epochs'],
-#               sfx=sfx, save_dir=save_dir, save_every=options['save_every'],
-#               compress=options['compress'], saver=saver)
-#
-#     return sess
 
 
 def gen_fetch(sess: Session,
@@ -214,19 +180,19 @@ def train_loop(sess: Session,
             feed_dict.update(sub_feed_dict)
         # Optimizeation Step
         fetch_res = sess.run(curr_fetch, feed_dict=feed_dict)
-        for cb in callbacks:
-            cb(fetch_res, feed_dict, i, **callback_dict)
-        print("Iteration: ", i, " Loss: ", fetch_res['loss'])
-        if "to_print" in fetch_res:
-            print(fetch_res["to_print"])
 
         # Evaluate on test data every test_every iterations
-        if i % test_every == 0:
+        if i % test_every == 0 or i == num_iterations - 1:
             test_feed_dict = {}
             for gen in test_generators:
                 sub_feed_dict = next(gen)
                 test_feed_dict.update(sub_feed_dict)
-            import pdb; pdb.set_trace()
             test_feed_dict = {k: v for k, v in test_feed_dict.items() if k != "update_step"}
             test_fetch_res = sess.run(fetch, feed_dict=test_feed_dict)
+            fetch_res['test_fetch_res'] = test_fetch_res
             print("Test Loss", test_fetch_res['loss'])
+
+        # Do all call backs
+        for cb in callbacks:
+            cb(fetch_res, feed_dict, i, num_iterations=num_iterations, **callback_dict)
+        print("Iteration: ", i, " Loss: ", fetch_res['loss'])

@@ -42,25 +42,34 @@ def supervised_train(arrow: Arrow,
                      test_output_data: List[Generator],
                      callbacks=None,
                      options=None) -> CompositeArrow:
-    import pdb; pdb.set_trace()
     callbacks = [] if callbacks is None else callbacks
     options = {} if options is None else options
     grabs = ({'input': lambda p: is_in_port(p) and not is_param_port(p) and not has_port_label(p, 'train_output'),
               'train_output': lambda p: has_port_label(p, 'train_output'),
-              'supervised_error':  lambda p: has_port_label(p, 'supervised_error')})
-    # Attach each tensor to its generator
-    tensors = extract_tensors(arrow, grabs=grabs, optional=['param'])
+              'supervised_error':  lambda p: has_port_label(p, 'supervised_error'),
+              'sub_arrow_error':  lambda p: has_port_label(p, 'sub_arrow_error'),
+              'inv_fwd_error':  lambda p: has_port_label(p, 'inv_fwd_error')})
+    # Not all arrows will have these ports
+    optional = ['sub_arrow_error', 'inv_fwd_error', 'param']
+    tensors = extract_tensors(arrow, grabs=grabs, optional=optional)
+
     train_feed_gens = [okok(options['batch_size'], train_input_data, train_output_data,
                             tensors['input'], tensors['train_output'])]
 
-    test_feed_gens = [okok(options['batch_size'], test_input_data, test_output_data,
+    test_feed_gens = [okok(1024, test_input_data, test_output_data,
                           tensors['input'], tensors['train_output'])]
 
 
-    # Accumulate error tensors into single loss term
-    # FIXME: Training All the errors here homeboy, even the node loss
-    sound_loss = accumulate_losses(tensors['error'])
-    losses = [sound_loss]
+    # All losses
+    loss_dict = {}
+    for loss in ['error', 'sub_arrow_error', 'inv_fwd_error', 'supervised_error']:
+        if loss in tensors:
+            loss_dict[loss] = accumulate_losses(tensors[loss])
+
+    # error to minimize
+    error = options['error'] if 'error' in options else 'error'
+    loss_to_min = accumulate_losses(tensors[error])
+    losses = [loss_to_min]
     loss_updates = [gen_update_step(loss) for loss in losses]
     loss_ratios = [1]
 
@@ -68,10 +77,10 @@ def supervised_train(arrow: Arrow,
     fetch = gen_fetch(sess, **options)
     fetch['input_tensors'] = tensors['input']
     fetch['output_tensors'] = tensors['output']
-    fetch['loss'] = losses
+    fetch['loss'] = loss_dict
 
-    if inn(options, 'save', 'sfx', 'params_file', 'load'):
-        ops = prep_save(sess, *getn(options, 'save', 'sfx', 'params_file', 'load'))
+    if inn(options, 'save', 'dirname', 'params_file', 'load'):
+        ops = prep_save(sess, *getn(options, 'save', 'dirname', 'params_file', 'load'))
         options.update(ops)
 
     train_loop(sess,

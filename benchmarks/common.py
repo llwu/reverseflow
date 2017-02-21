@@ -23,7 +23,6 @@ def gen_sfx_key(keys, options):
 
 template_module = {'res_net': res_net, 'conv_res_net': conv_res_net}
 
-
 def boolify(x):
     if x in ['0', 0, False, 'False', 'false']:
         return False
@@ -42,7 +41,7 @@ def default_kwargs():
     options['momentum'] = (float, 0.9)
     options['description'] = (str, "")
     options['batch_size'] = (int, 128)
-    options['save_every'] = (int, 3)
+    options['save_every'] = (int, 100)
     options['compress'] = (boolify, 0,)
     options['num_iterations'] = (int, 1000)
     options['save'] = (boolify, True)

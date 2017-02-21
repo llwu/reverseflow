@@ -2,7 +2,8 @@ from arrows.arrow import Arrow
 from arrows.compositearrow import CompositeArrow
 from arrows.std_arrows import *
 from arrows.port_attributes import (is_error_port, make_error_port,
-    make_out_port, is_param_port, make_param_port, add_port_label)
+    make_out_port, is_param_port, make_param_port, add_port_label,
+    transfer_labels)
 from reverseflow.invert import invert
 
 def inv_fwd_loss_arrow(arrow: Arrow,
@@ -91,6 +92,7 @@ def supervised_loss_arrow(arrow: Arrow,
             error_port = c.add_port()
             make_out_port(error_port)
             make_error_port(error_port)
+            transfer_labels(out_port, error_port)
             c.add_edge(out_port, error_port)
         else:
             # If its normal outport then pass through

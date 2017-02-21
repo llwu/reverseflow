@@ -13,8 +13,9 @@ from arrows.port_attributes import *
 from arrows.apply.propagate import *
 from reverseflow.train.reparam import *
 from reverseflow.train.unparam import unparam
-from reverseflow.train.callbacks import save_callback
+from reverseflow.train.callbacks import save_callback, save_options, save_every_n, save_everything_last
 from reverseflow.train.supervised import supervised_train
+from metrics.generalization import test_generalization, test_everything
 from tensortemplates import res_net
 from common import handle_options, gen_sfx_key
 import sys
@@ -124,10 +125,10 @@ def robo_tensorflow(batch_size, n_links):
     lengths = [1 for i in range(n_links)]
     with tf.name_scope("fwd_kinematics"):
         angles = []
-        for i in range(n_links):
+        for _ in range(n_links):
             angles.append(tf.placeholder(floatX(),
                                          name="theta",
-                                         shape=(batch_size, 1)))
+                                         shape=(None, 1)))
         x, y = gen_robot(lengths, angles)
     return {'inputs':angles, 'outputs':[x,y]}
 
@@ -209,7 +210,7 @@ def pi_supervised(options):
                      train_output_data,
                      test_input_data,
                      test_output_data,
-                     callbacks=[],
+                     callbacks=[save_every_n, save_everything_last, save_options],
                      options=options)
 
 
@@ -239,7 +240,7 @@ def nn_supervised(options):
 
     tf_arrow = TfArrow(2, n_links, template=template, options=tp_options)
     for port in tf_arrow.ports():
-        set_port_shape(port, (batch_size, 1))
+        set_port_shape(port, (None, 1))
     sup_tf_arrow = supervised_loss_arrow(tf_arrow)
     num_params = get_tf_num_params(sup_tf_arrow)
     print("NNet Number of params", num_params)
@@ -248,7 +249,7 @@ def nn_supervised(options):
                      train_output_data,
                      test_input_data,
                      test_output_data,
-                     callbacks=[],
+                     callbacks=[save_every_n, save_everything_last, save_options],
                      options=options)
 
 
@@ -260,17 +261,24 @@ def main(argv):
 
 
 # Benchmarks
-from metrics.generalization import test_generalization
-def generalization_bench():
+def nn_benchmarks():
     options = handle_options('linkage_kinematics', sys.argv[1:])
-    sfx = gen_sfx_key(('nblocks', 'block_size'), options)
-    options['sfx'] = sfx
-    options['description'] = "Linkage Generalization Benchmark"
-    test_generalization(pi_supervised, options)
+    options['batch_size'] = np.round(np.logspace(0, np.log10(500-1), 10))
+    options['error'] = ['error']
+    options['description'] = "Neural Network Linkage Generalization Benchmark"
+    options['save'] = True
+    prefix = rand_string(5)
+    test_everything(nn_supervised, options, ["batch_size", "error"], prefix=prefix)
+
+
+def all_benchmarks():
+    options = handle_options('linkage_kinematics', sys.argv[1:])
+    options['batch_size'] = np.round(np.logspace(0, np.log10(500-1), 10))
+    options['error'] = ['supervised_error', 'inv_fwd_error', 'error', 'sub_arrow_error']
+    options['description'] = "Parametric Inverse Linkage Generalization Benchmark"
+    options['save'] = True
+    prefix = rand_string(5)
+    test_everything(pi_supervised, options, ["batch_size", "error"], prefix=prefix)
 
 if __name__ == "__main__":
-    """To run
-    ipython -- examples/stack.py --template=res_net --nblocks=1 --block_size=1 -u adam -l 0.0001 --nitems=1 --batch_size=128 --train 1 --num_epochs=1000
-    """
-    generalization_bench()
-    main(sys.argv[1:])
+    nn_benchmarks()

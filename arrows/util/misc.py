@@ -1,12 +1,22 @@
 """Miscellaneious Utils"""
-from typing import Dict, Sequence
+import itertools
+import string
+import random
+from typing import Dict, Sequence, Any
+
+
+def rand_string(n):
+    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(n))
+
 
 def extract(keys: Sequence, dict: Dict):
     """Restrict dict to keys in `keys`"""
     return {key: dict[key] for key in keys}
 
+
 def getn(dict: Dict, *keys):
     return (dict[k] for k in keys)
+
 
 def inn(seq, *keys):
     return all((k in seq for k in keys))
@@ -29,3 +39,16 @@ def same(xs) -> bool:
                 return False
 
     return True
+
+
+def dict_prod(d: Dict[Any, Sequence]):
+    """
+    Cartesian product for dictionaries
+    Args:
+        dict: A dictionary where all keys are iterable
+    Returns:
+        iterable over dict
+    """
+    keys = d.keys()
+    it = itertools.product(*d.values())
+    return (dict(zip(keys, tup)) for tup in it)

@@ -40,25 +40,25 @@ def get_filepaths(directory):
     return file_paths  # Self-explanatory.
 
 
-
-def default_kwargs():
-    """Default kwargs"""
-    assert(False)
-    options = {}
-    options['learning_rate'] = (float, 0.1)
-    options['update'] = (str, 'momentum')
-    options['params_file'] = (str, 28)
-    options['momentum'] = (float, 0.9)
-    options['description'] = (str, None)
-    options['batch_size'] = (int, 128)
-    options['save_every'] = (int, 100)
-    options['compress'] = (boolify, 0,)
-    options['num_epochs'] = (int, 10)
-    options['compile_fns'] = (boolify, 1)
-    options['save_params'] = (boolify, True)
-    options['template'] = (str, 'res_net')
-    options['train'] = (boolify, True)
-    return options
+# 
+# def default_kwargs():
+#     """Default kwargs"""
+#     assert(False)
+#     options = {}
+#     options['learning_rate'] = (float, 0.1)
+#     options['update'] = (str, 'momentum')
+#     options['params_file'] = (str, 28)
+#     options['momentum'] = (float, 0.9)
+#     options['description'] = (str, None)
+#     options['batch_size'] = (int, 128)
+#     options['save_every'] = (int, 100)
+#     options['compress'] = (boolify, 0,)
+#     options['num_epochs'] = (int, 10)
+#     options['compile_fns'] = (boolify, 1)
+#     options['save_params'] = (boolify, True)
+#     options['template'] = (str, 'res_net')
+#     options['train'] = (boolify, True)
+#     return options
 
 
 class PassThroughOptionParser(OptionParser):
@@ -144,11 +144,14 @@ def handle_args(argv, cust_opts):
     print(options)
     return options
 
-
-def mk_dir(sfx=''):
+def mk_dir(sfx='',
+           dirname=None,
+           datadir = os.environ['DATADIR']):
     "Create directory with timestamp"
-    datadir = os.environ['DATADIR']
-    newdirname = str(time.time()) + sfx
+    if dirname is None:
+        newdirname = str(time.time()) + sfx
+    else:
+        newdirname = dirname
     full_dir_name = os.path.join(datadir, "rf", newdirname)
     print("Data will be saved to", full_dir_name)
     os.mkdir(full_dir_name)
