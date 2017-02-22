@@ -110,6 +110,10 @@ def ports_has(ports: Sequence[Port], attr: str, port_attr: PortAttributes):
     return all((port_has(port, attr, port_attr) for port in ports))
 
 
+def any_port_has(ports: Sequence[Port], attr: str, port_attr: PortAttributes):
+    return any((port_has(port, attr, port_attr) for port in ports))
+
+
 def extract_attribute(attr: str, port_attr: PortAttributes):
     return {port: port_attr[port][attr] for port in port_attr.keys() \
             if attr in port_attr[port]}

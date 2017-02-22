@@ -91,7 +91,10 @@ def extract_port_attr(comp_arrow, port_attr):
                 port_attr[port] = {}
             update_port_attr(port_attr[port], attributes, set())
 
-
+#FIXME: Does unnecessary Propagate, will do a dispatch more than once
+# which is (probably) never needed
+# FIXME: There is a loss of information bug from port_attr,
+# remove __eq__ form symbolictensor and run voxel render to sees
 def propagate(comp_arrow: CompositeArrow,
               port_attr: PortAttributes=None,
               state=None) -> PortAttributes:

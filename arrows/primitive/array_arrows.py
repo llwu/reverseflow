@@ -116,6 +116,32 @@ def std_disp4(arr: "SparseToDenseArrow", port_attr: PortAttributes):
     vals_shape = port_attr[arr.in_ports()[2]]['shape']
     return {arr.in_ports()[0]: {'shape': vals_shape}}
 
+# For symbolic tensor
+from arrows.util.tf import tf_eval
+from arrows.transform.symbolic_tensor import SymbolicTensor
+import tensorflow as tf
+
+def std_symbt_pred(arr: "SparseToDenseArrow", port_attr: PortAttributes):
+    # sparse_indices: value
+    # output_shape: value
+    # sparse_values: SymbolicTensor
+    a = ports_has(arr.in_ports()[0:2], 'value', port_attr)
+    b = port_has(arr.in_port(2), 'symbolic_tensor', port_attr)
+    # Hack, a FIXME to propagate should stop repropagation
+    c = not port_has(arr.out_port(0), 'symbolic_tensor', port_attr)
+    return a and b and c
+
+
+def std_symb_disp(arr: "SparseToDenseArrow", port_attr: PortAttributes):
+    st = port_attr[arr.in_ports()[2]]['symbolic_tensor']
+    indices = port_attr[arr.in_ports()[0]]['value']
+    output_shape = port_attr[arr.in_ports()[1]]['value']
+    values = st.indices
+    res = tf_eval(tf.sparse_to_dense, sparse_indices=indices, sparse_values=values, output_shape=output_shape)
+    st = SymbolicTensor(indices=res, symbols=st.symbols, name=st.name, port=st.port)
+    return {arr.out_port(0): {'symbolic_tensor': st}}
+
+
 
 class SparseToDenseArrow(PrimitiveArrow):
     """tf.sparse_to_dense"""
@@ -129,7 +155,8 @@ class SparseToDenseArrow(PrimitiveArrow):
             std_pred1: std_disp1,
             std_pred2: std_disp2,
             std_pred3: std_disp3,
-            std_pred4: std_disp4
+            std_pred4: std_disp4,
+            std_symbt_pred: std_symb_disp,
             })
         return disp
 

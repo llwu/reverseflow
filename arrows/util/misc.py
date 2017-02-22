@@ -2,6 +2,7 @@
 import itertools
 import string
 import random
+from functools import reduce
 from typing import Dict, Sequence, Any
 
 
@@ -39,6 +40,10 @@ def same(xs) -> bool:
                 return False
 
     return True
+
+
+def product(xs):
+    return reduce((lambda x, y: x * y), xs)
 
 
 def dict_prod(d: Dict[Any, Sequence]):

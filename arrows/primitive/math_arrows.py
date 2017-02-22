@@ -6,7 +6,7 @@ from typing import Dict, List, MutableMapping, Set, Sequence
 from sympy import Expr, Rel, Gt, Ne
 import math
 from arrows.port_attributes import (PortAttributes, port_has, ports_has,
-    extract_attribute)
+    extract_attribute, any_port_has)
 from arrows.port import Port
 from arrows.arrow import Arrow
 from arrows.apply.shapes import *
@@ -45,6 +45,21 @@ def add_dispatch3(arr: "AddArrow", port_attr: PortAttributes):
     return {i[0] : {'value': ptv[o[0]] - ptv[i[1]]}}
 
 
+def add_symbt_pred(arr: "AddArrow", port_attr: PortAttributes):
+    return any_port_has(arr.in_ports(), 'symbolic_tensor', port_attr)
+
+
+def add_symbt_disp(arr: "AddArrow", port_attr: PortAttributes):
+    ptv = extract_attribute('symbolic_tensor', port_attr)
+    if arr.in_port(0) and arr.in_port(1) in ptv:
+        assert False, "Figure this out"
+    elif arr.in_port(0) in ptv:
+        return {arr.out_port(0): {'symbolic_tensor': ptv[arr.in_port(0)]}}
+    elif arr.in_port(1) in ptv:
+        return {arr.out_port(1): {'symbolic_tensor': ptv[arr.in_port(1)]}}
+    else:
+        assert False, "why am i here"
+
 class AddArrow(PrimitiveArrow):
     """Addition"""
 
@@ -58,7 +73,8 @@ class AddArrow(PrimitiveArrow):
             shape_pred: shape_dispatch,
             add_pred1: add_dispatch1,
             add_pred2: add_dispatch2,
-            add_pred3: add_dispatch3
+            add_pred3: add_dispatch3,
+            add_symbt_pred: add_symbt_disp,
             })
         return disp
 

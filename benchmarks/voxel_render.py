@@ -4,6 +4,7 @@ from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.train_y import min_approx_error_arrow
 from arrows.util.viz import show_tensorboard_graph, show_tensorboard
 from arrows.config import floatX
+from arrows.transform.eliminate import eliminate
 import sys
 import getopt
 import tensorflow as tf
@@ -261,9 +262,10 @@ def test_render_graph():
     results = render_gen_graph(g, 1)
     out_img_tensor = results['outputs']['out_img']
     show_tensorboard_graph()
-    arrow_renderer = graph_to_arrow([out_img_tensor])
+    arrow_renderer = graph_to_arrow([out_img_tensor], name="renderer")
     inv_renderer = invert(arrow_renderer)
-    show_tensorboard(inv_renderer)
+    elim_inv_renderer = eliminate(inv_renderer)
+    show_tensorboard(elim_inv_renderer)
     import pdb; pdb.set_trace()
 
 
