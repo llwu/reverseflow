@@ -28,7 +28,6 @@ def gather_shape_dispatch(arr: "GatherArrow", port_attr: PortAttributes):
     param_shape = const_to_tuple(pts[arr.in_ports()[0]])
     return {arr.out_ports()[0]: {'shape': indices_shape + param_shape[1:]}}
 
-
 class GatherArrow(PrimitiveArrow):
     """
     Gather slices from `params` according to `indices`.
@@ -77,6 +76,34 @@ class GatherArrow(PrimitiveArrow):
         return disp
 
 
+def gathernd_shape_pred(arr: "GatherArrow", port_attr: PortAttributes):
+    # FIXME: Can we infer shaep from output or aoutput and one input?
+    return ports_has(arr.in_ports(), 'shape', port_attr)
+
+
+def gathernd_shape_dispatch(arr: "GatherArrow", port_attr: PortAttributes):
+    # [d_0, ..., d_{Q-2}, params.shape[K], ..., params.shape[P-1]].
+    pts = extract_attribute('shape', port_attr)
+    indices_shape = const_to_tuple(pts[arr.in_ports()[1]])
+    param_shape = const_to_tuple(pts[arr.in_ports()[0]])
+    return {arr.out_ports()[0]: {'shape': indices_shape[:-1] + param_shape[indices_shape[-1]:]}}
+
+
+class GatherNdArrow(PrimitiveArrow):
+    """
+    tf.gather_nd
+    """
+
+    def __init__(self):
+        name = 'GatherNd'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({gathernd_shape_pred: gathernd_shape_dispatch})
+        return disp
+
+
 def std_pred1(arr: "SparseToDenseArrow", port_attr: PortAttributes):
     return ports_has(arr.in_ports()[1:2], 'value', port_attr)
 
@@ -101,20 +128,20 @@ def std_disp2(arr: "SparseToDenseArrow", port_attr: PortAttributes):
 
 
 def std_pred3(arr: "SparseToDenseArrow", port_attr: PortAttributes):
-    return ports_has(arr.in_ports()[0:1], 'value', port_attr)
+    return ports_has(arr.in_ports()[0:1], 'shape', port_attr)
 
 
 def std_disp3(arr: "SparseToDenseArrow", port_attr: PortAttributes):
     inds_shape = port_attr[arr.in_ports()[0]]['shape']
-    return {arr.in_ports()[2]: {'shape': inds_shape}}
+    return {arr.in_ports()[2]: {'shape': (inds_shape[0],)}}
 
 def std_pred4(arr: "SparseToDenseArrow", port_attr: PortAttributes):
-    return ports_has(arr.in_ports()[2:], 'value', port_attr)
+    return ports_has(arr.out_ports(), 'shape', port_attr)
 
 
 def std_disp4(arr: "SparseToDenseArrow", port_attr: PortAttributes):
-    vals_shape = port_attr[arr.in_ports()[2]]['shape']
-    return {arr.in_ports()[0]: {'shape': vals_shape}}
+    output_shape = const_to_tuple(port_attr[arr.out_ports()[0]]['shape'])
+    return {arr.in_ports()[1]: {'value': output_shape}}
 
 # For symbolic tensor
 from arrows.util.tf import tf_eval
@@ -161,6 +188,7 @@ class SparseToDenseArrow(PrimitiveArrow):
         return disp
 
 # Reshape
+# FIXME: We don't consider the special value -1, which is supposed to infer shape
 # ========
 def reshape_eval_pred(arr: "ReshapeArrow", port_attr: PortAttributes):
     return ports_has(arr.in_ports(), 'value', port_attr)

@@ -1,7 +1,7 @@
 """Inverse Dispatches for Inverses"""
 from arrows import Arrow, Port, InPort
 from arrows.port_attributes import (PortAttributes, make_error_port,
-    make_param_port, get_port_attr)
+    make_param_port, get_port_attr, set_port_shape)
 from arrows.std_arrows import *
 from arrows.apply.constants import CONST, VAR, is_constant
 from arrows.util.misc import extract
@@ -182,10 +182,10 @@ def inv_exp(arrow: ExpArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]
     log = LogArrow()
     return log, {0: 1, 1: 0}
 
-
+# FIXME: these gather and gathernd inversions don't work for slices
 def inv_gather(arrow: GatherArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
-    if is_constant(arrow.in_ports()[0], port_attr) and is_constant(arrow.in_ports()[1], port_attr):
-        return deepcopy(arrow), {0: 0, 1: 1, 2: 2}
+    if is_constant(arrow.out_ports()[0], port_attr):
+        return GatherArrow(), {0: 0, 1: 1, 2: 2}
     tensor_shape = port_attr[arrow.in_ports()[0]]['shape']
     if isinstance(tensor_shape, tuple):
         tensor_shape = list(tensor_shape)
@@ -195,7 +195,7 @@ def inv_gather(arrow: GatherArrow, port_attr: PortAttributes) -> Tuple[Arrow, Po
     std2 = SparseToDenseArrow()
     dupl1 = DuplArrow()
     dupl2 = DuplArrow()
-    # TODO: don't do this, complement could be huge
+    # FIXME: don't do this, complement could be huge
     source_compl = SourceArrow(np.array(index_list_compl))
     source_tensor_shape = SourceArrow(np.array(tensor_shape))
     add = AddArrow()
@@ -216,6 +216,63 @@ def inv_gather(arrow: GatherArrow, port_attr: PortAttributes) -> Tuple[Arrow, Po
     make_param_port(op.in_ports()[1])
     return op, {0: 3, 1: 2, 2: 0}
 
+def inv_gathernd(arrow: GatherNdArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
+    if is_constant(arrow.in_ports()[0], port_attr) and is_constant(arrow.in_ports()[1], port_attr):
+        return deepcopy(arrow), {0: 0, 1: 1, 2: 2}
+    tensor_shape = port_attr[arrow.in_ports()[0]]['shape']
+    if isinstance(tensor_shape, tuple):
+        tensor_shape = list(tensor_shape)
+    index_list_value = port_attr[arrow.in_ports()[1]]['value']
+    batch_size = None
+    if len(index_list_value.shape) > 2:
+        batch_size = index_list_value.shape[0]
+        index_list_value = index_list_value.reshape(-1, index_list_value.shape[-1])
+    index_list_shape = index_list_value.shape
+    num_indices = index_list_shape[0]
+    index_list_compl = complement(index_list_value, tensor_shape)
+    compl_shape = None
+    if batch_size is not None:
+        assert len(index_list_compl) % batch_size == 0
+        compl_shape = (batch_size, len(index_list_compl) // batch_size)
+    std1 = SparseToDenseArrow()
+    std2 = SparseToDenseArrow()
+    dupl1 = DuplArrow()
+    dupl2 = DuplArrow()
+    # TODO: don't do this, complement could be huge
+    source_compl = SourceArrow(np.array(index_list_compl))
+    source_tensor_shape = SourceArrow(np.array(tensor_shape))
+    source_reshape = SourceArrow(np.array([num_indices], dtype=np.int32))
+    source_index_shape = SourceArrow(np.array(index_list_shape, dtype=np.int32))
+    add = AddArrow()
+    reshape = ReshapeArrow()
+    index_list_reshape = ReshapeArrow()
+    edges = Bimap()
+    edges.add(source_compl.out_ports()[0], std1.in_ports()[0])
+    edges.add(source_tensor_shape.out_ports()[0], dupl1.in_ports()[0])
+    edges.add(dupl1.out_ports()[0], std1.in_ports()[1])
+    edges.add(dupl1.out_ports()[1], std2.in_ports()[1])
+    edges.add(std1.out_ports()[0], add.in_ports()[0])
+    edges.add(std2.out_ports()[0], add.in_ports()[1])
+    edges.add(source_reshape.out_ports()[0], reshape.in_ports()[1])
+    edges.add(reshape.out_ports()[0], std2.in_ports()[2])
+    edges.add(source_index_shape.out_ports()[0], index_list_reshape.in_ports()[1])
+    edges.add(index_list_reshape.out_ports()[0], std2.in_ports()[0])
+    # orig_out_port, params, inp_list
+    in_ports = [reshape.in_ports()[0], std1.in_ports()[2], index_list_reshape.in_ports()[0]]
+    if compl_shape is not None:
+        compl_reshape = ReshapeArrow()
+        compl_shape_source = SourceArrow(np.array([len(index_list_compl)], dtype=np.int32))
+        in_ports[1] = compl_reshape.in_ports()[0]
+        set_port_shape(in_ports[1], compl_shape)
+        edges.add(compl_shape_source.out_ports()[0], compl_reshape.in_ports()[1])
+        edges.add(compl_reshape.out_ports()[0], std1.in_ports()[2])
+    out_ports = [add.out_ports()[0]]
+    op = CompositeArrow(in_ports=in_ports,
+                        out_ports=out_ports,
+                        edges=edges,
+                        name="InvGatherNd")
+    make_param_port(op.in_ports()[1])
+    return op, {0: 3, 1: 2, 2: 0}
 
 def dict_subset(keys, dict):
     return {key: dict[key] for key in keys}
