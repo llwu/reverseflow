@@ -22,11 +22,11 @@ def get_const_op_value(const_op: Operation):
     return val
 
 
-# def broadcast_wrap(arr: Arrow):
-#     return BroadcastArithArrow(arr)
+def broadcast_wrap(arr: Arrow):
+    return BroadcastArithArrow(arr)
 
-def broadcast_wrap(x):
-    return x
+# def broadcast_wrap(x):
+#     return x
 
 #FIXME: DRY
 def conv_Add(add_op: Operation):
@@ -65,6 +65,10 @@ def conv_Gather(gather_op: Operation):
     return GatherArrow()
 
 
+def conv_GatherNd(gathernd_op: Operation):
+    return GatherNdArrow()
+
+
 def conv_Mul(mul_op: Operation):
     return broadcast_wrap(MulArrow())
 
@@ -93,6 +97,7 @@ Op_Type_To_Arrow = {'Add': conv_Add,  # type: Dict[string, Arrow]
                     'AddN': conv_AddN,
                     'Sub': conv_Sub,
                     'Gather': conv_Gather,
+                    'GatherNd': conv_GatherNd,
                     'Exp': conv_Exp,
                     'Mul': conv_Mul,
                     'Neg': conv_Neg,

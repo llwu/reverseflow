@@ -28,7 +28,6 @@ def gather_shape_dispatch(arr: "GatherArrow", port_attr: PortAttributes):
     param_shape = const_to_tuple(pts[arr.in_ports()[0]])
     return {arr.out_ports()[0]: {'shape': indices_shape + param_shape[1:]}}
 
-
 class GatherArrow(PrimitiveArrow):
     """
     Gather slices from `params` according to `indices`.
@@ -74,6 +73,34 @@ class GatherArrow(PrimitiveArrow):
     def get_dispatches(self):
         disp = super().get_dispatches()
         disp.update({gather_shape_pred: gather_shape_dispatch})
+        return disp
+
+
+def gathernd_shape_pred(arr: "GatherArrow", port_attr: PortAttributes):
+    # FIXME: Can we infer shaep from output or aoutput and one input?
+    return ports_has(arr.in_ports(), 'shape', port_attr)
+
+
+def gathernd_shape_dispatch(arr: "GatherArrow", port_attr: PortAttributes):
+    # [d_0, ..., d_{Q-2}, params.shape[K], ..., params.shape[P-1]].
+    pts = extract_attribute('shape', port_attr)
+    indices_shape = const_to_tuple(pts[arr.in_ports()[1]])
+    param_shape = const_to_tuple(pts[arr.in_ports()[0]])
+    return {arr.out_ports()[0]: {'shape': indices_shape[:-1] + param_shape[indices_shape[-1]:]}}
+
+
+class GatherNdArrow(PrimitiveArrow):
+    """
+    tf.gather_nd
+    """
+
+    def __init__(self):
+        name = 'GatherNd'
+        super().__init__(n_in_ports=2, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({gathernd_shape_pred: gathernd_shape_dispatch})
         return disp
 
 

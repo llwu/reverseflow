@@ -90,7 +90,7 @@ def conv(a: LogBaseArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: MulArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    return [tf.mul(*args)]
+    return [tf.multiply(*args)]
 
 
 @overload
@@ -206,6 +206,10 @@ def conv(a: IfArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 @overload
 def conv(a: GatherArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     return [tf.gather(*args)]
+
+@overload
+def conv(a: GatherNdArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.gather_nd(*args)]
 
 @overload
 def conv(a: SparseToDenseArrow, args: TensorVarList, state) -> Sequence[Tensor]:

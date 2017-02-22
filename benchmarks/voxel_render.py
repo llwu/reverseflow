@@ -195,8 +195,9 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
         attenuation = None
         if batched:
             x = np.arange(batch_size)
-            batched_indices = np.transpose([np.tile(x, len(flat_indices)), np.repeat(flat_indices, len(x))])
-            attenuation = tf.reshape(tf.gather_nd(voxels, batched_indices), np.array([batch_size, len(flat_indices)]))
+            batched_indices = np.transpose([np.repeat(x, len(flat_indices)),
+                    np.tile(flat_indices, len(x))]).reshape(batch_size, len(flat_indices), 2)
+            attenuation = tf.gather_nd(voxels, batched_indices)
         else:
             attenuation = tf.gather(voxels, flat_indices)
         print("attenuation step", attenuation.get_shape(), step_sz.shape)
@@ -216,10 +217,10 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
 def render_fwd_f(inputs):
     voxels = inputs['voxels']
     options = {}
-    width = options['width'] = 32
-    height = options['height'] = 32
+    width = options['width'] = 128
+    height = options['height'] = 128
     res = options['res'] = 32
-    nsteps = options['nsteps'] = 3
+    nsteps = options['nsteps'] = 8
     nvoxgrids = options['nvoxgrids'] = 1
     nviews = options['nviews'] = 1
     rotation_matrices = rand_rotation_matrices(nviews)
@@ -265,10 +266,11 @@ def draw_random_voxels():
 
 def test_render_graph():
     g = tf.get_default_graph()
-    results = render_gen_graph(g, 4)
+    batch_size = 4
+    results = render_gen_graph(g, batch_size)
     out_img_tensor = results['outputs']['out_img']
-    import pdb;pdb.set_trace()
     arrow_renderer = graph_to_arrow([out_img_tensor])
+    import pdb;pdb.set_trace()
     inv_renderer = invert(arrow_renderer)
     import pdb; pdb.set_trace()
 
