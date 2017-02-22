@@ -212,6 +212,10 @@ def conv(a: GatherNdArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     return [tf.gather_nd(*args)]
 
 @overload
+def conv(a: ScatterNdArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.scatter_nd(*args)]
+
+@overload
 def conv(a: SparseToDenseArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     return [tf.sparse_to_dense(*args, validate_indices=False)]
 

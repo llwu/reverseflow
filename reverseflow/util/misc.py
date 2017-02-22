@@ -27,7 +27,7 @@ def same(xs) -> bool:
     return True
 
 
-def complement(indices: Sequence, shape: tuple) -> Sequence:
+def complement(indices: Sequence, shape: Sequence) -> Sequence:
     bools = np.zeros(shape)
     output = []
     for index in indices:
@@ -36,6 +36,15 @@ def complement(indices: Sequence, shape: tuple) -> Sequence:
         if value == 0:
             output.append(index)
     return np.squeeze(np.array(output))
+
+
+def complement_bool(indices: np.ndarray, shape: Sequence) -> Sequence:
+    if len(indices.shape) > 2:
+        indices = indices.reshape(-1, indices.shape[-1])
+    bools = np.zeros(shape)
+    for index in indices:
+        bools[tuple(index)] = 1
+    return bools
 
 
 # Generators

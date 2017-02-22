@@ -4,6 +4,7 @@ from arrows.port_attributes import ports_has, PortAttributes, extract_attribute
 from arrows.apply.shapes import *
 from arrows.apply.constants import constant_pred, constant_dispatch
 import numpy as np
+import tensorflow as tf
 
 
 def const_to_tuple(x):
@@ -119,7 +120,7 @@ def std_pred2(arr: "SparseToDenseArrow", port_attr: PortAttributes):
 
 def std_disp2(arr: "SparseToDenseArrow", port_attr: PortAttributes):
     inds = port_attr[arr.in_ports()[0]]['value']
-    output_shape = const_to_tuple(port_attr[arr.in_ports()[2]]['value'])
+    output_shape = const_to_tuple(port_attr[arr.in_ports()[1]]['value'])
     vals = port_attr[arr.in_ports()[2]]['value']
     output = np.zeros(output_shape)
     for i, ind in enumerate(list(inds)):
@@ -184,6 +185,98 @@ class SparseToDenseArrow(PrimitiveArrow):
             std_pred3: std_disp3,
             std_pred4: std_disp4,
             std_symbt_pred: std_symb_disp,
+            })
+        return disp
+
+
+def snd_pred1(arr: "ScatterNdArrow", port_attr: PortAttributes):
+    return port_has(arr.in_ports()[2], 'value', port_attr)
+
+
+def snd_disp1(arr: "ScatterNdArrow", port_attr: PortAttributes):
+    output_shape = const_to_tuple(port_attr[arr.in_port(2)]['value'])
+    return {arr.out_ports()[0]: {'shape': output_shape}}
+
+
+def snd_pred2(arr: "ScatterNdArrow", port_attr: PortAttributes):
+    return ports_has(arr.in_ports(), 'value', port_attr)
+
+
+def snd_disp2(arr: "ScatterNdArrow", port_attr: PortAttributes):
+    inds = tf.constant(port_attr[arr.in_ports()[0]]['value'])
+    output_shape = tf.constant(port_attr[arr.in_ports()[2]]['value'])
+    vals = tf.constant(port_attr[arr.in_ports()[1]]['value'])
+    scatter = tf.scatter_nd(inds, vals, output_shape)
+    with tf.Session() as sess:
+        return {arr.out_ports()[0]: sess.run(scatter)}
+
+
+def snd_pred3(arr: "ScatterNdArrow", port_attr: PortAttributes):
+    return port_has(arr.in_port(0), 'shape', port_attr) and port_has(arr.in_port(2), 'value', port_attr)
+
+
+def snd_disp3(arr: "ScatterNdArrow", port_attr: PortAttributes):
+    # [d_0, ..., d_{Q-2}, params.shape[K], ..., params.shape[P-1]].
+    indices_shape = const_to_tuple(port_attr[arr.in_port(0)]['shape'])
+    params_shape = const_to_tuple(port_attr[arr.in_port(2)]['value'])
+    return {arr.in_ports()[1]: {'shape': indices_shape[:-1] + params_shape[indices_shape[-1]:]}}
+
+def snd_pred4(arr: "ScatterNdArrow", port_attr: PortAttributes):
+    return ports_has(arr.out_ports(), 'shape', port_attr)
+
+
+def snd_disp4(arr: "ScatterNdArrow", port_attr: PortAttributes):
+    output_shape = const_to_tuple(port_attr[arr.out_ports()[0]]['shape'])
+    return {arr.in_ports()[2]: {'value': output_shape}}
+
+def snd_pred5(arr: "ScatterNdArrow", port_attr: PortAttributes):
+    return port_has(arr.in_port(0), 'shape', port_attr) and port_has(arr.out_port(0), 'shape', port_attr)
+
+
+def snd_disp5(arr: "ScatterNdArrow", port_attr: PortAttributes):
+    # [d_0, ..., d_{Q-2}, params.shape[K], ..., params.shape[P-1]].
+    indices_shape = const_to_tuple(port_attr[arr.in_port(0)]['shape'])
+    params_shape = const_to_tuple(port_attr[arr.out_port(0)]['shape'])
+    return {arr.in_ports()[1]: {'shape': indices_shape[:-1] + params_shape[indices_shape[-1]:]}}
+
+def snd_symbt_pred(arr: "ScatterNdArrow", port_attr: PortAttributes):
+    # sparse_indices: value
+    # output_shape: value
+    # sparse_values: SymbolicTensor
+    a = port_has(arr.in_port(0), 'value', port_attr)
+    b = port_has(arr.in_port(1), 'symbolic_tensor', port_attr)
+    # Hack, a FIXME to propagate should stop repropagation
+    c = not port_has(arr.out_port(0), 'symbolic_tensor', port_attr)
+    d = port_has(arr.in_port(2), 'value', port_attr)
+    return a and b and c and d
+
+
+def snd_symb_disp(arr: "ScatterNdArrow", port_attr: PortAttributes):
+    st = port_attr[arr.in_ports()[1]]['symbolic_tensor']
+    indices = port_attr[arr.in_ports()[0]]['value']
+    output_shape = port_attr[arr.in_ports()[2]]['value']
+    values = st.indices
+    res = tf_eval(tf.scatter_nd, indices=indices, updates=values, shape=output_shape)
+    st = SymbolicTensor(indices=res, symbols=st.symbols, name=st.name, port=st.port)
+    return {arr.out_port(0): {'symbolic_tensor': st}}
+
+
+
+class ScatterNdArrow(PrimitiveArrow):
+    """tf.scatter_nd"""
+    def __init__(self):
+        name = 'ScatterNd'
+        super().__init__(n_in_ports=3, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({
+            snd_pred1: snd_disp1,
+            snd_pred2: snd_disp2,
+            snd_pred3: snd_disp3,
+            snd_pred4: snd_disp4,
+            snd_pred5: snd_disp5,
+            snd_symbt_pred: snd_symb_disp,
             })
         return disp
 

@@ -5,15 +5,12 @@ from reverseflow.train.train_y import min_approx_error_arrow
 from arrows.util.viz import show_tensorboard_graph, show_tensorboard
 from arrows.util.misc import getn
 from arrows.config import floatX
-<<<<<<< HEAD
 from arrows.transform.eliminate import eliminate
-=======
 from benchmarks.common import handle_options, gen_sfx_key
 from reverseflow.train.common import get_tf_num_params
 from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
 from reverseflow.train.supervised import supervised_train
 from reverseflow.train.unparam import unparam
->>>>>>> 59bd3a6d61fe37d5ac462c9c74a453b05ee3a038
 import sys
 import getopt
 import tensorflow as tf
@@ -278,11 +275,10 @@ def test_render_graph():
     batch_size = 4
     results = render_gen_graph(g, batch_size)
     out_img_tensor = results['outputs']['out_img']
-    show_tensorboard_graph()
     arrow_renderer = graph_to_arrow([out_img_tensor], name="renderer")
     inv_renderer = invert(arrow_renderer)
-    elim_inv_renderer = eliminate(inv_renderer)
-    show_tensorboard(elim_inv_renderer)
+    # elim_inv_renderer = eliminate(inv_renderer)
+    # show_tensorboard(elim_inv_renderer)
     import pdb; pdb.set_trace()
 
 
@@ -343,5 +339,5 @@ def generalization_bench():
 
 
 if __name__ == "__main__":
-    generalization_bench()
+    # generalization_bench()
     test_render_graph()
