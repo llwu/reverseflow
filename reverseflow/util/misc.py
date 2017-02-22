@@ -31,7 +31,7 @@ def complement(indices: Sequence, shape: tuple) -> Sequence:
     bools = np.zeros(shape)
     output = []
     for index in indices:
-        bools[index] = 1
+        bools[tuple(index)] = 1
     for index, value in np.ndenumerate(bools):
         if value == 0:
             output.append(index)

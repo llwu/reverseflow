@@ -128,20 +128,20 @@ def std_disp2(arr: "SparseToDenseArrow", port_attr: PortAttributes):
 
 
 def std_pred3(arr: "SparseToDenseArrow", port_attr: PortAttributes):
-    return ports_has(arr.in_ports()[0:1], 'value', port_attr)
+    return ports_has(arr.in_ports()[0:1], 'shape', port_attr)
 
 
 def std_disp3(arr: "SparseToDenseArrow", port_attr: PortAttributes):
     inds_shape = port_attr[arr.in_ports()[0]]['shape']
-    return {arr.in_ports()[2]: {'shape': inds_shape}}
+    return {arr.in_ports()[2]: {'shape': (inds_shape[0],)}}
 
 def std_pred4(arr: "SparseToDenseArrow", port_attr: PortAttributes):
-    return ports_has(arr.in_ports()[2:], 'value', port_attr)
+    return ports_has(arr.out_ports(), 'shape', port_attr)
 
 
 def std_disp4(arr: "SparseToDenseArrow", port_attr: PortAttributes):
-    vals_shape = port_attr[arr.in_ports()[2]]['shape']
-    return {arr.in_ports()[0]: {'shape': vals_shape}}
+    output_shape = const_to_tuple(port_attr[arr.out_ports()[0]]['shape'])
+    return {arr.in_ports()[1]: {'value': output_shape}}
 
 
 class SparseToDenseArrow(PrimitiveArrow):
