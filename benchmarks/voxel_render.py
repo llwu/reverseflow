@@ -8,6 +8,7 @@ from arrows.config import floatX
 from benchmarks.common import handle_options, gen_sfx_key
 from reverseflow.train.common import get_tf_num_params
 from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
+from reverseflow.train.supervised import supervised_train
 from reverseflow.train.unparam import unparam
 import sys
 import getopt
@@ -303,6 +304,7 @@ def pi_supervised(options):
     inv_arrow = inv_fwd_loss_arrow(arrow_renderer)
     right_inv = unparam(inv_arrow)
     sup_right_inv = supervised_loss_arrow(right_inv)
+    import pdb; pdb.set_trace()
     # Get training and test_data
     train_data = gen_data(batch_size)
     test_data = gen_data(1024)

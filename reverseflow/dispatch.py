@@ -1,7 +1,7 @@
 """Inverse Dispatches for Inverses"""
 from arrows import Arrow, Port, InPort
 from arrows.port_attributes import (PortAttributes, make_error_port,
-    make_param_port, get_port_attr)
+    make_param_port, get_port_attr, set_port_shape)
 from arrows.std_arrows import *
 from arrows.apply.constants import CONST, VAR, is_constant
 from arrows.util.misc import extract
@@ -223,11 +223,17 @@ def inv_gathernd(arrow: GatherNdArrow, port_attr: PortAttributes) -> Tuple[Arrow
     if isinstance(tensor_shape, tuple):
         tensor_shape = list(tensor_shape)
     index_list_value = port_attr[arrow.in_ports()[1]]['value']
+    batch_size = None
     if len(index_list_value.shape) > 2:
+        batch_size = index_list_value.shape[0]
         index_list_value = index_list_value.reshape(-1, index_list_value.shape[-1])
     index_list_shape = index_list_value.shape
     num_indices = index_list_shape[0]
     index_list_compl = complement(index_list_value, tensor_shape)
+    compl_shape = None
+    if batch_size is not None:
+        assert len(index_list_compl) % batch_size == 0
+        compl_shape = (batch_size, len(index_list_compl) // batch_size)
     std1 = SparseToDenseArrow()
     std2 = SparseToDenseArrow()
     dupl1 = DuplArrow()
@@ -253,6 +259,13 @@ def inv_gathernd(arrow: GatherNdArrow, port_attr: PortAttributes) -> Tuple[Arrow
     edges.add(index_list_reshape.out_ports()[0], std2.in_ports()[0])
     # orig_out_port, params, inp_list
     in_ports = [reshape.in_ports()[0], std1.in_ports()[2], index_list_reshape.in_ports()[0]]
+    if compl_shape is not None:
+        compl_reshape = ReshapeArrow()
+        compl_shape_source = SourceArrow(np.array([len(index_list_compl)], dtype=np.int32))
+        in_ports[1] = compl_reshape.in_ports()[0]
+        set_port_shape(in_ports[1], compl_shape)
+        edges.add(compl_shape_source.out_ports()[0], compl_reshape.in_ports()[1])
+        edges.add(compl_reshape.out_ports()[0], std1.in_ports()[2])
     out_ports = [add.out_ports()[0]]
     op = CompositeArrow(in_ports=in_ports,
                         out_ports=out_ports,
