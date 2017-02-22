@@ -235,8 +235,8 @@ def inv_gathernd(arrow: GatherNdArrow, port_attr: PortAttributes) -> Tuple[Arrow
     # TODO: don't do this, complement could be huge
     source_compl = SourceArrow(np.array(index_list_compl))
     source_tensor_shape = SourceArrow(np.array(tensor_shape))
-    source_reshape = SourceArrow(np.array([num_indices]))
-    source_index_shape = SourceArrow(np.array(index_list_shape))
+    source_reshape = SourceArrow(np.array([num_indices], dtype=np.int32))
+    source_index_shape = SourceArrow(np.array(index_list_shape, dtype=np.int32))
     add = AddArrow()
     reshape = ReshapeArrow()
     index_list_reshape = ReshapeArrow()

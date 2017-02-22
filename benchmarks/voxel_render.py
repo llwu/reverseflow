@@ -270,7 +270,6 @@ def test_render_graph():
     results = render_gen_graph(g, batch_size)
     out_img_tensor = results['outputs']['out_img']
     arrow_renderer = graph_to_arrow([out_img_tensor])
-    import pdb;pdb.set_trace()
     inv_renderer = invert(arrow_renderer)
     import pdb; pdb.set_trace()
 

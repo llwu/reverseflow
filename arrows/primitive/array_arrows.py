@@ -161,6 +161,7 @@ class SparseToDenseArrow(PrimitiveArrow):
         return disp
 
 # Reshape
+# FIXME: We don't consider the special value -1, which is supposed to infer shape
 # ========
 def reshape_eval_pred(arr: "ReshapeArrow", port_attr: PortAttributes):
     return ports_has(arr.in_ports(), 'value', port_attr)
