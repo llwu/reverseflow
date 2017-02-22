@@ -5,6 +5,10 @@ from reverseflow.train.train_y import min_approx_error_arrow
 from arrows.util.viz import show_tensorboard_graph, show_tensorboard
 from arrows.util.misc import getn
 from arrows.config import floatX
+from benchmarks.common import handle_options, gen_sfx_key
+from reverseflow.train.common import get_tf_num_params
+from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
+from reverseflow.train.unparam import unparam
 import sys
 import getopt
 import tensorflow as tf
@@ -220,7 +224,7 @@ def render_fwd_f(inputs):
     width = options['width'] = 128
     height = options['height'] = 128
     res = options['res'] = 32
-    nsteps = options['nsteps'] = 8
+    nsteps = options['nsteps'] = 3
     nvoxgrids = options['nvoxgrids'] = 1
     nviews = options['nviews'] = 1
     rotation_matrices = rand_rotation_matrices(nviews)
@@ -274,12 +278,14 @@ def test_render_graph():
     import pdb; pdb.set_trace()
 
 
-def gen_data(batch_size, n_links):
+def gen_data(batch_size):
     """Generate data for training"""
     graph = tf.Graph()
     with graph.as_default():
-        inputs, outputs = getn(render_gen_graph(graph, batch_size), 'inputs', 'output')
-        input_data = [np.random.rand(batch_size, *(i.get_shape())) for i in inputs]
+        inputs, outputs = getn(render_gen_graph(graph, batch_size), 'inputs', 'outputs')
+        inputs = [inputs['voxels']]
+        outputs = [outputs['out_img']]
+        input_data = [np.random.rand(*(i.get_shape())) for i in inputs]
         sess = tf.Session()
         output_data = sess.run(outputs, feed_dict=dict(zip(inputs, input_data)))
         sess.close()
@@ -298,8 +304,8 @@ def pi_supervised(options):
     right_inv = unparam(inv_arrow)
     sup_right_inv = supervised_loss_arrow(right_inv)
     # Get training and test_data
-    train_data = gen_data(batch_size, n_links)
-    test_data = gen_data(1024, n_links)
+    train_data = gen_data(batch_size)
+    test_data = gen_data(1024)
 
     # Have to switch input from output because data is from fwd model
     train_input_data = train_data['outputs']
@@ -328,4 +334,5 @@ def generalization_bench():
 
 
 if __name__ == "__main__":
+    generalization_bench()
     test_render_graph()
