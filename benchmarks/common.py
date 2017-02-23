@@ -101,13 +101,33 @@ def gen_rand_data(batch_size, model_tensorflow, options):
     """Generate data for training"""
     graph = tf.Graph()
     n_links, n_angles, n_lengths = getn(options, 'n_links', 'n_angles', 'n_lengths')
+    final_out_data = []
+    final_in_data = []
     with graph.as_default():
-        inputs, outputs = getn(model_tensorflow(batch_size, n_links), 'inputs', 'outputs')
-        input_data = rand_input(batch_size, n_angles, n_lengths)
         sess = tf.Session()
-        output_data = sess.run(outputs, feed_dict=dict(zip(inputs, input_data)))
+        for i in range(10):
+            inputs, outputs = getn(model_tensorflow(batch_size, n_links), 'inputs', 'outputs')
+            input_data = rand_input(batch_size, n_angles, n_lengths)
+            output_data = sess.run(outputs, feed_dict=dict(zip(inputs, input_data)))
+            final_out_data.append(output_data)
+            final_in_data.append(input_data)
         sess.close()
-    return {'inputs': input_data, 'outputs': output_data}
+
+    noutputs = len(final_out_data[0])
+    all_all_out_data = []
+    for j in range(noutputs):
+        all_data = [final_out_data[i][j] for i in range(10)]
+        res = np.concatenate(all_data)
+        all_all_out_data.append(res)
+
+    ninputs = len(final_in_data[0])
+    all_all_in_data = []
+    for j in range(ninputs):
+        all_data = [final_in_data[i][j] for i in range(10)]
+        res = np.concatenate(all_data)
+        all_all_in_data.append(res)
+
+    return {'inputs': all_all_in_data, 'outputs': all_all_out_data}
 
 def pi_supervised(options):
     """Neural network enhanced Parametric inverse! to do supervised learning"""
@@ -147,9 +167,10 @@ def nn_supervised(options):
     n_outputs = options['n_outputs']
     batch_size = options['batch_size']
     model_tensorflow = options['model']
+    gen_data = options['gen_data']
     # Get training and test_data
-    train_data = gen_rand_data(batch_size, n_inputs, model_tensorflow)
-    test_data = gen_rand_data(batch_size, n_inputs, model_tensorflow)
+    train_data = gen_data(batch_size, model_tensorflow, options)
+    test_data = gen_data(batch_size, model_tensorflow, options)
 
     # Have to switch input from output because data is from fwd model
     train_input_data = train_data['outputs']
@@ -159,14 +180,14 @@ def nn_supervised(options):
 
     template = res_net.template
     n_layers = 2
-    l = round(max(*layer_width(2, n_inputs[0], n_layers, 630))) * 2
+    l = round(max(*layer_width(2, n_inputs, n_layers, 630))) * 2
     tp_options = {'layer_width': l,
                   'num_layers': 2,
                   'nblocks': 1,
                   'block_size': 1,
                   'reuse': False}
 
-    tf_arrow = TfArrow(n_outputs, n_inputs[0], template=template, options=tp_options)
+    tf_arrow = TfArrow(n_outputs, n_inputs, template=template, options=tp_options)
     for port in tf_arrow.ports():
         set_port_shape(port, (None, 1))
     sup_tf_arrow = supervised_loss_arrow(tf_arrow)
@@ -192,12 +213,15 @@ def nn_benchmarks(model_name):
         options.update({'n_links': 3, 'n_angles': 3, 'n_lengths':0})
         options['model'] = robo_tensorflow
         options['n_outputs'] = 2
+        options['gen_data'] = gen_rand_data
+        options['n_inputs'] = 3
     if model_name == 'stanford_kinematics':
         options['description'] = "Neural Network Linkage Generalization Benchmark"
         options.update({'n_links': 6, 'n_angles': 5, 'n_lengths':1})
         options['model'] = stanford_tensorflow
         options['n_outputs'] = 12
-    options['save'] = True
+        options['gen_data'] = gen_rand_data
+        options['n_inputs'] = 6
     prefix = rand_string(5)
     test_everything(nn_supervised, options, ["batch_size", "error"], prefix=prefix)
 
@@ -206,7 +230,7 @@ def all_benchmarks(model_name):
     options = handle_options(model_name, sys.argv[1:])
     # options['batch_size'] = np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)
     options['batch_size'] = [128]
-    options['error'] = ['supervised_error'] # , 'inv_fwd_error', 'error', 'sub_arrow_error']
+    options['error'] = ['inv_fwd_error'] # , 'inv_fwd_error', 'error', 'sub_arrow_error']
     if model_name == 'linkage_kinematics':
         options['description'] = "Parametric Inverse Linkage Generalization Benchmark"
         options.update({'n_links': 3, 'n_angles': 3, 'n_lengths':0})
@@ -218,6 +242,5 @@ def all_benchmarks(model_name):
         options['model'] = stanford_tensorflow
         options['gen_data'] = gen_rand_data
 
-    options['save'] = True
     prefix = rand_string(5)
     test_everything(pi_supervised, options, ["batch_size", "error"], prefix=prefix)

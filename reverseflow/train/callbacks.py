@@ -40,10 +40,10 @@ def save_callback(fetch_data,
                   compress=False,
                   pfx = '',
                   **kwargs):
-    save_dir = kwargs['save_dir']
     sess = kwargs['sess']
     save = kwargs['save']
     if  save:
+        save_dir = kwargs['save_dir']
         print("Saving")
         saver = kwargs['saver']
         stat_sfx = "%sit_%s_fetch.pickle" % (pfx, i)
@@ -73,8 +73,9 @@ def save_everything_last(fetch_data,
 
 def save_options(fetch_data, feed_dict, i: int, **kwargs):
     """Save the options"""
-    save_dir = kwargs['save_dir']
-    if i == 0:
+    save = kwargs['save']
+    if i == 0 and save:
+        save_dir = kwargs['save_dir']
         options_dir = "options"
         valid_types = [list, str, float, int]
         to_save_options = {}

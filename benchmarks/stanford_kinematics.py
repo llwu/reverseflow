@@ -128,7 +128,7 @@ def plot_3dline(x1, y1, z1, x2, y2, z2, ax):
     ax.plot(x, y, z, label='robot_arm')
 
 
-def stanford_tensorflow(batch_size, n_links):
+def stanford_tensorflow(batch_size, n_links, **options):
     with tf.name_scope("fwd_stanford"):
         inputs = []
         for _ in range(n_links):
@@ -150,7 +150,7 @@ def stanford_tensorflow(batch_size, n_links):
     return {"inputs": inputs, "outputs": outputs}
 
 if __name__ == '__main__':
-    all_benchmarks(model_name='stanford_kinematics')
+    nn_benchmarks(model_name='stanford_kinematics')
 
 
 # def test_ik():
