@@ -152,57 +152,10 @@ def stanford_tensorflow(batch_size, n_links, **options):
 if __name__ == '__main__':
     nn_benchmarks(model_name='stanford_kinematics')
 
-
-# def test_ik():
-#     batch_size = 6
-#     with tf.name_scope("ik_stanford_manipulator"):
-#         in_out = ik_gen_graph(tf.Graph(), batch_size)
-#         train_input = [[[30]], [[45]], [[90]], [[0]], [[60]], [[1]]]
-#         test_input = train_input
-#         train_input = [np.random.rand(batch_size, 1)*90 for i in range(6)]
-#         test_input = [np.random.rand(batch_size, 1)*90 for i in range(6)]
-#         with tf.Session() as sess:
-#             feed_dict = {in_out["inputs"][i]: train_input[i] for i in range(len(train_input))}
-#             inv_train_data = sess.run(in_out["outputs"], feed_dict=feed_dict)
-#             feed_dict = {in_out["inputs"][i]: test_input[i] for i in range(len(train_input))}
-#             inv_test_data = sess.run(in_out["outputs"], feed_dict=feed_dict)
-#
-#     # plot_robot_arm(train_input, (output_values[0], output_values[1], output_values[2]))
-#     arrow = graph_to_arrow(output_tensors=in_out["outputs"],
-#                            input_tensors=in_out["inputs"],
-#                            name="ik_stanford")
-#     # show_tensorboard_graph()
-#     tf.reset_default_graph()
-#     # inverse = invert(arrow)
-#     inv_arrow = inv_fwd_loss_arrow(arrow)
-#     phi_shape = (batch_size, 6) # 6 DOF Robot so why not
-#     rep_arrow = reparam(inv_arrow, phi_shape)
-#     # target = (output_values[0], output_values[1], output_values[2])
-#     def plot_callback(fetch_res):
-#         import pdb; pdb.set_trace()
-#         return 10
-#         # robot_joints = fetch_res['output_tensors'][0:6]
-#         # r = np.array(robot_joints).flatten()
-#         # fig.clear()
-#         # plot_robot_arm(list(r), target)
-#         # plt.pause(0.01)
-#         #
-#
-#     d = [p for p in inv_arrow.out_ports() if not is_error_port(p)]
-#     reparam_arrow(rep_arrow,
-#                   d,
-#                   inv_train_data,
-#                   inv_test_data,
-#                   error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
-#                 #   error_filter="inv_fwd_error",
-#                   batch_size=batch_size,
-#                   output_callback=plot_callback,
-#                   debug=False)
-#
-#     min_approx_error_arrow(inv_fwd_arrow,
-#                            output_values,
-#                            error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
-#                            output_callback=plot_callback,
-#                            debug=True)
-#
-# test_ik()
+        # if model_name == 'stanford_kinematics':
+        #     options['description'] = "Neural Network Linkage Generalization Benchmark"
+        #     options.update({'n_links': 6, 'n_angles': 5, 'n_lengths':1})
+        #     options['model'] = stanford_tensorflow
+        #     options['n_outputs'] = 12
+        #     options['gen_data'] = gen_rand_data
+        #     options['n_inputs'] = 6

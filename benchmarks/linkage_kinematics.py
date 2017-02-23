@@ -144,5 +144,5 @@ if __name__ == "__main__":
                'n_outputs' : 2,
                'gen_data': gen_rand_data,
                'model_name': 'linkage_kinematics',
-               'error': ['supervised_error']}
+               'error': ['supervised_error', 'inv_fwd_error']}
     nn_benchmarks('linkage_kinematics', options)

@@ -206,8 +206,8 @@ def gen_sound_data(batch_size, model_tensorflow, options):
         sess.close()
     return {'inputs': input_data, 'outputs': output_data}
 
-from common import all_benchmarks
+from common import pi_benchmarks
 if __name__ == "__main__":
     options['model_name'] = "Source Separation"
     options['gen_data'] = gen_sound_data
-    all_benchmarks(model_name='source_separation', options=options)
+    pi_benchmarks(model_name='source_separation', options=options)

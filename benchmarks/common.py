@@ -189,11 +189,12 @@ def nn_supervised(options):
                   'reuse': False}
 
     tf_arrow = TfArrow(n_outputs, n_inputs, template=template, options=tp_options)
+    # FIXME: This is not genreal
     for port in tf_arrow.ports():
-        set_port_shape(port, (None, 1))
+        set_port_shape(port, (batch_size, 1))
 
-    # arrow = gen_arrow(batch_size, model_tensorflow, options)
-    # inv_arrow = inv_fwd_loss_arrow(arrow, tf_arrow)
+    arrow = gen_arrow(batch_size, model_tensorflow, options)
+    tf_arrow = inv_fwd_loss_arrow(arrow, tf_arrow)
 
     sup_tf_arrow = supervised_loss_arrow(tf_arrow)
     num_params = get_tf_num_params(sup_tf_arrow)
@@ -212,34 +213,15 @@ def nn_supervised(options):
 def nn_benchmarks(model_name, options=None):
     options = {} if options is None else options
     options.update(handle_options(model_name, sys.argv[1:]))
-    options['error'] = ['error']
-    # if model_name == 'stanford_kinematics':
-    #     options['description'] = "Neural Network Linkage Generalization Benchmark"
-    #     options.update({'n_links': 6, 'n_angles': 5, 'n_lengths':1})
-    #     options['model'] = stanford_tensorflow
-    #     options['n_outputs'] = 12
-    #     options['gen_data'] = gen_rand_data
-    #     options['n_inputs'] = 6
+    options['error'] = ['inv_fwd_error']
     prefix = rand_string(5)
     test_everything(nn_supervised, options, ["error"], prefix=prefix)
 
 
-def all_benchmarks(model_name, options=None):
+def pi_benchmarks(model_name, options=None):
     options = {} if options is None else options
     options.update(handle_options(model_name, sys.argv[1:]))
-    options['model_name'] = model_name
     # options['batch_size'] = np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)
     options['error'] = ['inv_fwd_error'] # , 'inv_fwd_error', 'error', 'sub_arrow_error']
-    if model_name == 'linkage_kinematics':
-        options['description'] = "Parametric Inverse Linkage Generalization Benchmark"
-        options.update({'n_links': 3, 'n_angles': 3, 'n_lengths':0})
-        options['model'] = robo_tensorflow
-        options['gen_data'] = gen_rand_data
-    if model_name == 'stanford_kinematics':
-        options['description'] = "Parametric Inverse Linkage Generalization Benchmark"
-        options.update({'n_links': 6, 'n_angles': 5, 'n_lengths':1})
-        options['model'] = stanford_tensorflow
-        options['gen_data'] = gen_rand_data
-
     prefix = rand_string(5)
     test_everything(nn_supervised, options, ["error"], prefix=prefix)
