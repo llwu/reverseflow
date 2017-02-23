@@ -135,7 +135,7 @@ def robo_tensorflow(batch_size, n_links, **options):
 
 from common import gen_rand_data
 if __name__ == "__main__":
-    options = {'description': "Neural Network Linkage Generalization Benchmark",
+    options = {'description': "Neural Network/Parametric Inverse Linkage Generalization Benchmark",
                'model': robo_tensorflow,
                'n_links': 3,
                'n_angles': 3,

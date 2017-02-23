@@ -135,27 +135,20 @@ def stanford_tensorflow(batch_size, n_links, **options):
             inputs.append(tf.placeholder(floatX(),
                                          name="angle",
                                          shape=(batch_size, 1)))
-        # inputs[0] = tf.placeholder(tf.float32, name="phi1", shape=(batch_size, 1))
-        # inputs[1] = tf.placeholder(tf.float32, name="phi2", shape=(batch_size, 1))
-        # inputs['phi3'] = placeholder(tf.float32, name="phi3", shape=(batch_size, 1))
-        # inputs[2] = tf.placeholder(tf.float32, name="phi4", shape=(batch_size, 1))
-        # inputs[3] = tf.placeholder(tf.float32, name="phi5", shape=(batch_size, 1))
-        # inputs[4] = tf.placeholder(tf.float32, name="phi6", shape=(batch_size, 1))
-
-        # inputs[5] = tf.placeholder(tf.float32, name="d2", shape=(batch_size, 1))
-        # inputs[6] = tf.placeholder(tf.float32, name="d3", shape=())
-        # inputs[7] = tf.Variable(1.0, name="h1")
 
         outputs = stanford_fwd(inputs)
     return {"inputs": inputs, "outputs": outputs}
 
+# from common import gen_rand_data
 if __name__ == '__main__':
-    nn_benchmarks(model_name='stanford_kinematics')
-
-        # if model_name == 'stanford_kinematics':
-        #     options['description'] = "Neural Network Linkage Generalization Benchmark"
-        #     options.update({'n_links': 6, 'n_angles': 5, 'n_lengths':1})
-        #     options['model'] = stanford_tensorflow
-        #     options['n_outputs'] = 12
-        #     options['gen_data'] = gen_rand_data
-        #     options['n_inputs'] = 6
+    options = {'description': "Neural Network/Parametric Inverse Linkage Generalization Benchmark",
+               'model': stanford_tensorflow,
+               'n_links': 6,
+               'n_angles': 5,
+               'n_lengths': 1,
+               'n_inputs': 6,
+               'n_outputs' : 12,
+               'gen_data': gen_rand_data,
+               'model_name': 'stanford_kinematics',
+               'error': ['supervised_error', 'inv_fwd_error']}
+    nn_benchmarks('stanford_kinematics', options)
