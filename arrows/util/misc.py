@@ -15,6 +15,11 @@ def extract(keys: Sequence, dict: Dict):
     return {key: dict[key] for key in keys}
 
 
+def pull(dict: Dict, *keys):
+    """Restrict dict to keys in `keys`"""
+    return {key: dict[key] for key in keys}
+
+
 def getn(dict: Dict, *keys):
     return (dict[k] for k in keys)
 
@@ -57,3 +62,16 @@ def dict_prod(d: Dict[Any, Sequence]):
     keys = d.keys()
     it = itertools.product(*d.values())
     return (dict(zip(keys, tup)) for tup in it)
+
+
+def flat_dict(d, prefix=""):
+    out = {}
+    for k, v in d.items():
+        if isinstance(v, dict):
+            out.update(flat_dict(d), prefix="%s_" % k)
+        elif isinstance(v, list):
+            for i, v2 in enumerate(v):
+                out['%s%s_%s' % (prefix, k, i)] = v2
+        else:
+            out['%s%s' % (prefix, k)] = v
+    return out
