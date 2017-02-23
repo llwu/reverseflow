@@ -121,7 +121,7 @@ def plot_callback(batch_size):
         plt.pause(0.2)
     return closure
 
-def robo_tensorflow(batch_size, n_links):
+def robo_tensorflow(batch_size, n_links, **options):
     lengths = [1 for i in range(n_links)]
     with tf.name_scope("fwd_kinematics"):
         angles = []
