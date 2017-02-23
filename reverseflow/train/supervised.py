@@ -56,7 +56,7 @@ def supervised_train(arrow: Arrow,
     train_feed_gens = [okok(options['batch_size'], train_input_data, train_output_data,
                             tensors['input'], tensors['train_output'])]
 
-    test_feed_gens = [okok(1024, test_input_data, test_output_data,
+    test_feed_gens = [okok(options['batch_size'], test_input_data, test_output_data,
                           tensors['input'], tensors['train_output'])]
 
 
