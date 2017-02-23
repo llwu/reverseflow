@@ -21,19 +21,6 @@ def pickle_it(data, save_dir):
         pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
     f.close()
 
-def flatten(d, prefix=""):
-    out = {}
-    for k, v in d.items():
-        if isinstance(v, dict):
-            out.update(flatten(d), prefix="%s_" % k)
-        elif isinstance(v, list):
-            for i, v2 in enumerate(v):
-                out['%s%s_%s' % (prefix, k, i)] = v2
-        else:
-            out['%s%s' % (prefix, k)] = v
-    return out
-
-
 def save_callback(fetch_data,
                   feed_dict,
                   i: int,
