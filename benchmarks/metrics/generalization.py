@@ -27,7 +27,7 @@ def test_generalization(run_me, options=None):
         options['batch_size'] = batch_size
         run_me(options)
 
-def test_everything(run_me, options, var_option_keys, prefix=''):
+def test_everything(run_me, options, var_option_keys, prefix='', nrepeats=1):
     """Train parametric inverse and vanilla neural network with different
     amounts of data and see the test_error
     Args:
@@ -40,10 +40,11 @@ def test_everything(run_me, options, var_option_keys, prefix=''):
     _options = {}
     _options.update(options)
     var_options = extract(var_option_keys, options)
-    var_options_prod = dict_prod(var_options)
 
-    for prod in var_options_prod:
-        dirname = "%s_%s" % (prefix, str(time.time()))
-        _options['dirname'] = dirname
-        _options.update(prod)
-        run_me(_options)
+    for i in range(nrepeats):
+        var_options_prod = dict_prod(var_options)
+        for prod in var_options_prod:
+            dirname = "%s_%s_%s" % (prefix, str(time.time()), i)
+            _options['dirname'] = dirname
+            _options.update(prod)
+            run_me(_options)
