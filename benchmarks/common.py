@@ -1,7 +1,6 @@
 """Functions common for examples"""
 import sys
 from arrows.util.io import *
-from linkage_kinematics import robo_tensorflow
 from stanford_kinematics import stanford_tensorflow
 from arrows.util.misc import rand_string, getn
 from metrics.generalization import test_everything
@@ -11,18 +10,13 @@ from reverseflow.train.unparam import unparam
 from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
 from reverseflow.train.supervised import supervised_train
 from reverseflow.train.callbacks import save_callback, save_options, save_every_n, save_everything_last
+from reverseflow.invert import invert
 
 import tensortemplates.res_net as res_net
 import tensortemplates.conv_res_net as conv_res_net
 import numpy as np
 import tensorflow as tf
 
-def stringy_dict(d):
-    out = ""
-    for (key, val) in d.items():
-        if val is not None and val is not '':
-            out = out + "%s_%s__" % (str(key), str(val))
-    return out
 
 def gen_sfx_key(keys, options):
     sfx_dict = {}
@@ -42,7 +36,6 @@ def boolify(x):
         return True
     else:
         assert False, "couldn't convert to bool"
-
 
 def default_kwargs():
     """Default kwargs"""
@@ -82,11 +75,15 @@ def handle_options(name, argv):
     options['template'] = template_module[options['template']].template
     return options
 
+
+# Training stuff
+
 def gen_arrow(batch_size, model_tensorflow, options):
-    angles, outputs = getn(model_tensorflow(**options), 'inputs', 'outputs')
+    inputs, outputs = getn(model_tensorflow(**options), 'inputs', 'outputs')
+    name = options['model_name']
     arrow = graph_to_arrow(outputs,
-                           input_tensors=angles,
-                           name="robot_fwd_kinematics")
+                           input_tensors=inputs,
+                           name="name")
     return arrow
 
 def rand_input(batch_size, n_angles, n_lengths):
@@ -137,7 +134,8 @@ def pi_supervised(options):
     gen_data = options['gen_data']
 
     arrow = gen_arrow(batch_size, model_tensorflow, options)
-    inv_arrow = inv_fwd_loss_arrow(arrow)
+    inv_arrow = invert(arrow)
+    inv_arrow = inv_fwd_loss_arrow(arrow, inverse)
     right_inv = unparam(inv_arrow)
     sup_right_inv = supervised_loss_arrow(right_inv)
     # Get training and test_data
@@ -151,6 +149,7 @@ def pi_supervised(options):
     test_output_data = test_data['inputs']
     num_params = get_tf_num_params(right_inv)
     print("Number of params", num_params)
+    print("NNet Number of params", num_params)
     supervised_train(sup_right_inv,
                      train_input_data,
                      train_output_data,
@@ -168,6 +167,8 @@ def nn_supervised(options):
     batch_size = options['batch_size']
     model_tensorflow = options['model']
     gen_data = options['gen_data']
+
+
     # Get training and test_data
     train_data = gen_data(batch_size, model_tensorflow, options)
     test_data = gen_data(batch_size, model_tensorflow, options)
@@ -190,9 +191,14 @@ def nn_supervised(options):
     tf_arrow = TfArrow(n_outputs, n_inputs, template=template, options=tp_options)
     for port in tf_arrow.ports():
         set_port_shape(port, (None, 1))
+
+    # arrow = gen_arrow(batch_size, model_tensorflow, options)
+    # inv_arrow = inv_fwd_loss_arrow(arrow, tf_arrow)
+
     sup_tf_arrow = supervised_loss_arrow(tf_arrow)
     num_params = get_tf_num_params(sup_tf_arrow)
     print("NNet Number of params", num_params)
+    import pdb; pdb.set_trace()
     supervised_train(sup_tf_arrow,
                      train_input_data,
                      train_output_data,
@@ -203,34 +209,27 @@ def nn_supervised(options):
 
 
 # Benchmarks
-def nn_benchmarks(model_name):
-    options = handle_options(model_name, sys.argv[1:])
-    # options['batch_size'] = np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)
-    options['batch_size'] = [128]
+def nn_benchmarks(model_name, options=None):
+    options = {} if options is None else options
+    options.update(handle_options(model_name, sys.argv[1:]))
     options['error'] = ['error']
-    if model_name == 'linkage_kinematics':
-        options['description'] = "Neural Network Linkage Generalization Benchmark"
-        options.update({'n_links': 3, 'n_angles': 3, 'n_lengths':0})
-        options['model'] = robo_tensorflow
-        options['n_outputs'] = 2
-        options['gen_data'] = gen_rand_data
-        options['n_inputs'] = 3
-    if model_name == 'stanford_kinematics':
-        options['description'] = "Neural Network Linkage Generalization Benchmark"
-        options.update({'n_links': 6, 'n_angles': 5, 'n_lengths':1})
-        options['model'] = stanford_tensorflow
-        options['n_outputs'] = 12
-        options['gen_data'] = gen_rand_data
-        options['n_inputs'] = 6
+    # if model_name == 'stanford_kinematics':
+    #     options['description'] = "Neural Network Linkage Generalization Benchmark"
+    #     options.update({'n_links': 6, 'n_angles': 5, 'n_lengths':1})
+    #     options['model'] = stanford_tensorflow
+    #     options['n_outputs'] = 12
+    #     options['gen_data'] = gen_rand_data
+    #     options['n_inputs'] = 6
     prefix = rand_string(5)
-    test_everything(nn_supervised, options, ["batch_size", "error"], prefix=prefix)
+    test_everything(nn_supervised, options, ["error"], prefix=prefix)
 
 
 def all_benchmarks(model_name, options=None):
     options = {} if options is None else options
     options.update(handle_options(model_name, sys.argv[1:]))
+    options['model_name'] = model_name
     # options['batch_size'] = np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)
-    options['error'] = ['supervised_error'] # , 'inv_fwd_error', 'error', 'sub_arrow_error']
+    options['error'] = ['inv_fwd_error'] # , 'inv_fwd_error', 'error', 'sub_arrow_error']
     if model_name == 'linkage_kinematics':
         options['description'] = "Parametric Inverse Linkage Generalization Benchmark"
         options.update({'n_links': 3, 'n_angles': 3, 'n_lengths':0})
@@ -243,4 +242,4 @@ def all_benchmarks(model_name, options=None):
         options['gen_data'] = gen_rand_data
 
     prefix = rand_string(5)
-    test_everything(pi_supervised, options, ["batch_size", "error"], prefix=prefix)
+    test_everything(nn_supervised, options, ["error"], prefix=prefix)

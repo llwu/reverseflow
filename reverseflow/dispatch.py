@@ -290,8 +290,8 @@ def inv_broadcast(arrow: BroadcastArrow, port_attr: PortAttributes) -> Tuple[Arr
     if ports_has(arrow.ports(), 'shape', port_attr):
         in_shape = port_attr[arrow.in_ports()[0]]['shape']
         out_shape = port_attr[arrow.out_ports()[0]]['shape']
-        if in_shape == out_shape:
-            return inv_arrow, port_map
+        # if in_shape == out_shape:
+        #     return inv_arrow, port_map
         #
         # assert len(in_shape) == len(out_shape)
         # size = []
@@ -302,13 +302,13 @@ def inv_broadcast(arrow: BroadcastArrow, port_attr: PortAttributes) -> Tuple[Arr
         #         size.append(1)
         #     else:
         #         size.append(-1)
-        # 
+        #
         start = np.zeros(len(out_shape), dtype=np.int32)
         size = np.concatenate((np.ones(len(out_shape) - len(in_shape)), np.array(in_shape))).astype(np.int32)
         source_start = SourceArrow(start)
         source_size = SourceArrow(size)
         slicer = SliceArrow()
-        source = SourceArrow(in_shape)
+        source = SourceArrow(np.array(in_shape, dtype=np.int32))
         reshape = ReshapeArrow()
         edges = Bimap()
         edges.add(source_start.out_ports()[0], slicer.in_ports()[1])

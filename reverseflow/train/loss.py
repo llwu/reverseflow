@@ -7,6 +7,7 @@ from arrows.port_attributes import (is_error_port, make_error_port,
 from reverseflow.invert import invert
 
 def inv_fwd_loss_arrow(arrow: Arrow,
+                       inverse: Arrow,
                        DiffArrow=SquaredDifference) -> CompositeArrow:
     """
     Arrow wihch computes |f(f^-1(y)) - y|
@@ -15,7 +16,6 @@ def inv_fwd_loss_arrow(arrow: Arrow,
     Returns:
         CompositeArrow
     """
-    inverse = invert(arrow)
     c = CompositeArrow(name="%s_inv_fwd_loss" % arrow.name)
 
     # Make all in_ports of inverse inputs to composition

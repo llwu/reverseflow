@@ -132,153 +132,17 @@ def robo_tensorflow(batch_size, n_links, **options):
         x, y = gen_robot(lengths, angles)
     return {'inputs':angles, 'outputs':[x,y]}
 
-# def robot_arm_arrow(batch_size, n_links):
-#     angles, outputs = getn(robo_tensorflow(batch_size, n_links), 'inputs', 'outputs')
-#     arrow = graph_to_arrow(outputs,
-#                            input_tensors=angles,
-#                            name="robot_fwd_kinematics")
-#     return arrow
 
-# def gen_data(batch_size, n_links):
-#     """Generate data for training"""
-#     graph = tf.Graph()
-#     with graph.as_default():
-#         inputs, outputs = getn(robo_tensorflow(batch_size, n_links), 'inputs', 'outputs')
-#         input_data = [np.random.rand(batch_size, 1) for i in range(n_links)]
-#         sess = tf.Session()
-#         output_data = sess.run(outputs, feed_dict=dict(zip(inputs, input_data)))
-#         sess.close()
-#     return {'inputs': input_data, 'outputs': output_data}
-
-
-def robot_arm(options):
-    n_links = 3
-    batch_size = options['batch_size']
-    arrow = robot_arm_arrow(batch_size, n_links)
-    tf.reset_default_graph()
-    # inv_arrow = invert(arrow)
-    inv_arrow = inv_fwd_loss_arrow(arrow)
-    rep_arrow = reparam(inv_arrow, (batch_size, n_links))
-    import pdb; pdb.set_trace()
-
-
-    def sampler(*x):
-        return np.random.rand(*x)*n_links
-    frac_repeat = 0.25
-    nrepeats = int(np.ceil(batch_size * frac_repeat))
-    train_input1 = repeated_random(sampler, batch_size, nrepeats, shape=(1,))
-    train_input2 = repeated_random(sampler, batch_size, nrepeats, shape=(1,))
-    test_input1 = repeated_random(sampler, batch_size, nrepeats, shape=(1,))
-    test_input2 = repeated_random(sampler, batch_size, nrepeats, shape=(1,))
-
-    d = [p for p in inv_arrow.out_ports() if not is_error_port(p)]
-    plot_cb = plot_callback(batch_size)
-
-    reparam_train(rep_arrow,
-                  d,
-                  [train_input1, train_input2],
-                  [test_input1, test_input2],
-                  error_filter=lambda port: has_port_label(port, "inv_fwd_error"),
-                #   error_filter=lambda port: has_port_label(port, "sub_arrow_error"),
-                #   error_filter="inv_fwd_error",
-                  callbacks=[plot_cb, save_callback],
-                  options=options)
-
-
-# def pi_supervised(options):
-#     """Neural network enhanced Parametric inverse! to do supervised learning"""
-#     tf.reset_default_graph()
-#     n_links = 3
-#     batch_size = options['batch_size']
-#     arrow = robot_arm_arrow(batch_size, n_links)
-#     inv_arrow = inv_fwd_loss_arrow(arrow)
-#     right_inv = unparam(inv_arrow)
-#     sup_right_inv = supervised_loss_arrow(right_inv)
-#     # Get training and test_data
-#     train_data = gen_data(batch_size, n_links)
-#     test_data = gen_data(1024, n_links)
-#
-#     # Have to switch input from output because data is from fwd model
-#     train_input_data = train_data['outputs']
-#     train_output_data = train_data['inputs']
-#     test_input_data = test_data['outputs']
-#     test_output_data = test_data['inputs']
-#     num_params = get_tf_num_params(right_inv)
-#     print("Number of params", num_params)
-#     supervised_train(sup_right_inv,
-#                      train_input_data,
-#                      train_output_data,
-#                      test_input_data,
-#                      test_output_data,
-#                      callbacks=[save_every_n, save_everything_last, save_options],
-#                      options=options)
-
-
-# def nn_supervised(options):
-#     """Plain neural network to do supervised learning"""
-#     tf.reset_default_graph()
-#     n_links = 3
-#     batch_size = options['batch_size']
-#     # Get training and test_data
-#     train_data = gen_data(batch_size, n_links)
-#     test_data = gen_data(1024, n_links)
-#
-#     # Have to switch input from output because data is from fwd model
-#     train_input_data = train_data['outputs']
-#     train_output_data = train_data['inputs']
-#     test_input_data = test_data['outputs']
-#     test_output_data = test_data['inputs']
-#
-#     template = res_net.template
-#     n_layers = 2
-#     l = round(max(*layer_width(2, n_links, n_layers, 630))) * 2
-#     tp_options = {'layer_width': l,
-#                   'num_layers': 2,
-#                   'nblocks': 1,
-#                   'block_size': 1,
-#                   'reuse': False}
-#
-#     tf_arrow = TfArrow(2, n_links, template=template, options=tp_options)
-#     for port in tf_arrow.ports():
-#         set_port_shape(port, (None, 1))
-#     sup_tf_arrow = supervised_loss_arrow(tf_arrow)
-#     num_params = get_tf_num_params(sup_tf_arrow)
-#     print("NNet Number of params", num_params)
-#     supervised_train(sup_tf_arrow,
-#                      train_input_data,
-#                      train_output_data,
-#                      test_input_data,
-#                      test_output_data,
-#                      callbacks=[save_every_n, save_everything_last, save_options],
-#                      options=options)
-
-
-# def main(argv):
-#     options = handle_options('linkage_kinematics', argv)
-#     sfx = gen_sfx_key(('nblocks', 'block_size'), options)
-#     options['sfx'] = sfx
-#     robot_arm(options)
-
-
-# # Benchmarks
-# def nn_benchmarks():
-#     options = handle_options('linkage_kinematics', sys.argv[1:])
-#     options['batch_size'] = np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)
-#     options['error'] = ['error']
-#     options['description'] = "Neural Network Linkage Generalization Benchmark"
-#     options['save'] = True
-#     prefix = rand_string(5)
-#     test_everything(nn_supervised, options, ["batch_size", "error"], prefix=prefix)
-#
-#
-# def all_benchmarks():
-#     options = handle_options('linkage_kinematics', sys.argv[1:])
-#     options['batch_size'] = np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)
-#     options['error'] = ['supervised_error', 'inv_fwd_error', 'error', 'sub_arrow_error']
-#     options['description'] = "Parametric Inverse Linkage Generalization Benchmark"
-#     options['save'] = True
-#     prefix = rand_string(5)
-#     test_everything(pi_supervised, options, ["batch_size", "error"], prefix=prefix)
-
+from common import gen_rand_data
 if __name__ == "__main__":
-    all_benchmarks(model_name='linkage_kinematics')
+    options = {'description': "Neural Network Linkage Generalization Benchmark",
+               'model': robo_tensorflow,
+               'n_links': 3,
+               'n_angles': 3,
+               'n_lengths': 0,
+               'n_inputs': 3,
+               'n_outputs' : 2,
+               'gen_data': gen_rand_data,
+               'model_name': 'linkage_kinematics',
+               'error': ['supervised_error']}
+    nn_benchmarks('linkage_kinematics', options)
