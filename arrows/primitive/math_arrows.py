@@ -11,6 +11,7 @@ from arrows.port import Port
 from arrows.arrow import Arrow
 from arrows.apply.shapes import *
 from arrows.apply.constants import constant_pred, constant_dispatch
+from arrows.util.misc import *
 
 def same_shape(shape): return shape
 
@@ -516,17 +517,29 @@ def broadcast_pred(arr: Arrow, port_attr: PortAttributes):
     return ports_has(arr.in_ports(), 'shape', port_attr)
 
 
+import tensorflow as tf
+
 def broadcast_dispatch(arr: Arrow, port_attr: PortAttributes):
     """Decide output shape."""
     pts = extract_attribute('shape', port_attr)
-    shapes = list(pts.values())
+    in_pts = extract(arr.in_ports(), pts)
+    shapes = list(in_pts.values())
     shape = ()
-    for s in shapes:
-        if len(s) >= len(shape):
-            if len(shape) > 0:
-                assert s[-len(shape):] == shape, "Shapes incompatible %s %s %s" % (s, s[-len(shape):], shape)
-            shape = s
-    print("Broadcasting %s" % pts)
+
+    # FIXME: Broadcasting rule are complex, lets cheat
+    g = tf.Graph()
+    with g.as_default():
+        phs = [tf.placeholder(dtype='float32', shape=shape) for shape in shapes]
+        # import pdb; pdb.set_trace()
+        z = tf.add(*phs)
+        shape = tuple(z.get_shape().as_list())
+
+    # for s in shapes:
+    #     if len(s) >= len(shape):
+    #         if len(shape) > 0:
+    #             assert s[-len(shape):] == shape, "Shapes incompatible %s %s %s" % (s, s[-len(shape):], shape)
+    #         shape = s
+    # print("Broadcasting %s" % pts)
     return {port: {'shape': shape} for port in arr.out_ports()}
 
 

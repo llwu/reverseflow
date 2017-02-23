@@ -18,6 +18,7 @@ def shape_dispatch(arr: Arrow, port_attr: PortAttributes):
     """Make all other ports the smae"""
     pts = extract_attribute('shape', port_attr)
     shapes = list(pts.values())
+
     # # broadcast
     # shape = ()
     # for s in shapes:

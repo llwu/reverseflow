@@ -202,10 +202,10 @@ def nn_benchmarks(model_name):
     test_everything(nn_supervised, options, ["batch_size", "error"], prefix=prefix)
 
 
-def all_benchmarks(model_name):
-    options = handle_options(model_name, sys.argv[1:])
+def all_benchmarks(model_name, options=None):
+    options = {} if options is None else options
+    options.update(handle_options(model_name, sys.argv[1:]))
     # options['batch_size'] = np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)
-    options['batch_size'] = [128]
     options['error'] = ['supervised_error'] # , 'inv_fwd_error', 'error', 'sub_arrow_error']
     if model_name == 'linkage_kinematics':
         options['description'] = "Parametric Inverse Linkage Generalization Benchmark"
