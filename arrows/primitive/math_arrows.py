@@ -52,12 +52,13 @@ def add_symbt_pred(arr: "AddArrow", port_attr: PortAttributes):
 
 def add_symbt_disp(arr: "AddArrow", port_attr: PortAttributes):
     ptv = extract_attribute('symbolic_tensor', port_attr)
-    if arr.in_port(0) and arr.in_port(1) in ptv:
+    if arr.in_port(0) in ptv and arr.in_port(1) in ptv:
         assert False, "Figure this out"
     elif arr.in_port(0) in ptv:
+        # seems wrong tbh, nothing is being added?
         return {arr.out_port(0): {'symbolic_tensor': ptv[arr.in_port(0)]}}
     elif arr.in_port(1) in ptv:
-        return {arr.out_port(1): {'symbolic_tensor': ptv[arr.in_port(1)]}}
+        return {arr.out_port(0): {'symbolic_tensor': ptv[arr.in_port(1)]}}
     else:
         assert False, "why am i here"
 
@@ -157,6 +158,22 @@ def mul_dispatch3(arr: "MulArrow", port_attr: PortAttributes):
     o = arr.out_ports()
     return {i[0] : {'value': ptv[o[0]] / ptv[i[1]]}}
 
+def mul_symbt_pred(arr: "MulArrow", port_attr: PortAttributes):
+    return any_port_has(arr.in_ports(), 'symbolic_tensor', port_attr)
+
+
+def mul_symbt_disp(arr: "MulArrow", port_attr: PortAttributes):
+    ptv = extract_attribute('symbolic_tensor', port_attr)
+    if arr.in_port(0) in ptv and arr.in_port(1) in ptv:
+        assert False, "Figure this out"
+    elif arr.in_port(0) in ptv:
+        # probably wrong as nothing is being multiplied
+        return {arr.out_port(0): {'symbolic_tensor': ptv[arr.in_port(0)]}}
+    elif arr.in_port(1) in ptv:
+        return {arr.out_port(0): {'symbolic_tensor': ptv[arr.in_port(1)]}}
+    else:
+        assert False, "why am i here"
+
 
 class MulArrow(PrimitiveArrow):
     """Multiplication"""
@@ -171,7 +188,8 @@ class MulArrow(PrimitiveArrow):
             shape_pred: shape_dispatch,
             mul_pred1: mul_dispatch1,
             mul_pred2: mul_dispatch2,
-            mul_pred3: mul_dispatch3
+            mul_pred3: mul_dispatch3,
+            mul_symbt_pred: mul_symbt_disp
             })
         return disp
 

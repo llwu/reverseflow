@@ -5,8 +5,8 @@ import sympy
 def unroll(x):
     """The point is to replace each element of indices with the corresponding theta,
     or with zero if unknown"""
-    indices = [0 for i in range(len(x.indices))]
-    for i, theta_id in enumerate(x.indices):
+    indices = np.zeros(x.indices.shape, dtype=np.dtype(object))
+    for i, theta_id in np.ndenumerate(x.indices):
         if theta_id == 0:
             indices[i] = 0
         else:
