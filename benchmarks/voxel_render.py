@@ -1,22 +1,23 @@
 """ (Inverse) Rendering"""
-from reverseflow.invert import invert
-from reverseflow.to_arrow import graph_to_arrow
-from reverseflow.train.train_y import min_approx_error_arrow
-from arrows.util.viz import show_tensorboard_graph, show_tensorboard
-from arrows.util.misc import getn
+import os
+import sys
+
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+
 from arrows.config import floatX
 from arrows.transform.eliminate import eliminate
+from arrows.util.misc import getn
+from arrows.util.viz import show_tensorboard_graph, show_tensorboard
 from benchmarks.common import handle_options, gen_sfx_key
+from metrics.generalization import test_generalization
+from reverseflow.invert import invert
+from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.common import get_tf_num_params
 from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
 from reverseflow.train.supervised import supervised_train
 from reverseflow.train.unparam import unparam
-import sys
-import getopt
-import tensorflow as tf
-import numpy as np
-import os
-import matplotlib.pyplot as plt
 
 
 def rand_rotation_matrix(deflection=1.0, randnums=None):
@@ -88,12 +89,8 @@ def switch(cond, a, b):
 
 
 def dot(a, b):
-    """Dot product of two a and b"""
-    print("A", a)
-    print("B", b)
-    c = tf.reduce_sum(a * b)
-    print("C", c.get_shape())
-    return c
+    """Dot product of a and b"""
+    return tf.reduce_sum(a * b)
 
 
 def norm(x):
@@ -304,10 +301,10 @@ def pi_supervised(options):
     results = render_gen_graph(g, batch_size)
     out_img_tensor = results['outputs']['out_img']
     arrow_renderer = graph_to_arrow([out_img_tensor])
-    inv_arrow = inv_fwd_loss_arrow(arrow_renderer)
+    inverted = invert(arrow_renderer)
+    inv_arrow = inv_fwd_loss_arrow(arrow_renderer, inverted)
     right_inv = unparam(inv_arrow)
     sup_right_inv = supervised_loss_arrow(right_inv)
-    import pdb; pdb.set_trace()
     # Get training and test_data
     train_data = gen_data(batch_size)
     test_data = gen_data(1024)
@@ -329,7 +326,6 @@ def pi_supervised(options):
 
 
 # Benchmarks
-from metrics.generalization import test_generalization
 def generalization_bench():
     options = handle_options('voxel_render', sys.argv[1:])
     sfx = gen_sfx_key(('nblocks', 'block_size'), options)
@@ -339,5 +335,5 @@ def generalization_bench():
 
 
 if __name__ == "__main__":
-    # generalization_bench()
+    generalization_bench()
     test_render_graph()

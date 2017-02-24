@@ -117,7 +117,7 @@ def prep_save(sess: Session, save: bool, dirname: str, params_file: str, load: b
 def gen_fetch(sess: Session,
               debug=False,
               **kwargs):
-    init = tf.initialize_all_variables()
+    init = tf.global_variables_initializer()
     sess.run(init)
 
     fetch = {}
