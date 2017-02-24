@@ -35,7 +35,7 @@ def gen_update_step(loss):
     with tf.name_scope('optimization'):
         # optimizer = tf.train.MomentumOptimizer(0.001,
         #                                        momentum=0.05)
-        optimizer = tf.train.AdamOptimizer(0.001)
+        optimizer = tf.train.AdamOptimizer(0.005)
         update_step = optimizer.minimize(loss)
         return update_step
 
@@ -94,7 +94,7 @@ def rnd_pairwise_gap_ratio(phi, g, permutation, permutation_idx):
 
 
 def train(sdf,
-          batch_size=256,
+          batch_size=512,
           phi_ndim=2,
           theta_ndim=2,
           template=res_net.template,
@@ -110,18 +110,18 @@ def train(sdf,
                         inp_shapes=[phi_shape],
                         out_shapes=[theta_shape],
                         **template_options)
-    theta_samples, loss1 = rnd_pairwise_min_dist(phi, g, permutation, permutation_idx)
-    loss2 = sdf(theta_samples)
-    # loss = loss2
-    lmbda = 4.0
-    loss2 = lmbda*loss2
-    loss = loss1 + loss2
-    # loss = loss1
+    theta_samples, min_dist_loss = rnd_pairwise_min_dist(phi, g, permutation, permutation_idx)
+    circle_loss = sdf(theta_samples)
+    # loss = circle_loss
+    lmbda = 100
+    circle_loss = lmbda*circle_loss
+    loss = min_dist_loss + circle_loss
+    # loss = min_dist_loss
     variables = tf.all_variables()
-    gradients1 = tf.gradients(loss1, variables)
-    gradients2 = tf.gradients(loss2, variables)
-    lossgradient = tf.gradients(loss, [loss1, loss2])
-    sub_losses = [loss1, loss2]
+    gradients1 = tf.gradients(min_dist_loss, variables)
+    gradients2 = tf.gradients(circle_loss, variables)
+    lossgradient = tf.gradients(loss, [min_dist_loss, circle_loss])
+    sub_losses = [min_dist_loss, circle_loss]
     update_step = gen_update_step(loss)
     fetches = {'loss': loss,
                'sub_losses': sub_losses,
@@ -136,12 +136,20 @@ def train(sdf,
 def sumsum(xs):
     return np.sum([np.sum(x) for x in xs])
 
-def train_loop(loss, update_step, phi, permutation, permutation_idx, fetches, n_iterations=10000,
-               batch_size=256):
+
+import os
+import time
+path = "/home/zenna/Dropbox/sandbox"
+def train_loop(loss, update_step, phi, permutation, permutation_idx, fetches, n_iterations=100000,
+               batch_size=512):
     sess = tf.Session()
     init = tf.initialize_all_variables()
     sess.run(init)
+    sfx = str(time.time())
     for i in range(n_iterations):
+        if i % 10 == 0:
+            file_path = os.path.join(path,"%s_%s.png" % (sfx, i))
+            plt.savefig(file_path)
         phi_samples = np.random.rand(*phi.get_shape().as_list())
         perm_data = np.arange(batch_size)
         np.random.shuffle(perm_data)
@@ -153,8 +161,8 @@ def train_loop(loss, update_step, phi, permutation, permutation_idx, fetches, n_
                                      permutation_idx: perm_data_idx})
         print("Loss: ", output['loss'])
         print("Losses: ", output['sub_losses'])
-        print("gradients loss1: ", sumsum(output['gradients1']))
-        print("gradients loss2: ", sumsum(output['gradients2']))
+        print("gradients min_dist_loss: ", sumsum(output['gradients1']))
+        print("gradients circle_loss: ", sumsum(output['gradients2']))
         print("loss gradient", output['lossgradient'])
         update_plot(output['theta_samples'])
 
