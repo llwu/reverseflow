@@ -20,7 +20,7 @@ def apply(arrow: Arrow, inputs: List[ndarray]) -> List[ndarray]:
         input_tensors = [tf.placeholder(dtype=floatX()) for i in range(len(inputs))]
         outputs = arrow_to_graph(arrow, input_tensors)
         feed_dict = dict(zip(input_tensors, inputs))
-        init = tf.initialize_all_variables()
+        init = tf.global_variables_initializer()
         sess.run(init)
         outputs = sess.run(fetches=outputs,
                            feed_dict=feed_dict)

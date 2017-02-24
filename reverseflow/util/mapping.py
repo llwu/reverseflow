@@ -50,10 +50,10 @@ class Bimap(Generic[L, R]):
         for (l, r) in items:
             self.add(l, r)
 
-    def items(self) -> ItemsView[L, R]:
+    def items(self):
         return self.left_to_right.items()
 
-    def keys(self) -> KeysView[L]:
+    def keys(self):
         return self.left_to_right.keys()
 
     def values(self) -> ValuesView[R]:
@@ -103,14 +103,14 @@ class Relation(Generic[L, R]):
         self.left_to_right[left].remove(right)
         self.right_to_left[right].remove(left)
 
-    def items(self) -> ItemsView[L, R]:
+    def items(self):
         def items_gen():
             for key, value in self.left_to_right.items():
                 for v_val in value:
                     yield (key, v_val)
         return items_gen()
 
-    def keys(self) -> KeysView[L]:
+    def keys(self):
         return self.left_to_right.keys()
 
     def values(self) -> ValuesView[R]:

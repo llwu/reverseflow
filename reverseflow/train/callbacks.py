@@ -44,6 +44,16 @@ def save_callback(fetch_data,
 
 
 def save_every_n(fetch_data, feed_dict, i, save_every=100, **kwargs):
+    state = kwargs['state']
+    if 'all_loss' in state:
+        for k, v in fetch_data['loss'].items():
+            state['all_loss'][k] += [v]
+    else:
+        state['all_loss'] = {}
+        for k, v in fetch_data['loss'].items():
+            state['all_loss'][k] = [v]
+
+
     if i % save_every == 0:
         save_callback(fetch_data, feed_dict, i, **kwargs)
 
@@ -55,6 +65,9 @@ def save_everything_last(fetch_data,
     """Saves everything on the last iteration"""
     num_iterations = kwargs['num_iterations']
     if i == (num_iterations - 1):
+        save_dir = kwargs['save_dir']
+        path = os.path.join(save_dir, "state.pickle")
+        pickle_it(kwargs['state'], path)
         save_callback(fetch_data, feed_dict, i, pfx='last_', **kwargs)
 
 

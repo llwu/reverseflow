@@ -179,8 +179,23 @@ def inv_dupl(arrow: DuplArrow, port_values: PortAttributes):
 def inv_exp(arrow: ExpArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
     if is_constant(arrow.in_ports()[0], port_attr):
         return deepcopy(arrow), {0: 0, 1: 1}
+    bounds = np.finfo(np.float32)
+    ibi = IntervalBoundIdentity(bounds.eps, bounds.max)
     log = LogArrow()
-    return log, {0: 1, 1: 0}
+    comp_arrow = CompositeArrow(name="approx_invexp")
+    in_port = comp_arrow.add_port()
+    make_in_port(in_port)
+    out_port = comp_arrow.add_port()
+    make_out_port(out_port)
+    error_port = comp_arrow.add_port()
+    make_out_port(error_port)
+    make_error_port(error_port)
+    comp_arrow.add_edge(in_port, ibi.in_ports()[0])
+    comp_arrow.add_edge(ibi.out_ports()[0], log.in_ports()[0])
+    comp_arrow.add_edge(log.out_ports()[0], out_port)
+    comp_arrow.add_edge(ibi.out_ports()[1], error_port)
+    comp_arrow.is_wired_correctly()
+    return comp_arrow, {0: 1, 1: 0}
 
 # FIXME: these gather and gathernd inversions don't work for slices
 def inv_gather(arrow: GatherArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
@@ -220,14 +235,12 @@ def inv_gather(arrow: GatherArrow, port_attr: PortAttributes) -> Tuple[Arrow, Po
 def inv_gathernd(arrow: GatherNdArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
     if is_constant(arrow.out_ports()[0], port_attr):
         return GatherNdArrow(), {0: 0, 1: 1, 2: 2}
-    tensor_shape = port_attr[arrow.in_ports()[0]]['shape']
-    if isinstance(tensor_shape, tuple):
-        tensor_shape = list(tensor_shape)
+    tensor_shape = np.array(port_attr[arrow.in_ports()[0]]['shape'])
     index_list_value = port_attr[arrow.in_ports()[1]]['value']
     index_list_compl = complement_bool(index_list_value, tensor_shape)
     # fixme: don't do this, complement could be huge
     source_compl = SourceArrow(np.array(index_list_compl, dtype=np.float32))
-    source_tensor_shape = SourceArrow(np.array(tensor_shape))
+    source_tensor_shape = SourceArrow(tensor_shape)
     snd = ScatterNdArrow()
     mul = MulArrow()
     add = AddArrow()

@@ -83,6 +83,8 @@ def supervised_train(arrow: Arrow,
         ops = prep_save(sess, *getn(options, 'save', 'dirname', 'params_file', 'load'))
         options.update(ops)
 
+    import pdb; pdb.set_trace()
+
     train_loop(sess,
                loss_updates,
                fetch,

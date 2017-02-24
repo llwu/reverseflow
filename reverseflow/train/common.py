@@ -117,7 +117,7 @@ def prep_save(sess: Session, save: bool, dirname: str, params_file: str, load: b
 def gen_fetch(sess: Session,
               debug=False,
               **kwargs):
-    init = tf.initialize_all_variables()
+    init = tf.global_variables_initializer()
     sess.run(init)
 
     fetch = {}
@@ -167,6 +167,7 @@ def train_loop(sess: Session,
     callback_dict = {}
     callback_dict.update(kwargs)
     callback_dict.update({'sess': sess})
+    state = {}
 
     # Main loop
     for i in range(num_iterations):
@@ -194,5 +195,5 @@ def train_loop(sess: Session,
 
         # Do all call backs
         for cb in callbacks:
-            cb(fetch_res, feed_dict, i, num_iterations=num_iterations, **callback_dict)
+            cb(fetch_res, feed_dict, i, num_iterations=num_iterations, state=state, **callback_dict)
         print("Iteration: ", i, " Loss: ", fetch_res['loss'])
