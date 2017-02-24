@@ -45,7 +45,8 @@ def default_kwargs():
     options['params_file'] = (str, 28)
     options['momentum'] = (float, 0.9)
     options['description'] = (str, "")
-    options['batch_size'] = (int, 128)
+    options['batch_size'] = (int, 100)
+    options['data_size'] = (int, 500)
     options['save_every'] = (int, 100)
     options['compress'] = (boolify, 0,)
     options['num_iterations'] = (int, 1000)
@@ -100,9 +101,16 @@ def gen_rand_data(batch_size, model_tensorflow, options):
     n_links, n_angles, n_lengths = getn(options, 'n_links', 'n_angles', 'n_lengths')
     final_out_data = []
     final_in_data = []
+    data_size = options["data_size"]
+    # assert data_size % batch_size == 0 or batch_size, "Dataset size must be multipel of batch_size"
+    nruns = data_size  // batch_size
+
+    # FIXME This hack
+    if nruns == 0:
+        nruns = 1
     with graph.as_default():
         sess = tf.Session()
-        for i in range(10):
+        for i in range(nruns):
             inputs, outputs = getn(model_tensorflow(batch_size, n_links), 'inputs', 'outputs')
             input_data = rand_input(batch_size, n_angles, n_lengths)
             output_data = sess.run(outputs, feed_dict=dict(zip(inputs, input_data)))
@@ -113,14 +121,14 @@ def gen_rand_data(batch_size, model_tensorflow, options):
     noutputs = len(final_out_data[0])
     all_all_out_data = []
     for j in range(noutputs):
-        all_data = [final_out_data[i][j] for i in range(10)]
+        all_data = [final_out_data[i][j] for i in range(nruns)]
         res = np.concatenate(all_data)
         all_all_out_data.append(res)
 
     ninputs = len(final_in_data[0])
     all_all_in_data = []
     for j in range(ninputs):
-        all_data = [final_in_data[i][j] for i in range(10)]
+        all_data = [final_in_data[i][j] for i in range(nruns)]
         res = np.concatenate(all_data)
         all_all_in_data.append(res)
 
@@ -135,7 +143,7 @@ def pi_supervised(options):
 
     arrow = gen_arrow(batch_size, model_tensorflow, options)
     inv_arrow = invert(arrow)
-    inv_arrow = inv_fwd_loss_arrow(arrow, inverse)
+    inv_arrow = inv_fwd_loss_arrow(arrow, inv_arrow)
     right_inv = unparam(inv_arrow)
     sup_right_inv = supervised_loss_arrow(right_inv)
     # Get training and test_data
@@ -149,7 +157,7 @@ def pi_supervised(options):
     test_output_data = test_data['inputs']
     num_params = get_tf_num_params(right_inv)
     print("Number of params", num_params)
-    print("NNet Number of params", num_params)
+    # print("NNet Number of params", num_params)
     supervised_train(sup_right_inv,
                      train_input_data,
                      train_output_data,
@@ -199,7 +207,6 @@ def nn_supervised(options):
     sup_tf_arrow = supervised_loss_arrow(tf_arrow)
     num_params = get_tf_num_params(sup_tf_arrow)
     print("NNet Number of params", num_params)
-    import pdb; pdb.set_trace()
     supervised_train(sup_tf_arrow,
                      train_input_data,
                      train_output_data,
@@ -213,15 +220,19 @@ def nn_supervised(options):
 def nn_benchmarks(model_name, options=None):
     options = {} if options is None else options
     options.update(handle_options(model_name, sys.argv[1:]))
+    options['data_size'] = [1, 7, 15, 25, 36, 50, 70, 90, 120, 150]# [int(ds) for ds in np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)]
     options['error'] = ['inv_fwd_error']
     prefix = rand_string(5)
-    test_everything(nn_supervised, options, ["error"], prefix=prefix)
+    print(prefix)
+    test_everything(nn_supervised, options, ["error", 'data_size'], prefix=prefix, nrepeats=10)
 
 
 def pi_benchmarks(model_name, options=None):
     options = {} if options is None else options
     options.update(handle_options(model_name, sys.argv[1:]))
-    # options['batch_size'] = np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)
+    options['data_size'] = [1, 7, 15, 25, 36, 50, 70, 90, 120, 150]# [int(ds) for ds in np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)]
+    # options['data_size'] = [int(ds) for ds in np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)]
     options['error'] = ['inv_fwd_error'] # , 'inv_fwd_error', 'error', 'sub_arrow_error']
     prefix = rand_string(5)
-    test_everything(nn_supervised, options, ["error"], prefix=prefix)
+    print(prefix)
+    test_everything(pi_supervised, options, ["error", 'data_size'], prefix=prefix, nrepeats=10)

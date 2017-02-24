@@ -32,6 +32,9 @@ def infinite_batches(inputs, batch_size, f=lambda x: x, shuffle=False):
     start_idx = 0
     nelements = len(inputs)
     indices = np.arange(nelements)
+    if batch_size > nelements:
+        reps = batch_size / nelements
+        indices = np.tile(indices, int(np.ceil(reps)))[0:batch_size]
     if shuffle:
         indices = np.arange(len(inputs))
         np.random.shuffle(indices)

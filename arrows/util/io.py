@@ -40,27 +40,6 @@ def get_filepaths(directory):
     return file_paths  # Self-explanatory.
 
 
-# 
-# def default_kwargs():
-#     """Default kwargs"""
-#     assert(False)
-#     options = {}
-#     options['learning_rate'] = (float, 0.1)
-#     options['update'] = (str, 'momentum')
-#     options['params_file'] = (str, 28)
-#     options['momentum'] = (float, 0.9)
-#     options['description'] = (str, None)
-#     options['batch_size'] = (int, 128)
-#     options['save_every'] = (int, 100)
-#     options['compress'] = (boolify, 0,)
-#     options['num_epochs'] = (int, 10)
-#     options['compile_fns'] = (boolify, 1)
-#     options['save_params'] = (boolify, True)
-#     options['template'] = (str, 'res_net')
-#     options['train'] = (boolify, True)
-#     return options
-
-
 class PassThroughOptionParser(OptionParser):
     """
     An unknown option pass-through implementation of OptionParser.

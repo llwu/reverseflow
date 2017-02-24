@@ -141,14 +141,21 @@ def stanford_tensorflow(batch_size, n_links, **options):
 
 # from common import gen_rand_data
 if __name__ == '__main__':
-    options = {'description': "Neural Network/Parametric Inverse Linkage Generalization Benchmark",
-               'model': stanford_tensorflow,
+    options = {'model': stanford_tensorflow,
                'n_links': 6,
                'n_angles': 5,
                'n_lengths': 1,
                'n_inputs': 6,
                'n_outputs' : 12,
                'gen_data': gen_rand_data,
-               'model_name': 'stanford_kinematics',
-               'error': ['supervised_error', 'inv_fwd_error']}
-    nn_benchmarks('stanford_kinematics', options)
+               'model_name': 'stanford_kinematics'}
+               #'error': ['supervised_error', 'inv_fwd_error']
+
+    nn = True
+    if nn:
+        options["run"] = "Neural Network Stanford Generalization Benchmark"
+        f = nn_benchmarks
+    else:
+        options['run'] = "Parametric Inverse Stanford Generalization Benchmark"
+        f = pi_benchmarks
+    f('linkage_kinematics', options)

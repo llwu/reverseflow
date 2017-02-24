@@ -135,14 +135,21 @@ def robo_tensorflow(batch_size, n_links, **options):
 
 from common import gen_rand_data
 if __name__ == "__main__":
-    options = {'description': "Neural Network/Parametric Inverse Linkage Generalization Benchmark",
-               'model': robo_tensorflow,
+    options = {'model': robo_tensorflow,
                'n_links': 3,
                'n_angles': 3,
                'n_lengths': 0,
                'n_inputs': 3,
                'n_outputs' : 2,
                'gen_data': gen_rand_data,
-               'model_name': 'linkage_kinematics',
-               'error': ['supervised_error', 'inv_fwd_error']}
-    nn_benchmarks('linkage_kinematics', options)
+               'model_name': 'linkage_kinematics'}
+               #'error': ['supervised_error', 'inv_fwd_error']
+
+    nn = False
+    if nn:
+        options["run"] = "Neural Network Linkage Generalization Benchmark"
+        f = nn_benchmarks
+    else:
+        options['run'] = "Parametric Inverse Linkage Generalization Benchmark"
+        f = pi_benchmarks
+    f('linkage_kinematics', options)
