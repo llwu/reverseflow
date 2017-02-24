@@ -61,7 +61,13 @@ def conv(a: AddArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: ExpArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    return [tf.exp(*args)]
+    # return [tf.exp(*args)]
+    # FIXME Deal with me in a better way
+    # FIXME This one is quite bad
+    with tf.name_scope("Safe_Exp"):
+        arg = args[0]
+        safe_arg = 40.0 * tf.tanh(arg / 40.0)
+        return [tf.exp(safe_arg)]
 
 
 
@@ -79,6 +85,11 @@ def conv(a: PowArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 @overload
 def conv(a: LogArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     return [tf.log(*args)]
+    # FIXME Deal with me in a better way
+    # with tf.name_scope("Safe_Log"):
+    #     arg = args[0]
+    #     safe_arg = arg + 1e-4
+    #     return [tf.log(safe_arg)]
 
 
 @overload
@@ -90,17 +101,19 @@ def conv(a: LogBaseArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: MulArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    return [tf.multiply(*args)]
+    # return [tf.multiply(*args)]
+    return [40.0 * tf.tanh(tf.multiply(*args) / 40.0)]
 
 
 @overload
 def conv(a: DivArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.div(*args)]
     # FIXME Deal with me in a better way
-    with tf.name_scope("Safe_Divide"):
-        num = args[0]
-        den = args[1]
-        safe_den = den # + 1e-4
-        return [tf.div(num, safe_den)]
+    # with tf.name_scope("Safe_Divide"):
+    #     num = args[0]
+    #     den = args[1]
+    #     safe_den = den + 1e-4
+    #     return [tf.div(num, safe_den)]
 
 @overload
 def conv(a: SinArrow, args: TensorVarList, state) -> Sequence[Tensor]:

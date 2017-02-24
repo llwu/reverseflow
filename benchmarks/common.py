@@ -1,7 +1,6 @@
 """Functions common for examples"""
 import sys
 from arrows.util.io import *
-from stanford_kinematics import stanford_tensorflow
 from arrows.util.misc import rand_string, getn
 from metrics.generalization import test_everything
 from reverseflow.train.common import layer_width
