@@ -142,6 +142,12 @@ def conv(a: DuplArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     # TODO: Genralize to n outputs
     return [args[0] for i in range(a.num_out_ports())]
 
+
+@overload
+def conv(a: IdentityArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.identity(*args)]
+
+
 @overload
 def conv(a: InvDuplArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     # TODO: Add assert that all args are equal
