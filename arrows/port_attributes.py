@@ -26,8 +26,14 @@ def is_out_port(port: Port):
 
 def make_param_port(port: Port) -> None:
     """Make `port` as a parametric port"""
-    assert is_in_port(port), "A port must be parametric to be an in_port"
+    assert is_in_port(port)
     port.arrow.port_attr[port.index]["parametric"] = True
+
+
+def make_not_param_port(port: Port) -> None:
+    """Make `port` as a not parametric port"""
+    assert is_in_port(port)
+    port.arrow.port_attr[port.index].pop('parametric', None)
 
 
 def is_param_port(port: Port) -> bool:
@@ -90,11 +96,21 @@ def get_port_shape(port: Port, port_attr: PortAttributes=None) -> Shape:
     assert "shape" in port_attr, "%s has no shape attr" % (port)
     return port_attr["shape"]
 
+def get_port_value(port: Port) -> Shape:
+    """Get the value of `port'"""
+    port_attr = port.arrow.port_attr[port.index]
+    return port_attr["value"]
 
 def set_port_shape(port: Port, shape: Shape):
     """Set the shape of `port` to `shape`"""
     port_attr = port.arrow.port_attr[port.index]
     port_attr["shape"] = shape
+
+
+def set_port_value(port: Port, value):
+    """Set the shape of `port` to `shape`"""
+    port_attr = port.arrow.port_attr[port.index]
+    port_attr["value"] = value
 
 
 def get_port_attr(port: Port):
