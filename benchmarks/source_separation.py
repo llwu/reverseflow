@@ -147,8 +147,12 @@ def mixing_model(n_sources, batch_size=None, source_len=None, ndim=3, pos=False)
             'mix_signal': mix_signal}
 
 
-def mixing_model(batch_size):
-    return mixing_model(n_sources=3, batch_size=batch_size, source_len=source_len)
+def mixing_model_tf(batch_size, **options):
+    model = mixing_model(n_sources=3, batch_size=batch_size, source_len=sound_len)
+    sources, source_pos_dist = getn(model, 'sources', 'source_pos_dist')
+    inputs = sources + source_pos_dist
+    outputs = [model['mix_signal']]
+    return {'inputs': inputs, 'outputs': outputs}
 
 
 def example(model):
@@ -197,10 +201,19 @@ def fwd_arrow(batch_size):
 def gen_sound_data(batch_size, model_tensorflow, options):
     """Generate data for training"""
     graph = tf.Graph()
-    n_links, n_angles, n_lengths = getn(options, 'n_links', 'n_angles', 'n_lengths')
+    # n = fold1_dataset.shape[0]
+    ns = batch_size
+    fold1_a = fold1_dataset[0:ns]
+    fold1_b = fold1_dataset[ns:ns+ns]
+    fold1_c = fold1_dataset[ns+ns:ns+ns+ns]
+    source_pos_dist_data = [np.random.rand(batch_size, 1) for i in range(3)]
+    input_data = [fold1_a, fold1_b, fold1_c] + source_pos_dist_data
+
     with graph.as_default():
-        inputs, outputs = getn(model_tensorflow(batch_size), 'inputs', 'outputs')
-        import pdb; pdb.set_trace()
+        model = mixing_model(n_sources=3, batch_size=batch_size, source_len=sound_len)
+        sources, source_pos_dist = getn(model, 'sources', 'source_pos_dist')
+        inputs = sources + source_pos_dist
+        outputs = [model['mix_signal']]
         sess = tf.Session()
         output_data = sess.run(outputs, feed_dict=dict(zip(inputs, input_data)))
         sess.close()
@@ -208,6 +221,10 @@ def gen_sound_data(batch_size, model_tensorflow, options):
 
 from common import pi_benchmarks
 if __name__ == "__main__":
-    options['model_name'] = "Source Separation"
-    options['gen_data'] = gen_sound_data
-    pi_benchmarks(model_name='source_separation', options=options)
+    options = {'model': mixing_model_tf,
+               'n_inputs': 3,
+               'n_outputs' : 2,
+               'gen_data': gen_sound_data,
+               'model_name': 'source_separation',
+               'error': ['supervised_error']}
+    pi_benchmarks('source_separation', options=options)

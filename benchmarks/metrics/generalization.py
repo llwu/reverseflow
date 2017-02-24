@@ -43,8 +43,9 @@ def test_everything(run_me, options, var_option_keys, prefix='', nrepeats=1):
 
     for i in range(nrepeats):
         var_options_prod = dict_prod(var_options)
+        the_time = time.time()
         for prod in var_options_prod:
-            dirname = "%s_%s_%s" % (prefix, str(time.time()), i)
+            dirname = "%s_%s_%s" % (prefix, str(the_time), i)
             _options['dirname'] = dirname
             _options.update(prod)
             run_me(_options)
