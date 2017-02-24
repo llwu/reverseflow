@@ -45,6 +45,7 @@ def default_kwargs():
     options['momentum'] = (float, 0.9)
     options['description'] = (str, "")
     options['batch_size'] = (int, 100)
+    options['debug'] = (boolify, False)
     options['data_size'] = (int, 500)
     options['save_every'] = (int, 100)
     options['compress'] = (boolify, 0,)
@@ -155,6 +156,7 @@ def pi_supervised(options):
     test_input_data = test_data['outputs']
     test_output_data = test_data['inputs']
     num_params = get_tf_num_params(right_inv)
+    import pdb; pdb.set_trace()
     print("Number of params", num_params)
     print("NNet Number of params", num_params)
     supervised_train(sup_right_inv,
@@ -165,6 +167,7 @@ def pi_supervised(options):
                      callbacks=[save_every_n, save_everything_last, save_options],
                      options=options)
 
+from arrows.apply.propagate import propagate
 
 def nn_supervised(options):
     """Plain neural network to do supervised learning"""
@@ -195,16 +198,27 @@ def nn_supervised(options):
                   'block_size': 1,
                   'reuse': False}
 
-    tf_arrow = TfArrow(n_outputs, n_inputs, template=template, options=tp_options)
-    # FIXME: This is not genreal
-    for port in tf_arrow.ports():
-        set_port_shape(port, (batch_size, 1))
-
     arrow = gen_arrow(batch_size, model_tensorflow, options)
+    port_attr = propagate(arrow)
+    tf_arrow = TfArrow(n_outputs, n_inputs, template=template, options=tp_options)
+    for i, port in enumerate(tf_arrow.in_ports()):
+        shp = port_attr[arrow.out_port(i)]['shape']
+        set_port_shape(port, shp)
+
+    for i, port in enumerate(tf_arrow.out_ports()):
+        shp = port_attr[arrow.in_port(i)]['shape']
+        set_port_shape(port, shp)
+
+    #
+    # # FIXME: This is not genreal
+    # for port in tf_arrow.ports():
+    #     set_port_shape(port, (batch_size, 1))
+
     tf_arrow = inv_fwd_loss_arrow(arrow, tf_arrow)
 
     sup_tf_arrow = supervised_loss_arrow(tf_arrow)
     num_params = get_tf_num_params(sup_tf_arrow)
+    import pdb; pdb.set_trace()
     print("NNet Number of params", num_params)
     supervised_train(sup_tf_arrow,
                      train_input_data,
@@ -220,7 +234,7 @@ def nn_benchmarks(model_name, options=None):
     options = {} if options is None else options
     options.update(handle_options(model_name, sys.argv[1:]))
     # options['data_size'] = [int(ds) for ds in np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)]
-    options['error'] = ['inv_fwd_error']
+    options['error'] = ['supervised_error']
     prefix = rand_string(5)
     test_everything(nn_supervised, options, ["error"], prefix=prefix, nrepeats=3)
 
@@ -230,6 +244,6 @@ def pi_benchmarks(model_name, options=None):
     options.update(handle_options(model_name, sys.argv[1:]))
     # options['data_size'] = [int(ds) for ds in np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)]
     # options['data_size'] = [int(ds) for ds in np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)]
-    options['error'] = ['inv_fwd_error'] # , 'inv_fwd_error', 'error', 'sub_arrow_error']
+    options['error'] = ['supervised_error'] # , 'inv_fwd_error', 'error', 'sub_arrow_error']
     prefix = rand_string(5)
     test_everything(pi_supervised, options, ["error"], prefix=prefix, nrepeats=3)

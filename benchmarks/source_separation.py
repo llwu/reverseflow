@@ -219,12 +219,13 @@ def gen_sound_data(batch_size, model_tensorflow, options):
         sess.close()
     return {'inputs': input_data, 'outputs': output_data}
 
-from common import pi_benchmarks
+from common import pi_benchmarks, nn_benchmarks
+
 if __name__ == "__main__":
     options = {'model': mixing_model_tf,
-               'n_inputs': 3,
-               'n_outputs' : 2,
+               'n_inputs': 6,
+               'n_outputs' : 1,
                'gen_data': gen_sound_data,
                'model_name': 'source_separation',
                'error': ['supervised_error']}
-    pi_benchmarks('source_separation', options=options)
+    nn_benchmarks('source_separation', options=options)
