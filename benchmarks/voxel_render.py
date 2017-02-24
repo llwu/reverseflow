@@ -11,7 +11,7 @@ import tensorflow as tf
 from arrows.apply.apply import apply
 from arrows.apply.propagate import propagate
 from arrows.config import floatX
-from arrows.transform.eliminate import eliminate
+from arrows.transform.eliminate_gather import eliminate_gathernd
 from arrows.util.misc import getn
 from benchmarks.common import handle_options, gen_sfx_key
 from metrics.generalization import test_generalization
@@ -254,7 +254,7 @@ def test_render_graph(batch_size):
     out_img_tensor = results['outputs']['out_img']
     arrow_renderer = graph_to_arrow([out_img_tensor], name="renderer")
     inv_renderer = invert(arrow_renderer)
-    elim_inv_renderer = eliminate(inv_renderer)
+    elim_inv_renderer = eliminate_gathernd(inv_renderer)
     return arrow_renderer, inv_renderer, elim_inv_renderer
 
 
@@ -303,7 +303,7 @@ def pi_supervised(options):
     out_img_tensor = results['outputs']['out_img']
     arrow_renderer = graph_to_arrow([out_img_tensor])
     inverted = invert(arrow_renderer)
-    elim = eliminate(inverted)
+    elim = eliminate_gathernd(inverted)
     inv_arrow = inv_fwd_loss_arrow(arrow_renderer, elim)
     right_inv = unparam(inv_arrow)
     sup_right_inv = supervised_loss_arrow(right_inv)
