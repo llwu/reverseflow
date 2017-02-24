@@ -156,7 +156,7 @@ def pi_supervised(options):
     test_output_data = test_data['inputs']
     num_params = get_tf_num_params(right_inv)
     print("Number of params", num_params)
-    print("NNet Number of params", num_params)
+    # print("NNet Number of params", num_params)
     supervised_train(sup_right_inv,
                      train_input_data,
                      train_output_data,
@@ -219,17 +219,19 @@ def nn_supervised(options):
 def nn_benchmarks(model_name, options=None):
     options = {} if options is None else options
     options.update(handle_options(model_name, sys.argv[1:]))
-    # options['data_size'] = [int(ds) for ds in np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)]
+    options['data_size'] = [1, 7, 15, 25, 36, 50, 70, 90, 120, 150]# [int(ds) for ds in np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)]
     options['error'] = ['inv_fwd_error']
     prefix = rand_string(5)
-    test_everything(nn_supervised, options, ["error"], prefix=prefix, nrepeats=3)
+    print(prefix)
+    test_everything(nn_supervised, options, ["error", 'data_size'], prefix=prefix, nrepeats=10)
 
 
 def pi_benchmarks(model_name, options=None):
     options = {} if options is None else options
     options.update(handle_options(model_name, sys.argv[1:]))
-    # options['data_size'] = [int(ds) for ds in np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)]
+    options['data_size'] = [1, 7, 15, 25, 36, 50, 70, 90, 120, 150]# [int(ds) for ds in np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)]
     # options['data_size'] = [int(ds) for ds in np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)]
     options['error'] = ['inv_fwd_error'] # , 'inv_fwd_error', 'error', 'sub_arrow_error']
     prefix = rand_string(5)
-    test_everything(pi_supervised, options, ["error"], prefix=prefix, nrepeats=3)
+    print(prefix)
+    test_everything(pi_supervised, options, ["error", 'data_size'], prefix=prefix, nrepeats=10)

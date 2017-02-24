@@ -90,11 +90,15 @@ def conv_Greater(gt_op: Operation):
 def conv_Identity(id_op: Operation):
     return IdentityArrow()
 
+def conv_Abs(id_op: Operation):
+    return AbsArrow()
+
 
 # Mapping between op types and arrows
 # Cannot use multimethods because different ops not distinguished by type
 Op_Type_To_Arrow = {'Add': conv_Add,  # type: Dict[string, Arrow]
                     'AddN': conv_AddN,
+                    'Abs': conv_Abs,
                     'Sub': conv_Sub,
                     'Gather': conv_Gather,
                     'GatherNd': conv_GatherNd,

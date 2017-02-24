@@ -142,14 +142,14 @@ if __name__ == "__main__":
                'n_inputs': 3,
                'n_outputs' : 2,
                'gen_data': gen_rand_data,
-               'model_name': 'linkage_kinematics',
-               'error': ['supervised_error', 'inv_fwd_error']}
+               'model_name': 'linkage_kinematics'}
+               #'error': ['supervised_error', 'inv_fwd_error']
 
     nn = False
     if nn:
         options["run"] = "Neural Network Linkage Generalization Benchmark"
         f = nn_benchmarks
     else:
-        options['run'] = "Parametric Inverse Generalization Benchmark"
+        options['run'] = "Parametric Inverse Linkage Generalization Benchmark"
         f = pi_benchmarks
     f('linkage_kinematics', options)
