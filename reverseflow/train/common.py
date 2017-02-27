@@ -131,7 +131,7 @@ def gen_update_step(loss: Tensor) -> Tensor:
     with tf.name_scope('optimization'):
         # optimizer = tf.train.MomentumOptimizer(0.001,
         #                                        momentum=0.1)
-        optimizer = tf.train.AdamOptimizer(0.01)
+        optimizer = tf.train.AdamOptimizer(0.0001)
         update_step = optimizer.minimize(loss)
         return update_step
 

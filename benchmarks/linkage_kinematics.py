@@ -76,7 +76,7 @@ def draw_lines(n_links, angles):
     return [0.0] + x_accum, [0.0] + y_accum
 
 
-def plot_callback(batch_size):
+def plot_callback():
     fig = plt.figure()
     ax = fig.add_subplot(111, autoscale_on=False)
     ax.set_xlim(-3, 3)
@@ -89,36 +89,37 @@ def plot_callback(batch_size):
         nonlocal fig, ax, lines, circle, batch_num
         n_links = 3
         batch_angles = fetch_res['output_tensors'][0:n_links]
-        x = fetch_res['input_tensors'][1][0, 0]
-        y = fetch_res['input_tensors'][2][0, 0]
+        x = fetch_res['input_tensors'][0][0, 0]
+        y = fetch_res['input_tensors'][1][0, 0]
         repeats = 0
-        for j in range(len(fetch_res['input_tensors'][1])):
-            repeats += 1
-            if fetch_res['input_tensors'][1][j, 0] != x:
-                break
-            if fetch_res['input_tensors'][2][j, 0] != y:
-                break
+        if i % 1000 == 0:
+            for j in range(len(fetch_res['input_tensors'][1])):
+                repeats += 1
+                if fetch_res['input_tensors'][0][j, 0] != x:
+                    break
+                if fetch_res['input_tensors'][1][j, 0] != y:
+                    break
 
-        for j in range(repeats):
-            angles = [batch_angles[i][j, 0] for i in range(len(batch_angles))]
-            x, y = draw_lines(n_links, angles)
-            if lines is None:
-                lines = Line2D(x, y)
-                ax.add_line(lines)
-                x = fetch_res['input_tensors'][1][j, 0]
-                y = fetch_res['input_tensors'][2][j, 0]
-                circle = plt.Circle((x, y), 0.1, color='r')
-                ax.add_artist(circle)
-                plt.draw()
-            else:
-                lines.set_data(x, y)
-                x = fetch_res['input_tensors'][1][j, 0]
-                y = fetch_res['input_tensors'][2][j, 0]
-                circle.center = (x, y)
-                plt.draw()
-                plt.show()
-                plt.pause(0.05)
-        plt.pause(0.2)
+            for j in range(repeats):
+                angles = [batch_angles[i][j, 0] for i in range(len(batch_angles))]
+                x, y = draw_lines(n_links, angles)
+                if lines is None:
+                    lines = Line2D(x, y)
+                    ax.add_line(lines)
+                    x = fetch_res['input_tensors'][0][j, 0]
+                    y = fetch_res['input_tensors'][1][j, 0]
+                    circle = plt.Circle((x, y), 0.1, color='r')
+                    ax.add_artist(circle)
+                    plt.draw()
+                else:
+                    lines.set_data(x, y)
+                    x = fetch_res['input_tensors'][0][j, 0]
+                    y = fetch_res['input_tensors'][1][j, 0]
+                    circle.center = (x, y)
+                    plt.draw()
+                    plt.show()
+                    plt.pause(0.05)
+            # plt.pause(0.2)
     return closure
 
 def robo_tensorflow(batch_size, n_links, **options):
@@ -135,21 +136,23 @@ def robo_tensorflow(batch_size, n_links, **options):
 
 from common import gen_rand_data
 if __name__ == "__main__":
+    plot_cb = plot_callback()
     options = {'model': robo_tensorflow,
                'n_links': 3,
                'n_angles': 3,
                'n_lengths': 0,
                'n_inputs': 3,
                'n_outputs' : 2,
+               'phi_shape' : (3,),
                'gen_data': gen_rand_data,
                'model_name': 'linkage_kinematics',
-               'error': ['supervised_error', 'inv_fwd_error']}
-
+               'error': ['supervised_error', 'inv_fwd_error'],
+               'callbacks': [plot_cb]}
     nn = False
     if nn:
         options["run"] = "Neural Network Linkage Generalization Benchmark"
         f = nn_benchmarks
     else:
         options['run'] = "Parametric Inverse Generalization Benchmark"
-        f = pi_benchmarks
+        f = pi_reparam_benchmarks
     f('linkage_kinematics', options)
