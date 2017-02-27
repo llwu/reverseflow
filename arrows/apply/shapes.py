@@ -50,6 +50,12 @@ def source_predicate(a: Arrow, port_attr: PortAttributes, state=None) -> bool:
 
 
 @overload
+def constant_to_shape(x):
+    print(x)
+    assert False
+
+
+@overload
 def constant_to_shape(x: int):
     return ()
 

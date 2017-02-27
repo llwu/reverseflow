@@ -145,14 +145,25 @@ if __name__ == "__main__":
                'n_outputs' : 2,
                'phi_shape' : (3,),
                'gen_data': gen_rand_data,
+<<<<<<< HEAD
                'model_name': 'linkage_kinematics',
                'error': ['supervised_error', 'inv_fwd_error'],
                'callbacks': [plot_cb]}
+=======
+               'model_name': 'linkage_kinematics'}
+               #'error': ['supervised_error', 'inv_fwd_error']
+
+>>>>>>> 4d24e9143f6f884923487054970bf31824b136ed
     nn = False
     if nn:
         options["run"] = "Neural Network Linkage Generalization Benchmark"
         f = nn_benchmarks
     else:
+<<<<<<< HEAD
         options['run'] = "Parametric Inverse Generalization Benchmark"
         f = pi_reparam_benchmarks
+=======
+        options['run'] = "Parametric Inverse Linkage Generalization Benchmark"
+        f = pi_benchmarks
+>>>>>>> 4d24e9143f6f884923487054970bf31824b136ed
     f('linkage_kinematics', options)

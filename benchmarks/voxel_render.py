@@ -1,15 +1,18 @@
 """ (Inverse) Rendering"""
 import os
+import pdb
+import signal
 import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
+from arrows.apply.apply import apply
+from arrows.apply.propagate import propagate
 from arrows.config import floatX
-from arrows.transform.eliminate import eliminate
+from arrows.transform.eliminate_gather import eliminate_gathernd
 from arrows.util.misc import getn
-from arrows.util.viz import show_tensorboard_graph, show_tensorboard
 from benchmarks.common import handle_options, gen_sfx_key
 from metrics.generalization import test_generalization
 from reverseflow.invert import invert
@@ -68,6 +71,7 @@ def rand_rotation_matrix(deflection=1.0, randnums=None):
 def rand_rotation_matrices(n):
     return np.stack([rand_rotation_matrix() for i in range(n)])
 
+
 # Genereate values in raster space, x[i,j] = [i,j]
 def gen_fragcoords(width, height):
     """Create a (width * height * 2) matrix, where element i,j is [i,j]
@@ -77,6 +81,7 @@ def gen_fragcoords(width, height):
         for j in range(height):
             raster_space[i,j] = np.array([i,j], dtype=floatX()) + 0.5
     return raster_space
+
 
 # Append an image filled with scalars to the back of an image.
 def stack(intensor, width, height, scalar):
@@ -223,8 +228,7 @@ def render_fwd_f(inputs):
     width = options['width'] = 128
     height = options['height'] = 128
     res = options['res'] = 32
-    nsteps = options['nsteps'] = 3
-    nvoxgrids = options['nvoxgrids'] = 1
+    nsteps = options['nsteps'] = 5
     nviews = options['nviews'] = 1
     rotation_matrices = rand_rotation_matrices(nviews)
     out_img = gen_img(voxels, rotation_matrices, width, height, nsteps, res)
@@ -239,44 +243,40 @@ def render_gen_graph(g, batch_size):
     with g.name_scope("fwd_g"):
         voxels = tf.placeholder(floatX(), name="voxels",
                                 shape=(batch_size, nvoxgrids*res*res*res))
-                                # shape=(nvoxgrids, res, res, res))
         inputs = {"voxels": voxels}
         outputs = render_fwd_f(inputs)
         return {"inputs": inputs, "outputs": outputs}
 
 
-def draw_random_voxels():
-    sess = tf.Session()
-
-    # load data
-    voxels_path = os.path.join(os.environ['DATADIR'],
-                               'ModelNet40', 'alltrain32.npy')
-    voxel_grids = np.load(voxels_path)
-    rand_voxel_id = np.random.randint(0, voxel_grids.shape[0])
-    res = 32
-    voxels = results['inputs']['voxels']
-    width = 32
-    height = 32
-    voxel = voxel_grids[rand_voxel_id].reshape(1, res, res, res)
-
-    # Run the graph
-    output_img = sess.run(out_img_tensor, feed_dict={voxels: voxel})
-    # print(output_img.shape)
-    plt.imshow(output_img.reshape(width, height))
-    plt.show()
-    sess.close()
-
-
-def test_render_graph():
+def test_render_graph(batch_size):
     g = tf.get_default_graph()
-    batch_size = 4
     results = render_gen_graph(g, batch_size)
     out_img_tensor = results['outputs']['out_img']
     arrow_renderer = graph_to_arrow([out_img_tensor], name="renderer")
     inv_renderer = invert(arrow_renderer)
-    # elim_inv_renderer = eliminate(inv_renderer)
-    # show_tensorboard(elim_inv_renderer)
-    import pdb; pdb.set_trace()
+    return arrow_renderer, inv_renderer
+
+
+def inv_viz_allones(batch_size):
+    arrow, inv = test_render_graph(batch_size=batch_size)
+    pdb.set_trace()
+    info = propagate(arrow)
+    shapes = [info[i]['shape'] for i in arrow.in_ports()]
+    rand_voxel_id = np.random.randint(0, voxel_grids.shape[0], size=batch_size)
+    input_data = [voxel_grids[rand_voxel_id].reshape(shape) for shape in shapes]
+    outputs = apply(arrow, input_data)
+    info = propagate(inv)
+    shapes = [info[i]['shape'] for i in inv.in_ports()[1:]]
+    theta = [np.zeros(shape) if shape[-1] >= 32768 else np.ones(shape) for shape in shapes]
+    recons = apply(inv, outputs + theta)[0]
+    recons_fwd = apply(arrow, [recons])
+    for i in range(batch_size):
+        img_A = outputs[0][i].reshape(128, 128)
+        padding = np.zeros((128, 16))
+        img_B = recons_fwd[0][i].reshape(128, 128)
+        plot_image = np.concatenate((img_A, padding, img_B), axis=1)
+        plt.imshow(plot_image, cmap='gray')
+        plt.show()
 
 
 def gen_data(batch_size):
@@ -286,7 +286,8 @@ def gen_data(batch_size):
         inputs, outputs = getn(render_gen_graph(graph, batch_size), 'inputs', 'outputs')
         inputs = [inputs['voxels']]
         outputs = [outputs['out_img']]
-        input_data = [np.random.rand(*(i.get_shape())) for i in inputs]
+        rand_voxel_id = np.random.randint(0, voxel_grids.shape[0], size=batch_size)
+        input_data = [voxel_grids[rand_voxel_id].reshape(i.get_shape()) for i in inputs]
         sess = tf.Session()
         output_data = sess.run(outputs, feed_dict=dict(zip(inputs, input_data)))
         sess.close()
@@ -335,5 +336,11 @@ def generalization_bench():
 
 
 if __name__ == "__main__":
+    def debug_signal_handler(signal, frame):
+        pdb.set_trace()
+    signal.signal(signal.SIGINT, debug_signal_handler)
+    voxels_path = os.path.join(os.environ['DATADIR'],
+                               'ModelNet40', 'alltrain32.npy')
+    voxel_grids = np.load(voxels_path)
+    inv_viz_allones(batch_size=8)
     generalization_bench()
-    test_render_graph()
