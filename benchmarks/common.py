@@ -1,6 +1,7 @@
 """Functions common for examples"""
 import sys
 from arrows.util.io import *
+# from stanford_kinematics import stanford_tensorflow
 from arrows.util.misc import rand_string, getn
 from metrics.generalization import test_everything
 from reverseflow.train.common import layer_width
@@ -215,6 +216,39 @@ def nn_supervised(options):
                      options=options)
 
 
+# Reparameterization
+def pi_reparam(options):
+    """Neural network enhanced Parametric inverse! to do supervised learning"""
+    tf.reset_default_graph()
+    batch_size = options['batch_size']
+    model_tensorflow = options['model']
+    gen_data = options['gen_data']
+    phi_shape = options['phi_shape']
+    n_links = options['n_links']
+
+    arrow = gen_arrow(batch_size, model_tensorflow, options)
+    inv_arrow = invert(arrow)
+    inv_arrow = inv_fwd_loss_arrow(arrow, inv_arrow)
+    rep_arrow = reparam(inv_arrow, (batch_size,) + phi_shape)
+    def sampler(*x):
+        return np.random.rand(*x)*n_links
+    frac_repeat = 0.25
+    nrepeats = int(np.ceil(batch_size * frac_repeat))
+    train_input1 = repeated_random(sampler, batch_size, nrepeats, shape=(1,))
+    train_input2 = repeated_random(sampler, batch_size, nrepeats, shape=(1,))
+    test_input1 = repeated_random(sampler, batch_size, nrepeats, shape=(1,))
+    test_input2 = repeated_random(sampler, batch_size, nrepeats, shape=(1,))
+    d = [p for p in inv_arrow.out_ports() if not is_error_port(p)]
+    # plot_cb = plot_callback(batch_size)
+
+    # callbacks = [] + options['callbacks']
+    reparam_train(rep_arrow,
+                  d,
+                  [train_input1, train_input2],
+                  [test_input1, test_input2],
+                  options=options)
+
+
 # Benchmarks
 def nn_benchmarks(model_name, options=None):
     options = {} if options is None else options
@@ -222,7 +256,15 @@ def nn_benchmarks(model_name, options=None):
     options['data_size'] = [1, 7, 15, 25, 36, 50, 70, 90, 120, 150]# [int(ds) for ds in np.round(np.logspace(0, np.log10(500-1), 10)).astype(int)]
     options['error'] = ['inv_fwd_error']
     prefix = rand_string(5)
-    test_everything(nn_supervised, options, ["error", 'data_size'], prefix=prefix, nrepeats=3)
+    test_everything(nn_supervised, options, ["error",], prefix=prefix, nrepeats=3)
+
+
+def pi_reparam_benchmarks(model_name, options=None):
+    options = {} if options is None else options
+    options.update(handle_options(model_name, sys.argv[1:]))
+    options['error'] = ['inv_fwd_error'] # , 'inv_fwd_error', 'error', 'sub_arrow_error']
+    prefix = rand_string(5)
+    pi_reparam(options)
 
 
 def pi_benchmarks(model_name, options=None):

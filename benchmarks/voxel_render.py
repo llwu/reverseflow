@@ -11,7 +11,7 @@ import tensorflow as tf
 from arrows.apply.apply import apply
 from arrows.apply.propagate import propagate
 from arrows.config import floatX
-from arrows.transform.eliminate import eliminate
+from arrows.transform.eliminate_gather import eliminate_gathernd
 from arrows.util.misc import getn
 from benchmarks.common import handle_options, gen_sfx_key
 from metrics.generalization import test_generalization
@@ -254,21 +254,21 @@ def test_render_graph(batch_size):
     out_img_tensor = results['outputs']['out_img']
     arrow_renderer = graph_to_arrow([out_img_tensor], name="renderer")
     inv_renderer = invert(arrow_renderer)
-    elim_inv_renderer = eliminate(inv_renderer)
-    return arrow_renderer, inv_renderer, elim_inv_renderer
+    return arrow_renderer, inv_renderer
 
 
 def inv_viz_allones(batch_size):
-    arrow, inv, elim = test_render_graph(batch_size=batch_size)
+    arrow, inv = test_render_graph(batch_size=batch_size)
+    pdb.set_trace()
     info = propagate(arrow)
     shapes = [info[i]['shape'] for i in arrow.in_ports()]
     rand_voxel_id = np.random.randint(0, voxel_grids.shape[0], size=batch_size)
     input_data = [voxel_grids[rand_voxel_id].reshape(shape) for shape in shapes]
     outputs = apply(arrow, input_data)
-    info = propagate(elim)
-    shapes = [info[i]['shape'] for i in elim.in_ports()[1:]]
+    info = propagate(inv)
+    shapes = [info[i]['shape'] for i in inv.in_ports()[1:]]
     theta = [np.zeros(shape) if shape[-1] >= 32768 else np.ones(shape) for shape in shapes]
-    recons = apply(elim, outputs + theta)[0]
+    recons = apply(inv, outputs + theta)[0]
     recons_fwd = apply(arrow, [recons])
     for i in range(batch_size):
         img_A = outputs[0][i].reshape(128, 128)
@@ -303,8 +303,7 @@ def pi_supervised(options):
     out_img_tensor = results['outputs']['out_img']
     arrow_renderer = graph_to_arrow([out_img_tensor])
     inverted = invert(arrow_renderer)
-    elim = eliminate(inverted)
-    inv_arrow = inv_fwd_loss_arrow(arrow_renderer, elim)
+    inv_arrow = inv_fwd_loss_arrow(arrow_renderer, inverted)
     right_inv = unparam(inv_arrow)
     sup_right_inv = supervised_loss_arrow(right_inv)
     # Get training and test_data
