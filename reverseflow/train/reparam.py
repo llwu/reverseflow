@@ -87,7 +87,7 @@ def pairwise_dists(t, perm, perm_idx):
         ts_shrunk = tf.gather(t, perm_idx)
         ts_permute = tf.gather(t, perm)
         diff = ts_permute - ts_shrunk + EPS
-        sqrdiff = tf.abs(diff)
+        sqrdiff = tf.square(diff) + EPS
         reduction_indices = list(range(1, sqrdiff.get_shape().ndims))
         euclids = tf.reduce_sum(sqrdiff, reduction_indices=reduction_indices) + EPS
         return euclids
@@ -108,12 +108,18 @@ def reparam_train(arrow: Arrow,
                   extra_ports: Sequence[Port],
                   train_data: List[Generator],
                   test_data: List[Generator],
-                  callbacks=[],
-                  error_filter=is_error_port,
                   options=None) -> CompositeArrow:
 
     options = {} if options is None else options
-    tensors = extract_tensors(arrow, extra_ports, error_filter=error_filter)
+    grabs = ({'input': lambda p: is_in_port(p) and not is_param_port(p) and not has_port_label(p, 'train_output'),
+              'train_output': lambda p: has_port_label(p, 'train_output'),
+              'pure_output': lambda p: is_out_port(p) and not is_error_port(p),
+              'supervised_error':  lambda p: has_port_label(p, 'supervised_error'),
+              'sub_arrow_error':  lambda p: has_port_label(p, 'sub_arrow_error'),
+              'inv_fwd_error':  lambda p: has_port_label(p, 'inv_fwd_error')})
+    # Not all arrows will have these ports
+    optional = ['sub_arrow_error', 'inv_fwd_error', 'param', 'supervised_error', 'train_output']
+    tensors = extract_tensors(arrow, grabs=grabs, optional=optional)
 
     # Make parametric inputs
     train_gen_gens = []
@@ -133,6 +139,8 @@ def reparam_train(arrow: Arrow,
 
     sound_loss = accumulate_losses(tensors['error'])
 
+
+
     # Generate permutation tensors
     with tf.name_scope("placeholder"):
         perm = tf.placeholder(shape=(None,), dtype='int32', name='perm')
@@ -140,28 +148,41 @@ def reparam_train(arrow: Arrow,
     perm_feed_gen = [perm_gen(options['batch_size'], perm, perm_idx)]
     train_gen_gens += perm_feed_gen
     test_gen_gens += perm_feed_gen
-
-    euclids = [pairwise_dists(t, perm, perm_idx) for t in tensors['extra']]
+    extra = tensors['output']
+    butim3d = tf.concat(tensors['pure_output'], axis=1)
+    extra = [butim3d]
+    euclids = [pairwise_dists(t, perm, perm_idx) for t in extra]
     min_gap_losses = [minimum_gap(euclid) for euclid in euclids]
     min_gap_loss = tf.reduce_sum(min_gap_losses)
-    mean_gap_losses = [mean_gap(euclid) for euclid in euclids]
-    mean_gap_loss = tf.reduce_mean(mean_gap_losses)
-    min_gap_loss = min_gap_loss
+    # mean_gap_losses = [mean_gap(euclid) for euclid in euclids]
+    # mean_gap_loss = tf.reduce_mean(mean_gap_losses)
+    lmbda = options['lambda']
+    min_gap_loss = min_gap_loss * lmbda
     losses = [sound_loss - min_gap_loss]
     loss_ratios = [1]
-    loss_updates = [gen_update_step(loss) for loss in losses]
+    loss_updates = [gen_update_step(loss, options['learning_rate']) for loss in losses]
+    # options['debug'] = True
+
+    # All losses
+    loss_dict = {}
+    for loss in ['error', 'sub_arrow_error', 'inv_fwd_error', 'supervised_error']:
+        if loss in tensors:
+            loss_dict[loss] = accumulate_losses(tensors[loss])
+    # loss_dict['mean_gap'] = mean_gap_loss
+    loss_dict['min_gap_losses'] = min_gap_losses
+    loss_dict['min_gap'] = min_gap_loss
+    loss_dict['sound_loss'] = sound_loss
+    loss_dict['general_loss'] = losses[0]
 
     sess = tf.Session()
     fetch = gen_fetch(sess, **options)
     fetch['input_tensors'] = tensors['input']
+    fetch['param_tensors'] = tensors['param']
     fetch['output_tensors'] = tensors['output']
-    fetch['loss'] = losses
-    fetch['to_print'] = {'min_gap_loss': min_gap_loss,
-                         'mean_gap_loss': mean_gap_loss,
-                         'sound_loss': sound_loss}
+    fetch['loss'] = loss_dict
 
-    if inn(options, 'save', 'sfx', 'params_file', 'load'):
-        ops = prep_save(sess, *getn(options, 'save', 'sfx', 'params_file', 'load'))
+    if inn(options, 'save', 'dirname', 'params_file', 'load'):
+        ops = prep_save(sess, *getn(options, 'save', 'dirname', 'params_file', 'load'))
         options.update(ops)
 
     train_loop(sess,
@@ -170,5 +191,4 @@ def reparam_train(arrow: Arrow,
                train_gen_gens,
                test_gen_gens,
                loss_ratios=loss_ratios,
-               callbacks=callbacks,
                **options)

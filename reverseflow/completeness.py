@@ -113,7 +113,7 @@ def train(sdf,
     theta_samples, loss1 = rnd_pairwise_min_dist(phi, g, permutation, permutation_idx)
     loss2 = sdf(theta_samples)
     # loss = loss2
-    lmbda = 4.0
+    lmbda = 1.0
     loss2 = lmbda*loss2
     loss = loss1 + loss2
     # loss = loss1

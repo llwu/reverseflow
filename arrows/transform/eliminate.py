@@ -29,9 +29,9 @@ def find_equivalent_thetas(dupl_to_equiv):
 
     # Find the equivalence classes
     for dupl, constraints in dupl_unrolled.items():
-        constraint_len = len(constraints[0])
-        assert all((len(constraint) == constraint_len for constraint in constraints))
-        for i in range(constraint_len):
+        constraint_len = constraints[0].shape
+        assert all(((constraint.shape) == constraint_len for constraint in constraints))
+        for i, _ in np.ndenumerate(constraints[0]):
             # Find the mapping index
             already_in_map = False
             all_zero = True
@@ -60,17 +60,17 @@ def create_arrow(arrow: CompositeArrow, equiv_thetas, port_attr, valid_ports, sy
     new_arrow = CompositeArrow(name="%s_elim" % arrow.name)
     for out_port in arrow.out_ports():
         c_out_port = new_arrow.add_port()
-        make_out_port(out_port)
+        make_out_port(c_out_port)
         transfer_labels(out_port, c_out_port)
         if is_error_port(out_port):
-            make_out_port(c_out_port)
             make_error_port(c_out_port)
         new_arrow.add_edge(out_port, c_out_port)
 
-    slim_param = new_arrow.add_port()
-    make_in_port(slim_param)
-    make_param_port(slim_param)
-    set_port_shape(slim_param, (nclasses,))
+    flat_shape = SourceArrow(np.array([nclasses], dtype=np.int32))
+    flatten = ReshapeArrow()
+    new_arrow.add_edge(flat_shape.out_port(0), flatten.in_port(1))
+    slim_param_flat = flatten.out_port(0)
+    batch_size = None
     for in_port in arrow.in_ports():
         if in_port in valid_ports:
             symbt = symbt_ports[in_port]['symbolic_tensor']
@@ -79,11 +79,15 @@ def create_arrow(arrow: CompositeArrow, equiv_thetas, port_attr, valid_ports, sy
                 setid = equiv_thetas[theta]
                 indices.append(setid)
             shape = get_port_shape(in_port, port_attr)
+            if len(shape) > 1:
+                if batch_size is not None:
+                    assert shape[0] == batch_size
+                batch_size = shape[0]
             gather = GatherArrow()
-            src = SourceArrow(np.array(indices))
-            shape_shape = SourceArrow(np.array(shape))
+            src = SourceArrow(np.array(indices, dtype=np.int32))
+            shape_shape = SourceArrow(np.array(shape, dtype=np.int32))
             reshape = ReshapeArrow()
-            new_arrow.add_edge(slim_param, gather.in_port(0))
+            new_arrow.add_edge(slim_param_flat, gather.in_port(0))
             new_arrow.add_edge(src.out_port(0), gather.in_port(1))
             new_arrow.add_edge(gather.out_port(0), reshape.in_port(0))
             new_arrow.add_edge(shape_shape.out_port(0), reshape.in_port(1))
@@ -95,6 +99,12 @@ def create_arrow(arrow: CompositeArrow, equiv_thetas, port_attr, valid_ports, sy
                 make_param_port(new_in_port)
             transfer_labels(in_port, new_in_port)
             new_arrow.add_edge(new_in_port, in_port)
+    assert nclasses % batch_size == 0
+    slim_param = new_arrow.add_port()
+    make_in_port(slim_param)
+    make_param_port(slim_param)
+    new_arrow.add_edge(slim_param, flatten.in_port(0))
+    set_port_shape(slim_param, (batch_size, nclasses // batch_size))
 
     assert new_arrow.is_wired_correctly()
     return new_arrow

@@ -41,10 +41,14 @@ def complement(indices: Sequence, shape: Sequence) -> Sequence:
 def complement_bool(indices: np.ndarray, shape: Sequence) -> Sequence:
     if len(indices.shape) > 2:
         indices = indices.reshape(-1, indices.shape[-1])
-    bools = np.zeros(shape)
+    bools = np.ones(shape, dtype=np.float32)
     for index in indices:
-        bools[tuple(index)] = 1
+        bools[tuple(index)] = 0
     return bools
+
+
+def indices_to_bool(indices: np.ndarray, shape: Sequence) -> Sequence:
+    return 1 - complement_bool(indices, shape)
 
 
 # Generators
