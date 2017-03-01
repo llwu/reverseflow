@@ -147,7 +147,7 @@ if __name__ == "__main__":
                'gen_data': gen_rand_data,
                'model_name': 'linkage_kinematics',
                'error': ['supervised_error', 'inv_fwd_error'],
-               'callbacks': [plot_cb]}
+               'callbacks': [save_options, save_every_n, save_everything_last]}
                #'error': ['supervised_error', 'inv_fwd_error']
     nn = False
     if nn:

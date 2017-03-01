@@ -156,11 +156,11 @@ def reparam_train(arrow: Arrow,
     min_gap_loss = tf.reduce_sum(min_gap_losses)
     # mean_gap_losses = [mean_gap(euclid) for euclid in euclids]
     # mean_gap_loss = tf.reduce_mean(mean_gap_losses)
-    lmbda = 10.0
+    lmbda = options['lambda']
     min_gap_loss = min_gap_loss * lmbda
     losses = [sound_loss - min_gap_loss]
     loss_ratios = [1]
-    loss_updates = [gen_update_step(loss) for loss in losses]
+    loss_updates = [gen_update_step(loss, options['learning_rate']) for loss in losses]
     # options['debug'] = True
 
     # All losses
@@ -172,6 +172,7 @@ def reparam_train(arrow: Arrow,
     loss_dict['min_gap_losses'] = min_gap_losses
     loss_dict['min_gap'] = min_gap_loss
     loss_dict['sound_loss'] = sound_loss
+    loss_dict['general_loss'] = losses[0]
 
     sess = tf.Session()
     fetch = gen_fetch(sess, **options)
@@ -180,8 +181,8 @@ def reparam_train(arrow: Arrow,
     fetch['output_tensors'] = tensors['output']
     fetch['loss'] = loss_dict
 
-    if inn(options, 'save', 'sfx', 'params_file', 'load'):
-        ops = prep_save(sess, *getn(options, 'save', 'sfx', 'params_file', 'load'))
+    if inn(options, 'save', 'dirname', 'params_file', 'load'):
+        ops = prep_save(sess, *getn(options, 'save', 'dirname', 'params_file', 'load'))
         options.update(ops)
 
     train_loop(sess,

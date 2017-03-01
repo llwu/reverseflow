@@ -11,6 +11,7 @@ from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
 from reverseflow.train.supervised import supervised_train
 from reverseflow.train.callbacks import save_callback, save_options, save_every_n, save_everything_last
 from reverseflow.invert import invert
+from analysis import best_hyperparameters
 
 import tensortemplates.res_net as res_net
 import tensortemplates.conv_res_net as conv_res_net
@@ -264,7 +265,12 @@ def pi_reparam_benchmarks(model_name, options=None):
     options.update(handle_options(model_name, sys.argv[1:]))
     options['error'] = ['inv_fwd_error'] # , 'inv_fwd_error', 'error', 'sub_arrow_error']
     prefix = rand_string(5)
-    pi_reparam(options)
+    options['learning_rate'] = np.linspace(0.00001, 0.1, 30)
+    options['lambda'] = np.linspace(1, 10, 30)
+    # pi_reparam(options)
+    test_everything(pi_reparam, options, ['learning_rate', 'lambda'], prefix=prefix, nrepeats=1)
+    learning_rate, lmbda = best_hyperparameters(prefix, ['learning_rate', 'lambda'], options['num_iterations'])
+    print(learning_rate, lmbda)
 
 
 def pi_benchmarks(model_name, options=None):

@@ -3,6 +3,7 @@ from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.invert import invert
 from reverseflow.train.loss import inv_fwd_loss_arrow
 from arrows.apply.apply import apply
+from reverseflow.train.callbacks import pickle_it
 
 import pickle
 import os
@@ -15,6 +16,8 @@ import numpy as np
 
 plt.ion()
 
+path = "/Users/minasyan03/Documents/urop/rf_data/rf/"
+
 def get_dirs(prefix):
     return glob.glob("%s*" % prefix)
 
@@ -26,6 +29,38 @@ def get_data(dirs, data_fname="last_it_4999_fetch.pickle"):
         data.append(pickle.load(data_file))
         data_file.close()
     return data
+
+def best_hyperparameters(prefix, names, num_iterations):
+    prefix = path+prefix
+    dirs = get_dirs(prefix)
+    data = get_data(dirs, data_fname="last_it_"+str(num_iterations-1)+"_fetch.pickle")
+    options = get_data(dirs, data_fname="options.pickle")
+    min_loss = None
+    min_hyper = []
+    ddata = {}
+
+    save_dir = os.path.join(options[0]['save_dir'], 'hyper_data.pickle')
+
+    for i in range(len(data)):
+        hyperparameters = [options[i][name] for name in names]
+        print("Ran with...")
+        to_print = [names[j]+": "+str(hyperparameters[j]) for j in range(len(names))]
+        print(to_print)
+        training_loss = data[i]['loss']
+        test_loss = data[i]['test_fetch_res']['loss']
+        print("Training loss is: ")
+        print(training_loss)
+        print("Test loss is: ")
+        print(test_loss)
+        if min_loss == None or test_loss['general_loss'] < min_loss:
+            ddata['test_loss'] = test_loss
+            ddata['training_loss'] = training_loss
+            ddata['hyperparameters'] = hyperparameters
+            ddata['to_print'] = to_print
+            min_loss = test_loss['general_loss']
+            min_hyper = to_print
+    pickle_it(ddata, save_dir)
+    return tuple(min_hyper)
 
 def get_mean(data, n_data):
     mean_data = []

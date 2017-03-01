@@ -63,4 +63,4 @@ def eliminate_gathernd(arrow: CompositeArrow):
             free_source = SourceArrow(free)
             arrow.add_edge(free_source.out_port(0), filter_param_arrow.in_port(1))
             arrow.add_edge(filter_param_arrow.out_port(0), slim_param_arrow.in_port(1))
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
