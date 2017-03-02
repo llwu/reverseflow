@@ -271,7 +271,7 @@ def inv_gathernd_elim(arrow: GatherNdArrow, port_attr: PortAttributes) -> Tuple[
     make_out_port(out_port)
     set_port_shape(out_port, port_attr[arrow.in_port(0)]['shape'])
     set_port_value(inv_arrow.in_port(2), port_attr[arrow.in_port(1)]['value'])
-    # there should be an error term here if doing it this way
+    # there should maybe be an error term here if doing it this way (though current elim is exact)
     inv_arrow.add_edge(inv_arrow.in_port(1), out_port)
     return inv_arrow, {0: 3, 1: 2, 2: 0}
 
@@ -319,37 +319,26 @@ def inv_broadcast(arrow: BroadcastArrow, port_attr: PortAttributes) -> Tuple[Arr
     if ports_has(arrow.ports(), 'shape', port_attr):
         in_shape = port_attr[arrow.in_ports()[0]]['shape']
         out_shape = port_attr[arrow.out_ports()[0]]['shape']
-        # if in_shape == out_shape:
-        #     return inv_arrow, port_map
-        #
-        # assert len(in_shape) == len(out_shape)
-        # size = []
-        # for idx in range(len(in_shape)):
-        #     o = out_shape[idx]
-        #     i = in_shape[idx]
-        #     if i == 1:
-        #         size.append(1)
-        #     else:
-        #         size.append(-1)
-        #
-        start = np.zeros(len(out_shape), dtype=np.int32)
-        size = np.concatenate((np.ones(len(out_shape) - len(in_shape)), np.array(in_shape))).astype(np.int32)
-        source_start = SourceArrow(start)
-        source_size = SourceArrow(size)
-        slicer = SliceArrow()
-        source = SourceArrow(np.array(in_shape, dtype=np.int32))
-        reshape = ReshapeArrow()
-        edges = Bimap()
-        edges.add(source_start.out_ports()[0], slicer.in_ports()[1])
-        edges.add(source_size.out_ports()[0], slicer.in_ports()[2])
-        edges.add(slicer.out_ports()[0], reshape.in_ports()[0])
-        edges.add(source.out_ports()[0], reshape.in_ports()[1])
-        in_ports = [slicer.in_ports()[0]]
-        out_ports = reshape.out_ports()
-        inv_arrow = CompositeArrow(in_ports=in_ports,
-                            out_ports=out_ports,
-                            edges=edges,
-                            name="InvBroadcast")
+        if len(in_shape) < len(out_shape):
+            inv_arrow = InvBroadcastArrow(in_shape, out_shape)
+        # start = np.zeros(len(out_shape), dtype=np.int32)
+        # size = np.concatenate((np.ones(len(out_shape) - len(in_shape)), np.array(in_shape))).astype(np.int32)
+        # source_start = SourceArrow(start)
+        # source_size = SourceArrow(size)
+        # slicer = SliceArrow()
+        # source = SourceArrow(np.array(in_shape, dtype=np.int32))
+        # reshape = ReshapeArrow()
+        # edges = Bimap()
+        # edges.add(source_start.out_ports()[0], slicer.in_ports()[1])
+        # edges.add(source_size.out_ports()[0], slicer.in_ports()[2])
+        # edges.add(slicer.out_ports()[0], reshape.in_ports()[0])
+        # edges.add(source.out_ports()[0], reshape.in_ports()[1])
+        # in_ports = [slicer.in_ports()[0]]
+        # out_ports = reshape.out_ports()
+        # inv_arrow = CompositeArrow(in_ports=in_ports,
+        #                     out_ports=out_ports,
+        #                     edges=edges,
+        #                     name="InvBroadcast")
 
     return inv_arrow, port_map
 

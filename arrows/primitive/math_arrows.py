@@ -1,10 +1,12 @@
+from typing import Dict, List, MutableMapping, Set, Sequence
+
+import numpy as np
+from sympy import Expr, Rel, Gt, Ne
+
 from arrows.primitivearrow import PrimitiveArrow
 import arrows.compositearrow as compositearrows
 import arrows.primitive.control_flow as cfarrows
 from reverseflow.util.mapping import Bimap
-from typing import Dict, List, MutableMapping, Set, Sequence
-from sympy import Expr, Rel, Gt, Ne
-import math
 from arrows.port_attributes import (PortAttributes, port_has, ports_has,
     extract_attribute, any_port_has)
 from arrows.port import Port
@@ -265,7 +267,7 @@ def pow_dispatch2(arr: "PowArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
     i = arr.in_ports()
     o = arr.out_ports()
-    return {i[1] : {'value': math.log(ptv[i[0]], ptv[o[0]])}}
+    return {i[1] : {'value': np.log(ptv[i[0]])/np.log(ptv[o[0]])}}
 
 def pow_pred3(arr: "PowArrow", port_attr: PortAttributes):
     ports = [arr.in_ports()[1], arr.out_ports()[0]]
@@ -321,12 +323,37 @@ class ExpArrow(PrimitiveArrow):
         return disp
 
 
+def log_bwd_pred(arr: "LogArrow", port_attr: PortAttributes):
+    return ports_has(arr.out_ports(), 'value', port_attr)
+
+def log_bwd_disp(arr: "LogArrow", port_attr: PortAttributes):
+    ptv = extract_attribute('value', port_attr)
+    out_val = port_attr(arr.out_port(0))['value']
+    return {arr.in_port(0) : {'value': np.exp(out_val)}}
+
+def log_fwd_pred(arr: "LogArrow", port_attr: PortAttributes):
+    return ports_has(arr.in_ports(), 'value', port_attr)
+
+def log_fwd_disp(arr: "LogArrow", port_attr: PortAttributes):
+    ptv = extract_attribute('value', port_attr)
+    in_val = port_attr(arr.in_port(0))['value']
+    return {arr.out_port(0) : {'value': np.log(in_val)}}
+
 class LogArrow(PrimitiveArrow):
     """Log_e(x)"""
 
     def __init__(self):
         name = 'Log'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({
+            shape_pred: shape_dispatch,
+            log_bwd_pred: log_bwd_disp,
+            log_fwd_pred: log_fwd_disp
+            })
+        return disp
 
 class LogBaseArrow(PrimitiveArrow):
     """Log_y(x)"""
@@ -343,6 +370,21 @@ class LogBaseArrow(PrimitiveArrow):
             constraints.append(Gt(input_expr[1], 0))
         return constraints
 
+def neg_bwd_pred(arr: "NegArrow", port_attr: PortAttributes):
+    return ports_has(arr.out_ports(), 'value', port_attr)
+
+def neg_bwd_disp(arr: "NegArrow", port_attr: PortAttributes):
+    ptv = extract_attribute('value', port_attr)
+    out_val = port_attr(arr.out_port(0))['value']
+    return {arr.in_port(0) : {'value': -out_val}}
+
+def neg_fwd_pred(arr: "NegArrow", port_attr: PortAttributes):
+    return ports_has(arr.in_ports(), 'value', port_attr)
+
+def neg_fwd_disp(arr: "NegArrow", port_attr: PortAttributes):
+    ptv = extract_attribute('value', port_attr)
+    in_val = port_attr(arr.in_port(0))['value']
+    return {arr.out_port(0) : {'value': -in_val}}
 
 class NegArrow(PrimitiveArrow):
     """Negation"""
@@ -354,7 +396,9 @@ class NegArrow(PrimitiveArrow):
     def get_dispatches(self):
         disp = super().get_dispatches()
         disp.update({
-            shape_pred: shape_dispatch
+            shape_pred: shape_dispatch,
+            neg_bwd_pred: neg_bwd_disp,
+            neg_fwd_pred: neg_fwd_disp
             })
         return disp
 

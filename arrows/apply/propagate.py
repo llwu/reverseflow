@@ -27,11 +27,10 @@ import numpy as np
 DONT_PROP = set(['InOut', 'parametric', 'error'])
 
 def is_equal(x, y):
-    a = (x == y)
-    if isinstance(a, np.ndarray):
-        return a.all()
+    if isinstance(x, np.ndarray) or isinstance(x, int) or isinstance(x, float):
+        return np.mean(np.abs(x - y)) < 1e-6
     else:
-        return a
+        return x == y
 
 def update_port_attr(to_update: PortAttributes,
                      with_p: PortAttributes,
@@ -40,7 +39,7 @@ def update_port_attr(to_update: PortAttributes,
     for key, value in with_p.items():
         if key not in dont_update:
             if key in to_update and fail_on_conflict:
-                assert is_equal(value, to_update[key]), "conflict %s, %s" % (value, to_update[key])
+                assert is_equal(value, to_update[key]), "conflicting '%s': %s, %s" % (key, value, to_update[key])
             to_update[key] = value
 
 def equiv_neigh(port: Port, context):

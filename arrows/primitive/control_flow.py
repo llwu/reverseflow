@@ -1,7 +1,10 @@
 """These are arrows for control flow of input"""
-from arrows.primitivearrow import PrimitiveArrow
 from typing import List, MutableMapping, Set, Dict
+
+import numpy as np
 from sympy import Expr, Eq, Rel
+
+from arrows.primitivearrow import PrimitiveArrow
 from arrows.apply.shapes import *
 from arrows.apply.constants import constant_pred, constant_dispatch, CONST
 
@@ -170,6 +173,29 @@ class GreaterArrow(PrimitiveArrow):
             constraints.append(Ge(input_expr[1], input_expr[0]))
         return constraints
 
+
+def broadcast_bwd_pred(arr: "BroadcastArrow", port_attr: PortAttributes):
+    return ports_has(arr.in_ports(), 'shape', port_attr) and ports_has(arr.out_ports(), 'value', port_attr)
+
+def broadcast_bwd_disp(arr: "BroadcastArrow", port_attr: PortAttributes):
+    out_val = port_attr[arr.out_port(0)]['value']
+    in_shape = port_attr[arr.in_port(0)]['shape']
+    out_shape = constant_to_shape(out_val)
+    if len(out_shape) <= len(in_shape):
+        return {arr.in_port(0): {'value': out_val}}
+    else:
+        ext_shape = out_shape[:len(out_shape) - len(in_shape)]
+        idx = tuple(0 for i in ext_shape)
+        return {arr.in_port(0): {'value': out_val[idx]}}
+
+def broadcast_fwd_pred(arr: "BroadcastArrow", port_attr: PortAttributes):
+    return ports_has(arr.out_ports(), 'shape', port_attr) and ports_has(arr.in_ports(), 'value', port_attr)
+
+def broadcast_fwd_disp(arr: "BroadcastArrow", port_attr: PortAttributes):
+    in_val = port_attr[arr.in_port(0)]['value']
+    out_shape = port_attr[arr.out_port(0)]['shape']
+    return {arr.out_port(0): {'value': np.broadcast_to(in_val, out_shape)}}
+
 ## FIXME Add assertion to test that shapes are broadcast compatibl
 class BroadcastArrow(PrimitiveArrow):
     """
@@ -179,3 +205,29 @@ class BroadcastArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Broadcast'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({
+            broadcast_bwd_pred: broadcast_bwd_disp,
+            broadcast_fwd_pred: broadcast_fwd_disp
+            })
+        return disp
+
+## FIXME Add assertion to test that shapes are broadcast compatibl
+class InvBroadcastArrow(PrimitiveArrow):
+    """
+    Broadcast an op
+    """
+
+    def __init__(self, in_shape, out_shape):
+        name = 'InvBroadcast'
+        self.ext_shape = out_shape[:len(out_shape) - len(in_shape)]
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+    # def get_dispatches(self):
+    #     disp = super().get_dispatches()
+    #     disp.update({
+    #         broadcast_bwd_pred: broadcast_bwd_disp,
+    #         })
+    #     return disp
