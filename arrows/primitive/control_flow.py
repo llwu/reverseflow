@@ -34,35 +34,35 @@ def dupl_disp(arr: "DuplArrow", port_attr: PortAttributes):
             break
     return {port: {'value': known_value} for port in arr.ports()}
 
-def closure_pred(arr: "DuplArrow", port_attr: PortAttributes):
-    return hasattr(arr, 'topo_order')
+# def closure_pred(arr: "DuplArrow", port_attr: PortAttributes):
+#     return hasattr(arr, 'topo_order')
 
-def closure_disp(arr: "DuplArrow", port_attr: PortAttributes):
-    if arr.parent is None:
-        return {}
-    o = arr.out_ports()
-    n = 0
-    const_dict = {}
-    neighs_dict = {}
-    neigh_list = []
-    for out_port in o:
-        neighs_dict[out_port] = len(out_port.arrow.parent.neigh_ports(out_port))
-        for neigh in out_port.arrow.parent.neigh_ports(out_port):
-            neigh_list.append((neigh.arrow, neigh.arrow.get_topo_order(), out_port))
-    print(neighs_dict)
-    print(neigh_list)
-    for arrow, _, out_port in sorted(neigh_list, key=lambda x:x[1]):
-        if arrow.__class__.__name__ not in closure_available:
-            break
-        else:
-            neighs_dict[out_port] -= 1
-            if neighs_dict[out_port] == 0:
-                const_dict[out_port] = {'constant': CONST}
-                n += 1
-                if n >= len(o) - 1:
-                    break
-    print(const_dict)
-    return const_dict
+# def closure_disp(arr: "DuplArrow", port_attr: PortAttributes):
+#     if arr.parent is None:
+#         return {}
+#     o = arr.out_ports()
+#     n = 0
+#     const_dict = {}
+#     neighs_dict = {}
+#     neigh_list = []
+#     for out_port in o:
+#         neighs_dict[out_port] = len(out_port.arrow.parent.neigh_ports(out_port))
+#         for neigh in out_port.arrow.parent.neigh_ports(out_port):
+#             neigh_list.append((neigh.arrow, neigh.arrow.get_topo_order(), out_port))
+#     print(neighs_dict)
+#     print(neigh_list)
+#     for arrow, _, out_port in sorted(neigh_list, key=lambda x:x[1]):
+#         if arrow.__class__.__name__ not in closure_available:
+#             break
+#         else:
+#             neighs_dict[out_port] -= 1
+#             if neighs_dict[out_port] == 0:
+#                 const_dict[out_port] = {'constant': CONST}
+#                 n += 1
+#                 if n >= len(o) - 1:
+#                     break
+#     print(const_dict)
+#     return const_dict
 
 
 class DuplArrow(PrimitiveArrow):
@@ -87,7 +87,7 @@ class DuplArrow(PrimitiveArrow):
         disp.update({
             shape_pred: shape_dispatch,
             dupl_pred: dupl_disp,
-            closure_pred: closure_disp
+            # closure_pred: closure_disp
             })
         return disp
 
