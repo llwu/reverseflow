@@ -142,7 +142,7 @@ def mul_dispatch1(arr: "MulArrow", port_attr: PortAttributes):
 
 def mul_pred2(arr: "MulArrow", port_attr: PortAttributes):
     ports = [arr.in_ports()[0], arr.out_ports()[0]]
-    return ports_has(ports, 'value', port_attr)
+    return ports_has(ports, 'value', port_attr) and np.all(port_attr[ports[0]]['value'])
 
 def mul_dispatch2(arr: "MulArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
@@ -152,7 +152,8 @@ def mul_dispatch2(arr: "MulArrow", port_attr: PortAttributes):
 
 def mul_pred3(arr: "MulArrow", port_attr: PortAttributes):
     ports = [arr.in_ports()[1], arr.out_ports()[0]]
-    return ports_has(ports, 'value', port_attr)
+    # TODO: think harder about the zeros case
+    return ports_has(ports, 'value', port_attr) and np.all(port_attr[ports[0]]['value'])
 
 def mul_dispatch3(arr: "MulArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
@@ -328,7 +329,7 @@ def log_bwd_pred(arr: "LogArrow", port_attr: PortAttributes):
 
 def log_bwd_disp(arr: "LogArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    out_val = port_attr(arr.out_port(0))['value']
+    out_val = port_attr[arr.out_port(0)]['value']
     return {arr.in_port(0) : {'value': np.exp(out_val)}}
 
 def log_fwd_pred(arr: "LogArrow", port_attr: PortAttributes):
@@ -336,7 +337,7 @@ def log_fwd_pred(arr: "LogArrow", port_attr: PortAttributes):
 
 def log_fwd_disp(arr: "LogArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    in_val = port_attr(arr.in_port(0))['value']
+    in_val = port_attr[arr.in_port(0)]['value']
     return {arr.out_port(0) : {'value': np.log(in_val)}}
 
 class LogArrow(PrimitiveArrow):
@@ -375,7 +376,7 @@ def neg_bwd_pred(arr: "NegArrow", port_attr: PortAttributes):
 
 def neg_bwd_disp(arr: "NegArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    out_val = port_attr(arr.out_port(0))['value']
+    out_val = port_attr[arr.out_port(0)]['value']
     return {arr.in_port(0) : {'value': -out_val}}
 
 def neg_fwd_pred(arr: "NegArrow", port_attr: PortAttributes):
@@ -383,7 +384,7 @@ def neg_fwd_pred(arr: "NegArrow", port_attr: PortAttributes):
 
 def neg_fwd_disp(arr: "NegArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
-    in_val = port_attr(arr.in_port(0))['value']
+    in_val = port_attr[arr.in_port(0)]['value']
     return {arr.out_port(0) : {'value': -in_val}}
 
 class NegArrow(PrimitiveArrow):

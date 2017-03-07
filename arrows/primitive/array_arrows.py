@@ -203,12 +203,12 @@ def snd_pred2(arr: "ScatterNdArrow", port_attr: PortAttributes):
 
 
 def snd_disp2(arr: "ScatterNdArrow", port_attr: PortAttributes):
-    inds = tf.constant(port_attr[arr.in_ports()[0]]['value'])
-    output_shape = tf.constant(port_attr[arr.in_ports()[2]]['value'])
-    vals = tf.constant(port_attr[arr.in_ports()[1]]['value'])
+    inds = tf.constant(port_attr[arr.in_port(0)]['value'])
+    vals = tf.constant(port_attr[arr.in_port(1)]['value'])
+    output_shape = tf.constant(port_attr[arr.in_port(2)]['value'])
     scatter = tf.scatter_nd(inds, vals, output_shape)
     with tf.Session() as sess:
-        return {arr.out_ports()[0]: sess.run(scatter)}
+        return {arr.out_port(0): {'value': sess.run(scatter)}}
 
 
 def snd_pred3(arr: "ScatterNdArrow", port_attr: PortAttributes):
@@ -248,7 +248,7 @@ def snd_disp6(arr: "ScatterNdArrow", port_attr: PortAttributes):
     output = tf.constant(port_attr[arr.out_port(0)]['value'])
     gather_nd = tf.gather_nd(output, inds)
     with tf.Session() as sess:
-        return {arr.in_ports()[1]: sess.run(gather_nd)}
+        return {arr.in_ports()[1]: {'value': sess.run(gather_nd)}}
 
 def snd_symbt_pred(arr: "ScatterNdArrow", port_attr: PortAttributes):
     # sparse_indices: value

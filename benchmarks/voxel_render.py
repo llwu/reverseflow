@@ -229,7 +229,7 @@ def render_fwd_f(inputs):
     width = options['width'] = 128
     height = options['height'] = 128
     res = options['res'] = 32
-    nsteps = options['nsteps'] = 5
+    nsteps = options['nsteps'] = 2
     nviews = options['nviews'] = 1
     rotation_matrices = rand_rotation_matrices(nviews)
     out_img = gen_img(voxels, rotation_matrices, width, height, nsteps, res)
