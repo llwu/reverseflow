@@ -218,31 +218,31 @@ class CompositeArrow(Arrow):
         return new_arrow
 
 
-    def toposort(self):
-        if self.parent is None:
-            self.topo_order = 0
-        topo = pqdict()
-        i = 0
-        for sub_arrow in self.get_sub_arrows():
-            if isinstance(sub_arrow, CompositeArrow):
-                sub_arrow.toposort()
-            topo[sub_arrow] = sub_arrow.num_in_ports()
-        for out_port in self.in_ports():
-            neigh_in_ports = self.neigh_in_ports(out_port)
-            for neigh in neigh_in_ports:
-                if neigh.arrow in topo:
-                    topo[neigh.arrow] = topo[neigh.arrow] - 1
-        while len(topo) > 0:
-            sub_arrow, priority = topo.popitem()
-            if sub_arrow is not self:
-                assert priority == 0, "Must resolve all inputs to sub_arrow first"
-                sub_arrow.topo_order = i
-                i += 1
-                for out_port in sub_arrow.out_ports():
-                    neigh_in_ports = self.neigh_in_ports(out_port)
-                    for neigh in neigh_in_ports:
-                        if neigh.arrow in topo:
-                            topo[neigh.arrow] = topo[neigh.arrow] - 1
+    # def toposort(self):
+    #     if self.parent is None:
+    #         self.topo_order = 0
+    #     topo = pqdict()
+    #     i = 0
+    #     for sub_arrow in self.get_sub_arrows():
+    #         if isinstance(sub_arrow, CompositeArrow):
+    #             sub_arrow.toposort()
+    #         topo[sub_arrow] = sub_arrow.num_in_ports()
+    #     for out_port in self.in_ports():
+    #         neigh_in_ports = self.neigh_in_ports(out_port)
+    #         for neigh in neigh_in_ports:
+    #             if neigh.arrow in topo:
+    #                 topo[neigh.arrow] = topo[neigh.arrow] - 1
+    #     while len(topo) > 0:
+    #         sub_arrow, priority = topo.popitem()
+    #         if sub_arrow is not self:
+    #             assert priority == 0, "Must resolve all inputs to sub_arrow first"
+    #             sub_arrow.topo_order = i
+    #             i += 1
+    #             for out_port in sub_arrow.out_ports():
+    #                 neigh_in_ports = self.neigh_in_ports(out_port)
+    #                 for neigh in neigh_in_ports:
+    #                     if neigh.arrow in topo:
+    #                         topo[neigh.arrow] = topo[neigh.arrow] - 1
 
 
     def __init__(self,

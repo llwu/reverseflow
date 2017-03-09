@@ -2,6 +2,7 @@
 
 import arrows.port_attributes as pa
 import arrows.apply.constants as co
+import arrows.apply.shapes as shp
 
 class Arrow:
     """Abstract arrow class"""
@@ -96,7 +97,8 @@ class Arrow:
         return None
 
     def get_dispatches(self):
-        return {co.constant_pred: co.constant_dispatch}
+        return {co.constant_pred: co.constant_dispatch,
+                shp.val_to_shape_pred: shp.val_to_shape_dispatch}
 
     def get_topo_order(self):
         if self.parent is None:

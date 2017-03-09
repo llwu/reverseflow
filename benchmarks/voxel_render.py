@@ -8,11 +8,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
-from arrows.apply.apply import apply
+from arrows.apply.apply import apply, apply_backwards
 from arrows.apply.propagate import propagate
 from arrows.config import floatX
 from arrows.transform.eliminate_gather import eliminate_gathernd
 from arrows.util.misc import getn
+from arrows.util.viz import show_tensorboard, show_tensorboard_graph
 from benchmarks.common import handle_options, gen_sfx_key
 from metrics.generalization import test_generalization
 from reverseflow.invert import invert
@@ -228,7 +229,7 @@ def render_fwd_f(inputs):
     width = options['width'] = 128
     height = options['height'] = 128
     res = options['res'] = 32
-    nsteps = options['nsteps'] = 5
+    nsteps = options['nsteps'] = 2
     nviews = options['nviews'] = 1
     rotation_matrices = rand_rotation_matrices(nviews)
     out_img = gen_img(voxels, rotation_matrices, width, height, nsteps, res)
@@ -265,11 +266,14 @@ def inv_viz_allones(batch_size):
     rand_voxel_id = np.random.randint(0, voxel_grids.shape[0], size=batch_size)
     input_data = [voxel_grids[rand_voxel_id].reshape(shape) for shape in shapes]
     outputs = apply(arrow, input_data)
+    outputs_bwd = apply_backwards(inv, input_data)
+    pdb.set_trace()
     info = propagate(inv)
     shapes = [info[i]['shape'] for i in inv.in_ports()[1:]]
     theta = [np.zeros(shape) if shape[-1] >= 32768 else np.ones(shape) for shape in shapes]
     recons = apply(inv, outputs + theta)[0]
     recons_fwd = apply(arrow, [recons])
+    pdb.set_trace()
     for i in range(batch_size):
         img_A = outputs[0][i].reshape(128, 128)
         padding = np.zeros((128, 16))

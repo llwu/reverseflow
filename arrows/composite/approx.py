@@ -1,10 +1,33 @@
+import numpy as np
+
 from arrows.primitive.math_arrows import SubArrow, MaxArrow, ClipArrow, PowArrow
 from arrows.composite.math_arrows import MeanArrow, VarFromMeanArrow, TriangleWaveArrow, ScalarVarFromMeanArrow
 from arrows.compositearrow import CompositeArrow
 from arrows.primitive.control_flow import DuplArrow, IfArrow, GreaterArrow, BroadcastArrow
 from reverseflow.util.mapping import Bimap
 from arrows.sourcearrow import SourceArrow
-from arrows.port_attributes import make_error_port, make_in_port, make_out_port
+from arrows.port_attributes import make_error_port, make_in_port, make_out_port, PortAttributes, ports_has
+
+def exact_pred(arr: "ApproxIdentityArrow", port_attr: PortAttributes):
+    err = arr.out_port(-1)
+    if err not in port_attr:
+        return False
+    if 'value' not in port_attr[err]:
+        return False
+    if abs(np.mean(port_attr[err]['value'])) > 1e-6:
+        return False
+    for port in arr.out_ports()[:-1]:
+        if port in port_attr and 'value' in port_attr[port]:
+            return True
+    return False
+
+def exact_disp(arr: "DuplArrow", port_attr: PortAttributes):
+    known_value = None
+    for port in arr.out_ports()[:-1]:
+        if port in port_attr and 'value' in port_attr[port]:
+            known_value = port_attr[port]['value']
+            break
+    return {port: {'value': known_value} for port in arr.ports()[:-1]}
 
 
 class ApproxIdentityArrow(CompositeArrow):
@@ -36,6 +59,13 @@ class ApproxIdentityArrow(CompositeArrow):
                          out_ports=out_ports,
                          name=name)
         make_error_port(self.out_ports()[-1])
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({
+            exact_pred: exact_disp
+            })
+        return disp
 
 
 class ApproxIdentityNoErrorArrow(CompositeArrow):
@@ -158,6 +188,21 @@ class SmoothIntervalBound(CompositeArrow):
         comp_arrow.add_edge(if2.out_ports()[0], out_port)
         assert comp_arrow.is_wired_correctly()
 
+def ibi_bwd_pred(arr: "IntervalBoundIdentity", port_attr: PortAttributes):
+    return ports_has(arr.out_ports(), 'value', port_attr)
+
+def ibi_bwd_disp(arr: "IntervalBoundIdentity", port_attr: PortAttributes):
+    out_val = port_attr[arr.out_port(0)]['value']
+    err = port_attr[arr.out_port(1)]['value']
+    inp = arr.in_port(0)
+    if np.mean(err) < 1e-6:
+        return {inp: {'value': out_val}}
+    if np.array_equal(arr.u, out_val):
+        return {inp: {'value': arr.u + err}}
+    if np.array_equal(arr.l, out_val):
+        return {inp: {'value': arr.l - err}}
+    return {}
+
 class IntervalBoundIdentity(CompositeArrow):
     """
     Identity on input but returns error for those outside bounds
@@ -177,6 +222,8 @@ class IntervalBoundIdentity(CompositeArrow):
 
         l_src_nb = SourceArrow(l)
         u_src_nb = SourceArrow(u)
+        self.l = l
+        self.u = u
         l_src = BroadcastArrow()
         u_src = BroadcastArrow()
         comp_arrow.add_edge(l_src_nb.out_port(0), l_src.in_port(0))
@@ -192,3 +239,10 @@ class IntervalBoundIdentity(CompositeArrow):
         comp_arrow.add_edge(in_port, interval_bound.in_ports()[0])
         comp_arrow.add_edge(interval_bound.out_ports()[0], error_port)
         assert comp_arrow.is_wired_correctly()
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({
+            ibi_bwd_pred: ibi_bwd_disp
+            })
+        return disp

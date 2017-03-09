@@ -19,6 +19,8 @@ def eliminate_gathernd(arrow: CompositeArrow):
         slim_param_arrow = AddArrow()
         constraints = None
         free = None
+        shape = None
+        shape_source = None
         for p in dupl.in_ports():
             inv = arrow.neigh_ports(p)[0].arrow
             if inv.name == 'InvGatherNd':
@@ -27,8 +29,11 @@ def eliminate_gathernd(arrow: CompositeArrow):
                 arrow.add_edge(slim_param_arrow.out_port(0), theta)
 
                 indices_val = get_port_value(indices)
-                shape = np.array(get_port_shape(inv.out_port(0)))
-                shape_source = SourceArrow(shape)
+                if shape is not None:
+                    assert np.array_equal(shape, np.array(get_port_shape(inv.out_port(0))))
+                else:
+                    shape = np.array(get_port_shape(inv.out_port(0)))
+                    shape_source = SourceArrow(shape)
 
                 out = arrow.neigh_ports(out)[0]
                 indices = arrow.neigh_ports(indices)[0]
@@ -57,10 +62,16 @@ def eliminate_gathernd(arrow: CompositeArrow):
         if constraints is not None:
             # put in knowns
             arrow.add_edge(constraints.out_port(0), slim_param_arrow.in_port(0))
-            # zero out params which would conflict with knowns
-            filter_param_arrow = MulArrow()
-            make_param_port(filter_param_arrow.in_port(0))
-            free_source = SourceArrow(free)
-            arrow.add_edge(free_source.out_port(0), filter_param_arrow.in_port(1))
-            arrow.add_edge(filter_param_arrow.out_port(0), slim_param_arrow.in_port(1))
+            scatter_param_arrow = ScatterNdArrow()
+            arrow.add_edge(scatter_param_arrow.out_port(0), slim_param_arrow.in_port(1))
+            make_param_port(scatter_param_arrow.in_port(1))
+            arrow.add_edge(shape_source.out_port(0), scatter_param_arrow.in_port(2))
+            inds = np.transpose(np.nonzero(free))
+            if (free == free[0]).all():
+                print("Assuming batched input")
+                inds = np.array(np.split(inds, shape[0]))
+            else:
+                print("WARNING: Unbatched input, haven't designed for this case")
+            inds_source = SourceArrow(inds)
+            arrow.add_edge(inds_source.out_port(0), scatter_param_arrow.in_port(0))
         # import pdb; pdb.set_trace()
