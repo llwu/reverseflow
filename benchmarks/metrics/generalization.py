@@ -1,5 +1,6 @@
 """Test generalization"""
 import numpy as np
+import subprocess
 from typing import Sequence
 from arrows.util.misc import dict_prod, extract
 import time
@@ -27,6 +28,25 @@ def test_generalization(run_me, options=None):
         options['batch_size'] = batch_size
         run_me(options)
 
+def string_dict(d):
+    new_d = {}
+    for key, value in d.items():
+        if isinstance(value, (list, tuple, np.ndarray)):
+            new_val = []
+            for val in value:
+                str_val = str(val)
+                if str_val[:9] == '<function':
+                    new_val.append(str_val.split(' ')[1])
+                else:
+                    new_val.append(str_val)
+            new_d[key] = new_val
+        else:
+            val_string = str(value)
+            if val_string[:9] == '<function':
+                val_string = val_string.split(' ')[1]
+            new_d[key] = val_string
+    return str(new_d)
+
 def test_everything(run_me, options, var_option_keys, prefix='', nrepeats=1):
     """Train parametric inverse and vanilla neural network with different
     amounts of data and see the test_error
@@ -48,4 +68,7 @@ def test_everything(run_me, options, var_option_keys, prefix='', nrepeats=1):
             dirname = "%s_%s_%s_%s" % (prefix, str(the_time), i, j)
             _options['dirname'] = dirname
             _options.update(prod)
+            if options['script']:
+                command = 'sbatch -gres=gpu:1 -n1 ./runscript.sh ' + str(run_me) + ' ' + string_dict(_options)
+                subprocess.call(command)
             run_me(_options)

@@ -53,7 +53,9 @@ def default_kwargs():
     options['num_iterations'] = (int, 1000)
     options['save'] = (boolify, True)
     options['template'] = (str, 'res_net')
+    options['template_name'] = (str, 'res_net')
     options['train'] = (boolify, True)
+    options['script'] = (boolify, False)
     return options
 
 
@@ -74,6 +76,7 @@ def handle_options(name, argv):
     options.update(template_kwargs)
     options['name'] = (str, name)
     options = handle_args(argv, options)
+    options['template_name'] = options['template']
     options['template'] = template_module[options['template']].template
     return options
 
