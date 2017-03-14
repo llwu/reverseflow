@@ -1,10 +1,15 @@
 """Array Operations"""
+import numpy as np
+import tensorflow as tf
+
+import arrows.compositearrow as compositearrows
 from arrows.primitivearrow import PrimitiveArrow
+from arrows.primitive.math_arrows import AddArrow
 from arrows.port_attributes import ports_has, PortAttributes, extract_attribute
 from arrows.apply.shapes import *
 from arrows.apply.constants import constant_pred, constant_dispatch
-import numpy as np
-import tensorflow as tf
+from reverseflow.util.mapping import Bimap
+from reverseflow.util.misc import complement_bool
 
 
 def const_to_tuple(x):
@@ -364,3 +369,77 @@ class SqueezeArrow(PrimitiveArrow):
     def __init__(self):
         name = 'Squeeze'
         super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+
+def fwd_pred(arr: "SelectArrow", port_attr: PortAttributes):
+    return ports_has(arr.in_ports(), 'value', port_attr)
+
+def fwd_disp(arr: "SelectArrow", port_attr: PortAttributes):
+    ptv = extract_attribute('value', port_attr)
+    i = arr.in_ports()
+    o = arr.out_ports()
+    return {o[0] : {'value': np.where(ptv[i[0]], ptv[i[1]], ptv[i[2]])}}
+
+def bwd_pred(arr: "SelectArrow", port_attr: PortAttributes):
+    return arr.zeros and port_has(arr.out_port(0), 'value', port_attr) and port_has(arr.in_port(0), 'value', port_attr)
+
+def bwd_disp(arr: "SelectArrow", port_attr: PortAttributes):
+    indices = port_attr[arr.in_port(0)]['value']
+    out_val = port_attr[arr.out_port(0)]['value']
+    vals = {}
+    vals[arr.in_port(1)] = {'value': np.where(indices, out_val, 0)}
+    vals[arr.in_port(2)] = {'value': np.where(indices, 0, out_val)}
+    return vals
+
+
+class SelectArrow(PrimitiveArrow):
+    """
+    tf.select
+    """
+    def __init__(self, zeros=False):
+        """zeros is whether the nonselected elements are already zero. For propagation"""
+        name = 'Select'
+        self.zeros = zeros
+        super().__init__(n_in_ports=3, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({
+            fwd_pred: fwd_disp,
+            bwd_pred: bwd_disp
+            })
+        return disp
+
+
+def zeros_pred(arr: "UpdateArrow", port_attr: PortAttributes):
+    return port_has(arr.out_port(0), 'value', port_attr) and port_has(arr.in_port(1), 'value', port_attr) and port_has(arr.in_port(3), 'value', port_attr)
+
+def zeros_disp(arr: "UpdateArrow", port_attr: PortAttributes):
+    inds = port_attr[arr.in_port(1)]['value']
+    shape = port_attr[arr.in_port(3)]['value']
+    bools = complement_bool(inds, shape)
+    output = port_attr[arr.out_port(0)]['value']
+    return {arr.in_ports()[0]: {'value': np.where(bools, output, 0)}}
+
+class UpdateArrow(compositearrows.CompositeArrow):
+    """
+    Not a tensorflow op. Just wraps scatter and exclusive add so we can propagate
+    """
+
+    def __init__(self):
+        name = "Update"
+        edges = Bimap()
+        scatter = ScatterNdArrow()
+        add = AddArrow()
+        edges.add(scatter.out_port(0), add.in_port(1))  # must be such that we are only adding these elements to zeros
+        super().__init__(edges=edges,
+                         in_ports=add.in_ports()[:1]+scatter.in_ports(),
+                         out_ports=add.out_ports(),
+                         name=name)
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({
+            zeros_pred: zeros_disp
+            })
+        return disp

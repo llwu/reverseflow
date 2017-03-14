@@ -26,11 +26,18 @@ import numpy as np
 # Do not propagate port attributes of this kind
 DONT_PROP = set(['InOut', 'parametric', 'error'])
 
-def is_equal(x, y):
+def resolve(x, y, fail_on_conflict=True):
     if isinstance(x, np.ndarray) or isinstance(x, int) or isinstance(x, float):
-        return np.mean(np.abs(x - y)) < 1e-6
+        x = np.where(np.isfinite(x), x, y)
+        y = np.where(np.isfinite(y), y, x)
+        assert not fail_on_conflict or np.mean(np.abs(x - y)) < 1e-6, "conflicting: %s, %s" % (x, y)
     else:
-        return x == y
+        assert not fail_on_conflict or x == y, "conflicting: %s, %s" % (x, y)
+    if isinstance(x, int):
+        x = int(x)
+    if isinstance(x, float):
+        x = float(x)
+    return x
 
 def update_port_attr(to_update: PortAttributes,
                      with_p: PortAttributes,
@@ -38,8 +45,8 @@ def update_port_attr(to_update: PortAttributes,
                      fail_on_conflict=True):
     for key, value in with_p.items():
         if key not in dont_update:
-            if key in to_update and fail_on_conflict:
-                assert is_equal(value, to_update[key]), "conflicting '%s': %s, %s" % (key, value, to_update[key])
+            if key in to_update:
+                value = resolve(value, to_update[key], fail_on_conflict)
             to_update[key] = value
 
 def equiv_neigh(port: Port, context):

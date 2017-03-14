@@ -47,7 +47,6 @@ def add_dispatch3(arr: "AddArrow", port_attr: PortAttributes):
     o = arr.out_ports()
     return {i[0] : {'value': ptv[o[0]] - ptv[i[1]]}}
 
-
 def add_symbt_pred(arr: "AddArrow", port_attr: PortAttributes):
     return any_port_has(arr.in_ports(), 'symbolic_tensor', port_attr)
 

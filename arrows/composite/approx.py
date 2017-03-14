@@ -21,7 +21,7 @@ def exact_pred(arr: "ApproxIdentityArrow", port_attr: PortAttributes):
             return True
     return False
 
-def exact_disp(arr: "DuplArrow", port_attr: PortAttributes):
+def exact_disp(arr: "ApproxIdentityArrow", port_attr: PortAttributes):
     known_value = None
     for port in arr.out_ports()[:-1]:
         if port in port_attr and 'value' in port_attr[port]:

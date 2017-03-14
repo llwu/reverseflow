@@ -210,7 +210,7 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
         else:
             attenuation = tf.gather(voxels, flat_indices)
         print("attenuation step", attenuation.get_shape(), step_sz.shape)
-        left_over = left_over*tf.exp(-attenuation*step_sz.reshape(nmatrices * width * height))
+        left_over = left_over*tf.exp(-attenuation*0.05*step_sz.reshape(nmatrices * width * height))
 
     img = left_over
     img_shape = tf.TensorShape((batch_size, nmatrices, width, height))
