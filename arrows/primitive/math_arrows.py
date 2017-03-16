@@ -197,7 +197,7 @@ class MulArrow(PrimitiveArrow):
 
 
 def div_pred1(arr: "DivArrow", port_attr: PortAttributes):
-    return ports_has(arr.in_ports(), 'value', port_attr)
+    return ports_has(arr.in_ports(), 'value', port_attr) and np.all(port_attr[arr.in_port(1)]['value'])
 
 def div_dispatch1(arr: "DivArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)
@@ -207,7 +207,7 @@ def div_dispatch1(arr: "DivArrow", port_attr: PortAttributes):
 
 def div_pred2(arr: "DivArrow", port_attr: PortAttributes):
     ports = [arr.in_ports()[0], arr.out_ports()[0]]
-    return ports_has(ports, 'value', port_attr)
+    return ports_has(ports, 'value', port_attr) and np.all(port_attr[arr.out_port(0)]['value'])
 
 def div_dispatch2(arr: "DivArrow", port_attr: PortAttributes):
     ptv = extract_attribute('value', port_attr)

@@ -211,7 +211,7 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
         else:
             attenuation = tf.gather(voxels, flat_indices)
         print("attenuation step", attenuation.get_shape(), step_sz.shape)
-        left_over = left_over*tf.exp(-attenuation*0.01*step_sz.reshape(nmatrices * width * height))
+        left_over = left_over*tf.exp(-attenuation*0.015625*step_sz.reshape(nmatrices * width * height))
 
     img = left_over
     img_shape = tf.TensorShape((batch_size, nmatrices, width, height))
@@ -230,7 +230,7 @@ def render_fwd_f(inputs):
     width = options['width'] = 128
     height = options['height'] = 128
     res = options['res'] = 32
-    nsteps = options['nsteps'] = 5
+    nsteps = options['nsteps'] = 12
     nviews = options['nviews'] = 1
     rotation_matrices = rand_rotation_matrices(nviews)
     out_img = gen_img(voxels, rotation_matrices, width, height, nsteps, res)
@@ -271,7 +271,6 @@ def inv_viz_allones(batch_size):
     #shapes = [info[i]['shape'] for i in inv.in_ports()[1:]]
     #theta = [np.zeros(shape) if shape[-1] >= 32768 else np.ones(shape) for shape in shapes]
     output_list = [outputs_bwd[port] if is_param_port(port) else outputs[0] for port in inv.in_ports()]
-    pdb.set_trace()
     # recons = apply(inv, outputs + theta)[0]
     recons = apply(inv, output_list)[0]
     recons_fwd = apply(arrow, [recons])
@@ -349,5 +348,5 @@ if __name__ == "__main__":
     voxels_path = os.path.join(os.environ['DATADIR'],
                                'ModelNet40', 'alltrain32.npy')
     voxel_grids = np.load(voxels_path)
-    # inv_viz_allones(batch_size=8)
-    generalization_bench()
+    inv_viz_allones(batch_size=8)
+    # generalization_bench()
