@@ -16,6 +16,7 @@ import numpy as np
 
 plt.ion()
 
+# FIXME this path
 path = "/Users/minasyan03/Documents/urop/rf_data/rf/"
 
 def get_dirs(prefix):

@@ -6,6 +6,7 @@ from arrows.std_arrows import *
 from arrows.apply.constants import CONST, VAR, is_constant
 from arrows.util.misc import extract
 from reverseflow.inv_primitives.inv_math_arrows import *
+from reverseflow.inv_primitives.inv_array_arrows import *
 from reverseflow.util.mapping import Bimap
 from reverseflow.util.misc import complement, complement_bool
 import numpy as np
@@ -150,8 +151,8 @@ def inv_dupl_approx(arrow: DuplArrow, port_values: PortAttributes) -> Tuple[Arro
 def inv_exp(arrow: ExpArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
     if is_constant(arrow.in_ports()[0], port_attr):
         return deepcopy(arrow), {0: 0, 1: 1}
-    bounds = np.finfo(np.float32)
-    ibi = IntervalBoundIdentity(bounds.eps, bounds.max)
+    # bounds = np.finfo(np.float32)
+    ibi = IntervalBoundIdentity(0.000001, 1000000.0)
     log = LogArrow()
     comp_arrow = CompositeArrow(name="approx_invexp")
     in_port = comp_arrow.add_port()
@@ -233,17 +234,9 @@ def inv_gathernd(arrow: GatherNdArrow, port_attr: PortAttributes) -> Tuple[Arrow
 def inv_gathernd_elim(arrow: GatherNdArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
     if is_constant(arrow.out_ports()[0], port_attr):
         return GatherNdArrow(), {0: 0, 1: 1, 2: 2}
-    inv_arrow = CompositeArrow(name="InvGatherNd")
-    for i in range(3):
-        in_port = inv_arrow.add_port()
-        make_in_port(in_port)
-    make_param_port(inv_arrow.in_port(1))
-    out_port = inv_arrow.add_port()
-    make_out_port(out_port)
-    set_port_shape(out_port, port_attr[arrow.in_port(0)]['shape'])
+    inv_arrow = InvGatherNdArrow()
+    set_port_shape(inv_arrow.out_port(0), port_attr[arrow.in_port(0)]['shape'])
     set_port_value(inv_arrow.in_port(2), port_attr[arrow.in_port(1)]['value'])
-    # there should maybe be an error term here if doing it this way (though current elim is exact)
-    inv_arrow.add_edge(inv_arrow.in_port(1), out_port)
     return inv_arrow, {0: 3, 1: 2, 2: 0}
 
 

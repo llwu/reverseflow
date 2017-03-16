@@ -11,6 +11,7 @@ import tensorflow as tf
 from arrows.apply.apply import apply, apply_backwards
 from arrows.apply.propagate import propagate
 from arrows.config import floatX
+from arrows.port_attributes import is_param_port
 from arrows.transform.eliminate_gather import eliminate_gathernd
 from arrows.util.misc import getn
 from arrows.util.viz import show_tensorboard, show_tensorboard_graph
@@ -210,7 +211,7 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
         else:
             attenuation = tf.gather(voxels, flat_indices)
         print("attenuation step", attenuation.get_shape(), step_sz.shape)
-        left_over = left_over*tf.exp(-attenuation*step_sz.reshape(nmatrices * width * height))
+        left_over = left_over*tf.exp(-attenuation*0.01*step_sz.reshape(nmatrices * width * height))
 
     img = left_over
     img_shape = tf.TensorShape((batch_size, nmatrices, width, height))
@@ -260,18 +261,19 @@ def test_render_graph(batch_size):
 
 def inv_viz_allones(batch_size):
     arrow, inv = test_render_graph(batch_size=batch_size)
-    pdb.set_trace()
     info = propagate(arrow)
     shapes = [info[i]['shape'] for i in arrow.in_ports()]
     rand_voxel_id = np.random.randint(0, voxel_grids.shape[0], size=batch_size)
-    input_data = [voxel_grids[rand_voxel_id].reshape(shape) for shape in shapes]
+    input_data = [voxel_grids[rand_voxel_id].reshape(shape).astype(np.float32) for shape in shapes]
     outputs = apply(arrow, input_data)
     outputs_bwd = apply_backwards(inv, input_data)
-    pdb.set_trace()
     info = propagate(inv)
-    shapes = [info[i]['shape'] for i in inv.in_ports()[1:]]
-    theta = [np.zeros(shape) if shape[-1] >= 32768 else np.ones(shape) for shape in shapes]
-    recons = apply(inv, outputs + theta)[0]
+    #shapes = [info[i]['shape'] for i in inv.in_ports()[1:]]
+    #theta = [np.zeros(shape) if shape[-1] >= 32768 else np.ones(shape) for shape in shapes]
+    output_list = [outputs_bwd[port] if is_param_port(port) else outputs[0] for port in inv.in_ports()]
+    pdb.set_trace()
+    # recons = apply(inv, outputs + theta)[0]
+    recons = apply(inv, output_list)[0]
     recons_fwd = apply(arrow, [recons])
     pdb.set_trace()
     for i in range(batch_size):
@@ -280,6 +282,7 @@ def inv_viz_allones(batch_size):
         img_B = recons_fwd[0][i].reshape(128, 128)
         plot_image = np.concatenate((img_A, padding, img_B), axis=1)
         plt.imshow(plot_image, cmap='gray')
+        plt.ioff()
         plt.show()
 
 
@@ -346,5 +349,5 @@ if __name__ == "__main__":
     voxels_path = os.path.join(os.environ['DATADIR'],
                                'ModelNet40', 'alltrain32.npy')
     voxel_grids = np.load(voxels_path)
-    inv_viz_allones(batch_size=8)
+    # inv_viz_allones(batch_size=8)
     generalization_bench()

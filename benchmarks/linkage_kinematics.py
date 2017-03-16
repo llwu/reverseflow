@@ -15,7 +15,6 @@ from reverseflow.train.reparam import *
 from reverseflow.train.unparam import unparam
 from reverseflow.train.callbacks import save_callback, save_options, save_every_n, save_everything_last
 from reverseflow.train.supervised import supervised_train
-from metrics.generalization import test_generalization, test_everything
 from tensortemplates import res_net
 from common import *
 import sys
