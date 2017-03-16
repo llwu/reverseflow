@@ -96,7 +96,8 @@ def extract_port_attr(comp_arrow, port_attr):
 # remove __eq__ form symbolictensor and run voxel render to sees
 def propagate(comp_arrow: CompositeArrow,
               port_attr: PortAttributes=None,
-              state=None) -> PortAttributes:
+              state=None,
+              already_prop=None) -> PortAttributes:
     """
     Propagate values around a composite arrow to determine knowns from unknowns
     The knowns should be determined by the knowns, otherwise an error throws
@@ -110,6 +111,7 @@ def propagate(comp_arrow: CompositeArrow,
     Returns:
         port->value map for all ports in composite arrow
     """
+    already_prop = set() if already_prop is None else already_prop
     print("Propagating")
     # Copy port_attr to avoid affecting input
     port_attr = {} if port_attr is None else port_attr
@@ -135,14 +137,15 @@ def propagate(comp_arrow: CompositeArrow,
 
         pred_dispatches = sub_arrow.get_dispatches()
         for pred, dispatch in pred_dispatches.items():
-            if pred(sub_arrow, sub_port_attr):
+            if pred(sub_arrow, sub_port_attr) and (sub_arrow, dispatch) not in already_prop:
                 new_sub_port_attr = dispatch(sub_arrow, sub_port_attr)
                 update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
+                already_prop.add((sub_arrow, dispatch))
         if isinstance(sub_arrow, CompositeArrow):
             sub_port_attr = {port: _port_attr[port]
                             for port in sub_arrow.ports()
                             if port in _port_attr}
-            new_sub_port_attr = propagate(sub_arrow, sub_port_attr, state)
+            new_sub_port_attr = propagate(sub_arrow, sub_port_attr, state, already_prop)
             update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
     print("Done Propagating")
     return _port_attr
