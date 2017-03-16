@@ -27,17 +27,24 @@ import numpy as np
 DONT_PROP = set(['InOut', 'parametric', 'error'])
 
 def resolve(x, y, fail_on_conflict=True):
-    if isinstance(x, np.ndarray) or isinstance(x, int) or isinstance(x, float):
-        x = np.where(np.isfinite(x), x, y)
-        y = np.where(np.isfinite(y), y, x)
-        assert not fail_on_conflict or np.mean(np.abs(x - y)) < 1e-6, "conflicting: %s, %s" % (x, y)
+    _x = x
+    _y = y
+    if isinstance(x, np.ndarray) or isinstance(x, int) or isinstance(x, float) or isinstance(x, np.number):
+        _x = np.where(np.isfinite(x), x, y)
+        _y = np.where(np.isfinite(y), y, x)
+        diff = np.abs(_x - _y)
+        diff = np.where(np.isfinite(diff), diff, 0)
+        err = np.mean(diff)
+        # if fail_on_conflict and err >= 1e-6:
+        #     import pdb; pdb.set_trace()
+        assert not fail_on_conflict or err < 1e-6, "conflicting: %s, %s" % (x, y)
     else:
         assert not fail_on_conflict or x == y, "conflicting: %s, %s" % (x, y)
     if isinstance(x, int):
-        x = int(x)
+        _x = int(_x)
     if isinstance(x, float):
-        x = float(x)
-    return x
+        _x = float(_x)
+    return _x
 
 def update_port_attr(to_update: PortAttributes,
                      with_p: PortAttributes,

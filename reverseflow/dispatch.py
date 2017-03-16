@@ -151,8 +151,8 @@ def inv_dupl_approx(arrow: DuplArrow, port_values: PortAttributes) -> Tuple[Arro
 def inv_exp(arrow: ExpArrow, port_attr: PortAttributes) -> Tuple[Arrow, PortMap]:
     if is_constant(arrow.in_ports()[0], port_attr):
         return deepcopy(arrow), {0: 0, 1: 1}
-    bounds = np.finfo(np.float32)
-    ibi = IntervalBoundIdentity(bounds.eps, bounds.max)
+    # bounds = np.finfo(np.float32)
+    ibi = IntervalBoundIdentity(0.000001, 1000000.0)
     log = LogArrow()
     comp_arrow = CompositeArrow(name="approx_invexp")
     in_port = comp_arrow.add_port()
