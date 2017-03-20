@@ -148,7 +148,7 @@ def propagate(comp_arrow: CompositeArrow,
         # print(len(updated), " arrows updating in proapgation iteration")
         sub_arrow = updated.pop()
         sub_port_attr = {port: _port_attr[port]
-                           for port in sub_arrow.ports()
+                           for port in sub_arrow.all_ports()
                            if port in _port_attr}
 
         pred_dispatches = sub_arrow.get_dispatches()
@@ -158,9 +158,6 @@ def propagate(comp_arrow: CompositeArrow,
                 update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
                 already_prop.add((sub_arrow, dispatch))
         if isinstance(sub_arrow, CompositeArrow):
-            sub_port_attr = {port: _port_attr[port]
-                            for port in sub_arrow.ports()
-                            if port in _port_attr}
             new_sub_port_attr = propagate(sub_arrow, sub_port_attr, state, already_prop)
             update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
     print("Done Propagating")

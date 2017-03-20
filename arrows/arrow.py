@@ -21,6 +21,12 @@ class Arrow:
         else:
             return [self._ports[i] for i in idx]
 
+    def all_ports(self):
+        allports = list(self._ports)
+        for arrow in self.get_sub_arrows():
+            allports += arrow.all_ports()
+        return allports
+
     def port(self, index: int):
         return self.ports()[index]
 
