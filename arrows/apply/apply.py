@@ -32,10 +32,14 @@ def apply(arrow: Arrow, inputs: List[np.ndarray]) -> List[np.ndarray]:
     return outputs
 
 
-def apply_backwards(arrow: Arrow, outputs: List[np.ndarray]) -> List[np.ndarray]:
-    """Takes out_port vals (excluding errors) and returns in_port vals (including params)."""
+def apply_backwards(arrow: Arrow, outputs: List[np.ndarray], port_attr=None) -> List[np.ndarray]:
+    """
+    Takes out_port vals (excluding errors) and returns in_port vals (including params).
+    FIXME: Mutates port_attr
+    """
     out_ports = [out_port for out_port in arrow.out_ports() if not is_error_port(out_port)]
-    port_attr = propagate(arrow)
+    if port_attr is None:
+        port_attr = propagate(arrow)
     for i, out_port in enumerate(out_ports):
         if out_port not in port_attr:
             port_attr[out_port] = {}
@@ -51,7 +55,7 @@ def apply_backwards(arrow: Arrow, outputs: List[np.ndarray]) -> List[np.ndarray]
                 print("WARNING: shape of error port unknown: %s" % (out_port))
                 port_attr[out_port]['value'] = 0
 
-    port_attr = propagate(arrow, port_attr)
+    port_attr = propagate(arrow, port_attr, only_prop=set(['value']))
     vals = extract_attribute('value', port_attr)
     in_vals = {port: vals[port] for port in arrow.in_ports() if port in vals}
     return in_vals

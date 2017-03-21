@@ -51,9 +51,10 @@ def resolve(x, y, fail_on_conflict=True):
 def update_port_attr(to_update: PortAttributes,
                      with_p: PortAttributes,
                      dont_update: Set,
+                     do_update=None,
                      fail_on_conflict=True):
     for key, value in with_p.items():
-        if key not in dont_update:
+        if (do_update is None or key in do_update) and (key not in dont_update):
             if key in to_update:
                 value = resolve(value, to_update[key], fail_on_conflict)
             to_update[key] = value
@@ -76,6 +77,7 @@ def update_neigh(sub_port_attr: PortAttributes,
                  port_attr: PortAttributes,
                  context: CompositeArrow,
                  comp_arrow: CompositeArrow,
+                 do_update,
                  working_set: Set[Arrow]):
     """
     For every port in sub_port_attr the port_attr data all of its connected nodes
@@ -94,9 +96,9 @@ def update_neigh(sub_port_attr: PortAttributes,
                 neigh_attr_keys = port_attr[neigh_port].keys()
                 if any((attr_key not in neigh_attr_keys for attr_key in attrs.keys())):
                     working_set.add(neigh_port.arrow)
-            update_port_attr(port_attr[neigh_port], attrs, dont_update=DONT_PROP)
+            update_port_attr(port_attr[neigh_port], attrs, dont_update=DONT_PROP, do_update=do_update)
         # Update global with this port
-        update_port_attr(port_attr[port], attrs, dont_update=DONT_PROP)
+        update_port_attr(port_attr[port], attrs, dont_update=DONT_PROP, do_update=do_update)
 
 
 def extract_port_attr(comp_arrow, port_attr):
@@ -117,7 +119,8 @@ def extract_port_attr(comp_arrow, port_attr):
 def propagate(comp_arrow: CompositeArrow,
               port_attr: PortAttributes=None,
               state=None,
-              already_prop=None) -> PortAttributes:
+              already_prop=None,
+              only_prop=None) -> PortAttributes:
     """
     Propagate values around a composite arrow to determine knowns from unknowns
     The knowns should be determined by the knowns, otherwise an error throws
@@ -147,7 +150,7 @@ def propagate(comp_arrow: CompositeArrow,
     extract_port_attr(comp_arrow, _port_attr)
 
     updated = set(comp_arrow.get_sub_arrows_nested())
-    update_neigh(_port_attr, _port_attr, comp_arrow, comp_arrow, updated)
+    update_neigh(_port_attr, _port_attr, comp_arrow, comp_arrow, only_prop, updated)
     while len(updated) > 0:
         # print(len(updated), " arrows updating in proapgation iteration")
         sub_arrow = updated.pop()
@@ -159,12 +162,12 @@ def propagate(comp_arrow: CompositeArrow,
         for pred, dispatch in pred_dispatches.items():
             if pred(sub_arrow, sub_port_attr) and (sub_arrow, dispatch) not in already_prop:
                 new_sub_port_attr = dispatch(sub_arrow, sub_port_attr)
-                update_neigh(new_sub_port_attr, _port_attr, sub_arrow.parent, comp_arrow, updated)
+                update_neigh(new_sub_port_attr, _port_attr, sub_arrow.parent, comp_arrow, only_prop, updated)
                 already_prop.add((sub_arrow, dispatch))
         if isinstance(sub_arrow, CompositeArrow):
             # new_sub_port_attr = propagate(sub_arrow, sub_port_attr, state, already_prop)
             # update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
-            update_neigh(sub_port_attr, _port_attr, sub_arrow, comp_arrow, updated)
-            update_neigh(sub_port_attr, _port_attr, sub_arrow.parent, comp_arrow, updated)
+            update_neigh(sub_port_attr, _port_attr, sub_arrow, comp_arrow, only_prop, updated)
+            update_neigh(sub_port_attr, _port_attr, sub_arrow.parent, comp_arrow, only_prop, updated)
     print("Done Propagating")
     return _port_attr

@@ -11,7 +11,7 @@ import tensorflow as tf
 from arrows.apply.apply import apply, apply_backwards
 from arrows.apply.propagate import propagate
 from arrows.config import floatX
-from arrows.port_attributes import is_param_port
+from arrows.port_attributes import is_param_port, is_error_port
 from arrows.transform.eliminate_gather import eliminate_gathernd
 from arrows.util.misc import getn
 from arrows.util.viz import show_tensorboard, show_tensorboard_graph
@@ -230,7 +230,7 @@ def render_fwd_f(inputs):
     width = options['width'] = 128
     height = options['height'] = 128
     res = options['res'] = 32
-    nsteps = options['nsteps'] = 12
+    nsteps = options['nsteps'] = 5
     nviews = options['nviews'] = 1
     rotation_matrices = rand_rotation_matrices(nviews)
     out_img = gen_img(voxels, rotation_matrices, width, height, nsteps, res)
@@ -258,23 +258,29 @@ def test_render_graph(batch_size):
     inv_renderer = invert(arrow_renderer)
     return arrow_renderer, inv_renderer
 
+def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None):
+    """Pulls params from 'forward' runs. FIXME: mutates port_attr."""
+    if port_attr is None:
+        port_attr = propagate(inv)
+    shapes = [port_attr[port]['shape'] for port in inv.out_ports() if not is_error_port(port)]
+    params = []
+    inputs = []
+    for i in range(n):
+        rand_voxel_id = np.random.randint(0, voxel_grids.shape[0], size=batch_size)
+        input_data = [voxel_grids[rand_voxel_id].reshape(shape).astype(np.float32) for shape in shapes]
+        inputs.append(input_data)
+        params_bwd = apply_backwards(inv, input_data, port_attr=port_attr)
+        params.append(params_bwd)
+    return inputs, params
 
 def inv_viz_allones(batch_size):
     arrow, inv = test_render_graph(batch_size=batch_size)
-    info = propagate(arrow)
-    shapes = [info[i]['shape'] for i in arrow.in_ports()]
-    rand_voxel_id = np.random.randint(0, voxel_grids.shape[0], size=batch_size)
-    input_data = [voxel_grids[rand_voxel_id].reshape(shape).astype(np.float32) for shape in shapes]
-    outputs = apply(arrow, input_data)
-    outputs_bwd = apply_backwards(inv, input_data)
     info = propagate(inv)
-    #shapes = [info[i]['shape'] for i in inv.in_ports()[1:]]
-    #theta = [np.zeros(shape) if shape[-1] >= 32768 else np.ones(shape) for shape in shapes]
-    output_list = [outputs_bwd[port] if is_param_port(port) else outputs[0] for port in inv.in_ports()]
-    # recons = apply(inv, outputs + theta)[0]
+    inputs, params = get_param_pairs(inv, voxel_grids, batch_size, 1, port_attr=info)
+    outputs = apply(arrow, inputs[0])
+    output_list = [params[0][port] if is_param_port(port) else outputs[0] for port in inv.in_ports()]
     recons = apply(inv, output_list)[0]
     recons_fwd = apply(arrow, [recons])
-    pdb.set_trace()
     for i in range(batch_size):
         img_A = outputs[0][i].reshape(128, 128)
         padding = np.zeros((128, 16))
