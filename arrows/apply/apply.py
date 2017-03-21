@@ -54,5 +54,4 @@ def apply_backwards(arrow: Arrow, outputs: List[np.ndarray]) -> List[np.ndarray]
     port_attr = propagate(arrow, port_attr)
     vals = extract_attribute('value', port_attr)
     in_vals = {port: vals[port] for port in arrow.in_ports() if port in vals}
-    import pdb; pdb.set_trace()
     return in_vals

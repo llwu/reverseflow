@@ -94,6 +94,15 @@ class CompositeArrow(Arrow):
             arrows.remove(self)
         return arrows
 
+    def get_sub_arrows_nested(self) -> Set[Arrow]:
+        """Return arrows of composition as well as arrows of sub-composite arrows."""
+        arrows = self.get_sub_arrows()
+        sub_arrows = set(arrows)
+        for arrow in sub_arrows:
+            if isinstance(arrow, CompositeArrow):
+                arrows.update(arrow.get_sub_arrows_nested())
+        return arrows
+
     def is_wired_correctly(self) -> bool:
         """Is this composite arrow wired up correctly"""
         sub_arrows = self.get_all_arrows()
