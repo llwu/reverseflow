@@ -258,7 +258,7 @@ def test_render_graph(batch_size):
     inv_renderer = invert(arrow_renderer)
     return arrow_renderer, inv_renderer
 
-def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None):
+def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None, pickle_to=None):
     """Pulls params from 'forward' runs. FIXME: mutates port_attr."""
     if port_attr is None:
         port_attr = propagate(inv)
@@ -270,7 +270,11 @@ def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None):
         input_data = [voxel_grids[rand_voxel_id].reshape(shape).astype(np.float32) for shape in shapes]
         inputs.append(input_data)
         params_bwd = apply_backwards(inv, input_data, port_attr=port_attr)
-        params.append(params_bwd)
+        params_list = [params_bwd[port] for port in inv.in_ports() if is_param_port(port)]
+        params.append(params_list)
+    if pickle_to is not None:
+        with open(pickle_to, 'wb') as f:
+            pickle.dump((inputs, params), f)
     return inputs, params
 
 def inv_viz_allones(batch_size):
@@ -278,7 +282,7 @@ def inv_viz_allones(batch_size):
     info = propagate(inv)
     inputs, params = get_param_pairs(inv, voxel_grids, batch_size, 1, port_attr=info)
     outputs = apply(arrow, inputs[0])
-    output_list = [params[0][port] if is_param_port(port) else outputs[0] for port in inv.in_ports()]
+    output_list = [outputs[0]] + params[0]
     recons = apply(inv, output_list)[0]
     recons_fwd = apply(arrow, [recons])
     for i in range(batch_size):
