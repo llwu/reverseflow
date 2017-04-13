@@ -78,32 +78,33 @@ def non_equal(x, y):
 
 def rnd_nn_mean_dist(phi, g, shape):
     op, params = g(phi)
-    sess = tf.InteractiveSession()
-    init = tf.initialize_all_variables()
-    sess.run(init)
+    # sess = tf.InteractiveSession()
+    # init = tf.initialize_all_variables()
+    # sess.run(init)
     theta_samples = op[0]
     theta_samples = tf.reshape(theta_samples, shape)
     # theta_samples[0].eval(session=sess, feed_dict={phi:np.random.rand(256,2)})
     shapes = [1]*len(theta_samples.shape)
     shapes[0] = theta_samples.shape[0]
     thetas = tf.tile(theta_samples, tf.stack(shapes))
-    # return theta_samples, tf.reduce_sum(thetas)
+
     n_thetas = shape[0]
+    # construct both permutations to get all pairwise distances
     permutation = np.tile(np.arange(n_thetas), n_thetas)
     permutation_idx = np.repeat(np.arange(n_thetas), n_thetas)
-    permutation, permutation_idx = non_equal(permutation, permutation_idx)
-    # import pdb; pdb.set_trace()
+    permutation, permutation_idx = non_equal(permutation, permutation_idx)  # eliminate corresponding indices if equal
 
     theta_shrunk = tf.gather(thetas, permutation)
     theta_pemute = tf.gather(thetas, permutation_idx)
-    return theta_samples, tf.reduce_mean(theta_shrunk)
-    # theta_shrunk = tf.reshape(theta_shrunk, (n_thetas, n_thetas-1, *theta_shrunk.get_shape().as_list()[1:]))
-    # theta_pemute = tf.reshape(theta_pemute, (n_thetas, n_thetas-1, *theta_pemute.get_shape().as_list()[1:]))
-    # all_dist = tf.reduce_sum(tf.abs(theta_pemute - theta_shrunk), axis=2)
-    # nn_dist = tf.reduce_min(all_dist, axis=1)
-    # nn_mean = tf.reduce_mean(nn_dist)
+    # FIXME fails starting from here
+
+    theta_shrunk = tf.reshape(theta_shrunk, (n_thetas, n_thetas-1, *theta_shrunk.get_shape().as_list()[1:]))
+    theta_pemute = tf.reshape(theta_pemute, (n_thetas, n_thetas-1, *theta_pemute.get_shape().as_list()[1:]))
+    all_dist = tf.reduce_sum(tf.abs(theta_pemute - theta_shrunk), axis=2)
+    nn_dist = tf.reduce_min(all_dist, axis=1)
+    nn_mean = tf.reduce_mean(nn_dist)
     # nn_mean.eval(session=sess, feed_dict={phi:np.random.rand(256,2)})
-    # return theta_samples, -nn_mean
+    return theta_samples, -nn_mean
 
 
 def rnd_pairwise_min_dist(phi, g, permutation, permutation_idx, n_dist, shape):
@@ -113,10 +114,13 @@ def rnd_pairwise_min_dist(phi, g, permutation, permutation_idx, n_dist, shape):
     shapes = [1]*len(theta_samples.shape)
     shapes[0] = theta_samples.shape[0]
     thetas = tf.tile(theta_samples, tf.stack(shapes))
+    # configured thetas to be size^2 array tensor as n_dist is up to size^2
+
     permutation = permutation[:n_dist]
     permutation_idx = permutation_idx[:n_dist]
     theta_shrunk = tf.gather(thetas, permutation_idx)
     theta_pemute = tf.gather(thetas, permutation)
+    # got correspinding theta tensors to compute pairwise min distance
     diff = theta_pemute - theta_shrunk + EPS
     sqrdiff = tf.abs(diff)
     euclids = tf.reduce_sum(sqrdiff, reduction_indices=1) + EPS
@@ -131,10 +135,13 @@ def rnd_pairwise_gap_ratio(phi, g, permutation, permutation_idx, n_dist, shape):
     shapes = [1]*len(theta_samples.shape)
     shapes[0] = theta_samples.shape[0]
     thetas = tf.tile(theta_samples, tf.stack(shapes))
+    # configured thetas to be size^2 array tensor as n_dist is up to size^2
+
     permutation = permutation[:n_dist]
     permutation_idx = permutation_idx[:n_dist]
     theta_shrunk = tf.gather(thetas, permutation_idx)
     theta_pemute = tf.gather(thetas, permutation)
+    # got corresponding theta tensors to compute pairwise min distance
     diff = theta_pemute - theta_shrunk + EPS
     sqrdiff = tf.abs(diff)
     euclids = tf.reduce_sum(sqrdiff, reduction_indices=1) + EPS
@@ -161,6 +168,7 @@ def train(sdf,
                         inp_shapes=[phi_shape],
                         out_shapes=[theta_shape],
                         **template_options)
+    # used for pairwise min distance
     n_dist = batch_size**2//4
     theta_samples, loss1 = rnd_nn_mean_dist(phi, g, (batch_size, theta_ndim))
     loss2 = sdf(theta_samples)
@@ -168,14 +176,14 @@ def train(sdf,
     lmbda = 0.2
     loss2 = lmbda*loss2
     loss = loss1 + loss2
-    # loss = loss1
-    variables = tf.all_variables()
-    sess = tf.InteractiveSession()
-    init = tf.initialize_all_variables()
-    sess.run(init)
-    # import pdb; pdb.set_trace()
-
-    loss1.eval(session=sess, feed_dict={phi: np.random.rand(256, 2)})
+    # # loss = loss1
+    # variables = tf.all_variables()
+    # sess = tf.InteractiveSession()
+    # init = tf.initialize_all_variables()
+    # sess.run(init)
+    # # import pdb; pdb.set_trace()
+    #
+    # loss1.eval(session=sess, feed_dict={phi: np.random.rand(256, 2)})
     gradients1 = tf.gradients(loss1, variables)
     gradients2 = tf.gradients(loss2, variables)
     lossgradient = tf.gradients(loss, [loss1, loss2])
