@@ -14,10 +14,10 @@ def norm(tensor):
     return tf.sqrt(tf.reduce_sum(sqr, reduction_indices=1) + EPS) + EPS
 
 
-def circle_loss(tensor):
+def circle_loss(tensor, c=0.0):
     s = 0.5
     norms = norm(tensor) + EPS
-    sdfs = tf.abs(norms-s) + EPS
+    sdfs = tf.maximum(0.0, norms-s) + tf.maximum(0.0, s-c-norms) + EPS
     return tf.reduce_mean(sdfs) + EPS
 
 axis = plt.axis([-1, 1, -1, 1])
@@ -171,17 +171,16 @@ def train(sdf,
     # used for pairwise min distance
     n_dist = batch_size**2//4
     theta_samples, loss1 = rnd_nn_mean_dist(phi, g, (batch_size, theta_ndim))
-    loss2 = sdf(theta_samples)
+    loss2 = sdf(theta_samples, 0.1)
     # loss = loss2
-    lmbda = 0.2
+    lmbda = 0.5
     loss2 = lmbda*loss2
     loss = loss1 + loss2
     # # loss = loss1
-    # variables = tf.all_variables()
+    variables = tf.all_variables()
     # sess = tf.InteractiveSession()
     # init = tf.initialize_all_variables()
     # sess.run(init)
-    # # import pdb; pdb.set_trace()
     #
     # loss1.eval(session=sess, feed_dict={phi: np.random.rand(256, 2)})
     gradients1 = tf.gradients(loss1, variables)
