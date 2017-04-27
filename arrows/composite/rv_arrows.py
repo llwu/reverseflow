@@ -38,10 +38,24 @@ class ExponentialRV():
         assert comp_arrow.is_wired_correctly()
         self.quantile = comp_arrow
 
-    def sample(self, size = 1):
-        p = np.random.uniform(size = size)
-        samples = apply(self.quantile, p)
-        return samples
+    def sample(self, shape = [1]):
+        """
+        Sample from the given exponential distribution with parameter lmbda
+        using the closed form quantile function. The samples will be returned
+        in the given shape (must be iterable).
+        """
+
+        size = 1
+        for shape_dim in shape:
+            size = size * shape_dim
+        p_values = np.random.uniform(size = size)
+        samples = []
+        for p in p_values:
+            sample = apply(self.quantile, [p])
+            samples.append(sample[0])
+        samples = np.asarray(samples)
+        return np.reshape(samples, shape)
+
 
 """
 ===============================================================================
@@ -99,17 +113,13 @@ def gen_data(lmbda: float, size: int):
     data = []
     dist = ExponentialRV(lmbda)
     for _ in range(size):
-        x_1 = dist.sample()[0]
-        x_2 = dist.sample()[0]
-        x = (x_1, x_2)
-        y = np.abs(x_1-x_2)
-        theta_1 = np.sign(x_1 - x_2)
-        theta_2 = x_2
-        theta = (theta_1, theta_2)
-        y_ = apply(forward_arrow, [x_1, x_2])
-        x_ = apply(inverse_arrow, [y, theta_1, theta_2])
+        x = tuple(dist.sample(shape=[2]))
+        y = np.abs(x[0]-x[1])
+        theta = (np.sign(x[0] - x[1]), x[1])
+        y_ = apply(forward_arrow, list(x))
+        x_ = apply(inverse_arrow, [y, theta[0], theta[1]])
         assert np.abs(y_[0] - y) < eps
-        assert np.abs(x_[0] - x_1) < eps
-        assert np.abs(x_[1] - x_2) < eps
+        assert np.abs(x_[0] - x[0]) < eps
+        assert np.abs(x_[1] - x[1]) < eps
         data.append((x, theta, y))
     return data, forward_arrow, inverse_arrow
