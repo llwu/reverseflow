@@ -4,7 +4,7 @@ from tensorflow import Tensor
 import tensorflow as tf
 from wacacore.train.common import train_loop, updates
 from wacacore.util.generators import infinite_samples
-from typing import Generator, Callable
+from typing import Generator, Callable, Sequence
 import numpy as np
 from tflearn.layers import fully_connected
 
@@ -31,27 +31,25 @@ def tf_cgan(x_prior: Tensor,
   x_fake = g(y, z)
 
   # Pipe the output of cgan into discriminator
-  real = disc(x_prior)
+  real = disc(x_prior, False)
   # Pipe output of prior into discriminator
-  fake = disc(x_fake)
+  fake = disc(x_fake, True)
 
-  g_min_obj = tf.log(real) + tf.log(1 - fake)
-  d_min_obj = -g_min_obj
-  losses = [g_min_obj, d_min_obj]
+  loss_d = tf.reduce_mean(-tf.log(real) + tf.log(1 - fake))
+  loss_g = tf.reduce_mean(-tf.log(fake))
+  losses = [loss_d, loss_g]
 
   # Fetch
   fetch = {'losses': losses}
-
-
-
-  # FIXME, shouldn't be None
-  d_vars = None
-  g_vars = None
+  fetch['check'] = tf.add_check_numerics_ops()
 
   # Make loss updates from losses
   # 1st element from update is update tensor, 0th is optimizer
-  loss_updates = [updates(d_min_obj, d_vars, options)[1],
-                  updates(g_min_obj, g_vars, options)[1]]
+  g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator')
+  d_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='discriminator')
+  import pdb; pdb.set_trace()
+  loss_updates = [updates(loss_d, d_vars, options)[1],
+                  updates(loss_g, g_vars, options)[1]]
 
   def generator():
     while True:
@@ -83,7 +81,7 @@ def tf_cgan(x_prior: Tensor,
 def main():
   """Simple Example"""
   # x, y sampled from normal distribution
-  batch_size = 128
+  batch_size = 512
   x_len = 2
   x_prior_gen = infinite_samples(np.random.randn,
                                  shape=(x_len,),
@@ -104,20 +102,23 @@ def main():
 
   def g(y, z):
     """Generator"""
-    with tf.name_scope("Generator"):
-      y_exp = tf.expand_dims(y, 1)
-      inp = tf.concat([y_exp, z], axis=1)
-      out = fully_connected(inp, x_len, activation='relu')
-      return out
+    with tf.name_scope("generator"):
+      with tf.variable_scope("generator"):
+        y_exp = tf.expand_dims(y, 1)
+        inp = tf.concat([y_exp, z], axis=1)
+        out = fully_connected(inp, x_len, activation='relu')
+        return out
 
-  def disc(x):
+
+  def disc(x, reuse):
     """Discriminator"""
-    with tf.name_scope("Generator"):
-      inp = x
-      out = fully_connected(inp, 1, activation='tanh')
-      return out
+    with tf.name_scope("discriminator"):
+      with tf.variable_scope("discriminator", reuse=reuse):
+        inp = x
+        out = fully_connected(inp, 1, activation='sigmoid')
+        return out
 
-  options = {'update': 'adam', 'learning_rate': 0.0001}
+  options = {'update': 'adam', 'learning_rate': 0.005}
   tf_cgan(x_prior,
           x_prior_gen,
           z,
