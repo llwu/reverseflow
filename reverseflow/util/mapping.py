@@ -83,10 +83,10 @@ class Relation(Generic[L, R]):
         self.right_to_left = dict()  # type: Dict[R, List[L]]
 
     def fwd(self, left: L) -> R:
-        return self.left_to_right[left]
+        return self.left_to_right.get(left, [])
 
     def inv(self, right: R) -> L:
-        return self.right_to_left[right]
+        return self.right_to_left.get(right, [])
 
     def add(self, left: L, right: R) -> None:
         if left in self.left_to_right.keys():

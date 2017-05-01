@@ -1,20 +1,18 @@
-from arrows.arrow import Arrow
 from arrows.port_attributes import *
 from arrows.apply.constants import CONST, VAR
 from arrows.util.misc import same
 from overloading import overload
 from numpy import ndarray
-from arrows.compositearrow import *
 from arrows.util.misc import *
 import numpy
 
 
-def shape_pred(arr: Arrow, port_attr: PortAttributes):
+def shape_pred(arr, port_attr: PortAttributes):
     """True if any of the ports have a shape"""
     return any((port_has(port, 'shape', port_attr) for port in arr.ports()))
 
 
-def shape_dispatch(arr: Arrow, port_attr: PortAttributes):
+def shape_dispatch(arr, port_attr: PortAttributes):
     """Make all other ports the smae"""
     pts = extract_attribute('shape', port_attr)
     shapes = list(pts.values())
@@ -33,20 +31,26 @@ def shape_dispatch(arr: Arrow, port_attr: PortAttributes):
     return {port: {'shape': shape} for port in arr.ports()}
 
 
-def rank_predicate_shape(a: Arrow, port_values: PortAttributes, state=None) -> bool:
+def rank_predicate_shape(a, port_values: PortAttributes, state=None) -> bool:
     assert len(a.in_ports()) == 1
     return True
 
 
-def rank_dispatch_shape(a: Arrow, port_values: PortAttributes, state=None):
+def rank_dispatch_shape(a, port_values: PortAttributes, state=None):
     assert len(a.out_ports()) == 1
     return {a.out_ports()[0] : {'shape': ()}}
 
 # FIXME: We could get rid of these redundant predicates by just putting data
 # on the port directly
-def source_predicate(a: Arrow, port_attr: PortAttributes, state=None) -> bool:
+def source_predicate(a, port_attr: PortAttributes, state=None) -> bool:
     assert len(a.in_ports()) == 0
     return True
+
+
+@overload
+def constant_to_shape(x):
+    print(x)
+    assert False
 
 
 @overload
@@ -69,8 +73,20 @@ def constant_to_shape(x: numpy.number):
     return x.shape
 
 
-def source_dispatch(a: Arrow, port_values: PortAttributes, state=None):
+def source_dispatch(a, port_values: PortAttributes, state=None):
     assert len(a.out_ports()) == 1
     return {a.out_ports()[0]: {'shape': constant_to_shape(a.value),
                                    'value': a.value,
                                    'constant': CONST}}
+
+
+def val_to_shape_pred(arr, port_attr: PortAttributes):
+    return True
+
+
+def val_to_shape_dispatch(arr, port_attr: PortAttributes):
+    shapes = {}
+    for port in arr.ports():
+        if port in port_attr and 'value' in port_attr[port]:
+            shapes[port] = {'shape': constant_to_shape(port_attr[port]['value'])}
+    return shapes

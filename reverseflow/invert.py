@@ -2,6 +2,7 @@
 from arrows import Arrow, Port, InPort
 from arrows.compositearrow import CompositeArrow, is_projecting, is_receiving
 from arrows.compositearrow import CompositeArrow, would_project, would_receive
+from arrows.transform.eliminate_gather import eliminate_gathernd
 from arrows.apply.constants import CONST, VAR, is_constant
 from arrows.std_arrows import *
 from arrows.port_attributes import *
@@ -12,6 +13,9 @@ from overloading import overload
 
 PortMap = Dict[int, int]
 U = TypeVar('U', bound=Arrow)
+
+
+transforms = [eliminate_gathernd]
 
 @overload
 def invert_sub_arrow(arrow: Arrow,
@@ -73,7 +77,10 @@ def inner_invert(comp_arrow: CompositeArrow,
                 make_in_port(inv_port)
         # Transfer port information
         # FIXME: What port_attr go transfered from port to inv_port
-        set_port_shape(inv_port, get_port_shape(port, port_attr))
+        if 'shape' not in port_attr[port]:
+            print('WARNING: shape unknown for %s' % port)
+        else:
+            set_port_shape(inv_port, get_port_shape(port, port_attr))
 
     # invert each sub_arrow
     arrow_to_inv = dict()
@@ -103,6 +110,9 @@ def inner_invert(comp_arrow: CompositeArrow,
         assert len(projecting) == 1, "Should be only 1 projecting"
         assert len(receiving) == 1, "Should be only 1 receiving"
         inv_comp_arrow.add_edge(projecting[0], receiving[0])
+
+    for transform in transforms:
+        transform(inv_comp_arrow)
 
     # Craete new ports on inverse compositions for parametric and error ports
     for sub_arrow in inv_comp_arrow.get_sub_arrows():

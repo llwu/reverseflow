@@ -33,6 +33,7 @@ def test_xyplusx_flat() -> CompositeArrow:
 def test_twoxyplusx() -> CompositeArrow:
     """f(x,y) = 2 * x * y + x"""
     two = SourceArrow(2.0)
+    broadcast = BroadcastArrow()
     mul1 = MulArrow()
     mul2 = MulArrow()
     add = AddArrow()
@@ -40,7 +41,8 @@ def test_twoxyplusx() -> CompositeArrow:
     edges = Bimap()  # type: EdgeMap
     edges.add(dupl.out_ports()[0], mul1.in_ports()[0])  # dupl -> mul1
     edges.add(dupl.out_ports()[1], add.in_ports()[0])  # dupl -> add
-    edges.add(two.out_ports()[0], mul2.in_ports()[0])
+    edges.add(two.out_ports()[0], broadcast.in_ports()[0])
+    edges.add(broadcast.out_ports()[0], mul2.in_ports()[0])
     edges.add(mul1.out_ports()[0], mul2.in_ports()[1])
     edges.add(mul2.out_ports()[0], add.in_ports()[1])  # mul1 -> add
     return CompositeArrow(in_ports=[dupl.in_ports()[0], mul1.in_ports()[1]],

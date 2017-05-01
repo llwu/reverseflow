@@ -8,11 +8,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
-from arrows.apply.apply import apply
+from arrows.apply.apply import apply, apply_backwards
 from arrows.apply.propagate import propagate
 from arrows.config import floatX
+from arrows.port_attributes import is_param_port, is_error_port
 from arrows.transform.eliminate_gather import eliminate_gathernd
 from arrows.util.misc import getn
+from arrows.util.viz import show_tensorboard, show_tensorboard_graph
 from benchmarks.common import handle_options, gen_sfx_key
 from metrics.generalization import test_generalization
 from reverseflow.invert import invert
@@ -209,7 +211,7 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
         else:
             attenuation = tf.gather(voxels, flat_indices)
         print("attenuation step", attenuation.get_shape(), step_sz.shape)
-        left_over = left_over*tf.exp(-attenuation*step_sz.reshape(nmatrices * width * height))
+        left_over = left_over*tf.exp(-attenuation*0.015625*step_sz.reshape(nmatrices * width * height))
 
     img = left_over
     img_shape = tf.TensorShape((batch_size, nmatrices, width, height))
@@ -254,21 +256,34 @@ def test_render_graph(batch_size):
     out_img_tensor = results['outputs']['out_img']
     arrow_renderer = graph_to_arrow([out_img_tensor], name="renderer")
     inv_renderer = invert(arrow_renderer)
-    elim_inv_renderer = eliminate_gathernd(inv_renderer)
-    return arrow_renderer, inv_renderer, elim_inv_renderer
+    return arrow_renderer, inv_renderer
 
+def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None, pickle_to=None):
+    """Pulls params from 'forward' runs. FIXME: mutates port_attr."""
+    if port_attr is None:
+        port_attr = propagate(inv)
+    shapes = [port_attr[port]['shape'] for port in inv.out_ports() if not is_error_port(port)]
+    params = []
+    inputs = []
+    for i in range(n):
+        rand_voxel_id = np.random.randint(0, voxel_grids.shape[0], size=batch_size)
+        input_data = [voxel_grids[rand_voxel_id].reshape(shape).astype(np.float32) for shape in shapes]
+        inputs.append(input_data)
+        params_bwd = apply_backwards(inv, input_data, port_attr=port_attr)
+        params_list = [params_bwd[port] for port in inv.in_ports() if is_param_port(port)]
+        params.append(params_list)
+    if pickle_to is not None:
+        with open(pickle_to, 'wb') as f:
+            pickle.dump((inputs, params), f)
+    return inputs, params
 
 def inv_viz_allones(batch_size):
-    arrow, inv, elim = test_render_graph(batch_size=batch_size)
-    info = propagate(arrow)
-    shapes = [info[i]['shape'] for i in arrow.in_ports()]
-    rand_voxel_id = np.random.randint(0, voxel_grids.shape[0], size=batch_size)
-    input_data = [voxel_grids[rand_voxel_id].reshape(shape) for shape in shapes]
-    outputs = apply(arrow, input_data)
-    info = propagate(elim)
-    shapes = [info[i]['shape'] for i in elim.in_ports()[1:]]
-    theta = [np.zeros(shape) if shape[-1] >= 32768 else np.ones(shape) for shape in shapes]
-    recons = apply(elim, outputs + theta)[0]
+    arrow, inv = test_render_graph(batch_size=batch_size)
+    info = propagate(inv)
+    inputs, params = get_param_pairs(inv, voxel_grids, batch_size, 1, port_attr=info)
+    outputs = apply(arrow, inputs[0])
+    output_list = [outputs[0]] + params[0]
+    recons = apply(inv, output_list)[0]
     recons_fwd = apply(arrow, [recons])
     for i in range(batch_size):
         img_A = outputs[0][i].reshape(128, 128)
@@ -276,6 +291,7 @@ def inv_viz_allones(batch_size):
         img_B = recons_fwd[0][i].reshape(128, 128)
         plot_image = np.concatenate((img_A, padding, img_B), axis=1)
         plt.imshow(plot_image, cmap='gray')
+        plt.ioff()
         plt.show()
 
 
@@ -303,8 +319,7 @@ def pi_supervised(options):
     out_img_tensor = results['outputs']['out_img']
     arrow_renderer = graph_to_arrow([out_img_tensor])
     inverted = invert(arrow_renderer)
-    elim = eliminate_gathernd(inverted)
-    inv_arrow = inv_fwd_loss_arrow(arrow_renderer, elim)
+    inv_arrow = inv_fwd_loss_arrow(arrow_renderer, inverted)
     right_inv = unparam(inv_arrow)
     sup_right_inv = supervised_loss_arrow(right_inv)
     # Get training and test_data
@@ -344,4 +359,4 @@ if __name__ == "__main__":
                                'ModelNet40', 'alltrain32.npy')
     voxel_grids = np.load(voxels_path)
     inv_viz_allones(batch_size=8)
-    generalization_bench()
+    # generalization_bench()

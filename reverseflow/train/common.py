@@ -127,11 +127,11 @@ def gen_fetch(sess: Session,
     return fetch
 
 
-def gen_update_step(loss: Tensor) -> Tensor:
+def gen_update_step(loss: Tensor, learning_rate: float=1e-4) -> Tensor:
     with tf.name_scope('optimization'):
         # optimizer = tf.train.MomentumOptimizer(0.001,
         #                                        momentum=0.1)
-        optimizer = tf.train.AdamOptimizer(0.01)
+        optimizer = tf.train.AdamOptimizer(learning_rate)
         update_step = optimizer.minimize(loss)
         return update_step
 
