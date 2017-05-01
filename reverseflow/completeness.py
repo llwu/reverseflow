@@ -152,7 +152,7 @@ def rnd_pairwise_gap_ratio(phi, g, permutation, permutation_idx, n_dist, shape):
 
 
 def train(sdf,
-          batch_size=256,
+          batch_size=512,
           phi_ndim=2,
           theta_ndim=2,
           template=res_net.template,
@@ -168,6 +168,7 @@ def train(sdf,
                         inp_shapes=[phi_shape],
                         out_shapes=[theta_shape],
                         **template_options)
+
     # used for pairwise min distance
     n_dist = batch_size**2//4
     theta_samples, loss1 = rnd_nn_mean_dist(phi, g, (batch_size, theta_ndim))
@@ -187,6 +188,7 @@ def train(sdf,
     gradients2 = tf.gradients(loss2, variables)
     lossgradient = tf.gradients(loss, [loss1, loss2])
     sub_losses = [loss1, loss2]
+ 97371b5a2f2c38b90ad0d5f663958aa486d7b58d
     update_step = gen_update_step(loss)
     fetches = {'loss': loss,
                'sub_losses': sub_losses,
@@ -201,12 +203,17 @@ def train(sdf,
 def sumsum(xs):
     return np.sum([np.sum(x) for x in xs])
 
+
 def train_loop(loss, update_step, phi, permutation, permutation_idx, fetches, n_iterations=50000,
                batch_size=256):
     sess = tf.Session()
     init = tf.initialize_all_variables()
     sess.run(init)
+    sfx = str(time.time())
     for i in range(n_iterations):
+        if i % 10 == 0:
+            file_path = os.path.join(path,"%s_%s.png" % (sfx, i))
+            plt.savefig(file_path)
         phi_samples = np.random.rand(*phi.get_shape().as_list())
         perm_data = np.arange(batch_size**2)
         np.random.shuffle(perm_data)
@@ -218,8 +225,8 @@ def train_loop(loss, update_step, phi, permutation, permutation_idx, fetches, n_
                                      permutation_idx: perm_data_idx})
         print("Loss: ", output['loss'])
         print("Losses: ", output['sub_losses'])
-        print("gradients loss1: ", sumsum(output['gradients1']))
-        print("gradients loss2: ", sumsum(output['gradients2']))
+        print("gradients min_dist_loss: ", sumsum(output['gradients1']))
+        print("gradients circle_loss: ", sumsum(output['gradients2']))
         print("loss gradient", output['lossgradient'])
         update_plot(output['theta_samples'])
 
