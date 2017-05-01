@@ -7,7 +7,7 @@ from arrows.apply.propagate import propagate
 from arrows.arrow import Arrow
 from reverseflow.to_graph import arrow_to_graph
 from arrows.config import floatX
-from arrows.port_attributes import is_error_port, extract_attribute
+from arrows.port_attributes import is_error_port, extract_attribute, is_param_port
 
 
 def apply(arrow: Arrow, inputs: List[np.ndarray]) -> List[np.ndarray]:
@@ -55,7 +55,24 @@ def apply_backwards(arrow: Arrow, outputs: List[np.ndarray], port_attr=None) -> 
                 print("WARNING: shape of error port unknown: %s" % (out_port))
                 port_attr[out_port]['value'] = 0
 
-    port_attr = propagate(arrow, port_attr, only_prop=set(['value']))
+    port_attr = propagate(arrow, port_attr)#, only_prop=set(['value']))
     vals = extract_attribute('value', port_attr)
     in_vals = {port: vals[port] for port in arrow.in_ports() if port in vals}
     return in_vals
+
+def from_input_list(fwd, inv, input_batch, port_attr=None):
+    """
+    [input] -> [inputs, params, outputs].
+    optionally if port_attr is already computed, pass it in to save time.
+    """
+    if port_attr is None:
+        port_attr = propagate(inv)
+    params = []
+    outputs = []
+    for input_data in input_batch:
+        params_bwd = apply_backwards(inv, input_data, port_attr=port_attr)
+        params_list = [params_bwd[port] for port in inv.in_ports() if is_param_port(port)]
+        outputs_list = apply(fwd, input_data)
+        params.append(params_list)
+        outputs.append(outputs_list)
+    return list(zip(input_batch, params, outputs))
