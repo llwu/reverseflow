@@ -9,6 +9,7 @@ from wacacore.train.callbacks import every_n, summary_writes
 from typing import Generator, Callable, Sequence
 import numpy as np
 from tflearn.layers import fully_connected
+from tflearn.layers.normalization import batch_normalization
 
 def tf_cgan(x_prior: Tensor,
             x_prior_gen: Generator,
@@ -103,7 +104,7 @@ def main():
   # x, y sampled from normal distribution
   batch_size = 512
   x_len = 2
-  x_prior_gen = infinite_samples(np.random.randn,
+  x_prior_gen = infinite_samples(lambda *shape: np.random.exponential(size=shape),
                                  shape=(x_len,),
                                  batch_size=batch_size,
                                  add_batch=True)
@@ -139,14 +140,18 @@ def main():
         # the two parameters for
         inp = z
         inp = fully_connected(inp, 3, activation='elu')
+        inp = batch_normalization(inp)
+        inp = fully_connected(inp, 3, activation='elu')
+        inp = batch_normalization(inp)
         theta = fully_connected(inp, theta_len, activation='elu')
+        theta = batch_normalization(theta)
         x_1 = tf.expand_dims(y, 1) - theta
         x_2 = theta
         x = tf.concat([x_1, x_2], 1)
         return x
 
 
-  def disc(x, y, reuse, use_y=True):
+  def disc(x, y, reuse, use_y=False):
     """Discriminator"""
     with tf.name_scope("discriminator"):
       with tf.variable_scope("discriminator", reuse=reuse):
@@ -159,13 +164,13 @@ def main():
         out = fully_connected(inp, 1, activation='sigmoid')
         return out
 
-  options = {'update': 'adam', 'learning_rate': 0.001, 'save': True}
+  options = {'update': 'adam', 'learning_rate': 0.0001, 'save': True}
   tf_cgan(x_prior,
           x_prior_gen,
           z,
           z_gen,
           f,
-          g_pi,
+          g,
           disc,
           options)
 
