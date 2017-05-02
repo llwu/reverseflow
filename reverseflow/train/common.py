@@ -106,8 +106,8 @@ def prep_save(sess: Session, save: bool, dirname: str, params_file: str, load: b
     if save or load:
         saver = tf.train.Saver()
     if save is True:
-        save_dir = mk_dir(dirname=dirname)
-        save_params['save_dir'] = save_dir
+        savedir = mk_dir(dirname=dirname)
+        save_params['savedir'] = savedir
         save_params['saver'] = saver = tf.train.Saver()
     if load is True:
         saver.restore(sess, params_file)

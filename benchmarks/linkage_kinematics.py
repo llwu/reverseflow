@@ -20,12 +20,12 @@ from tensortemplates import res_net
 from common import *
 import sys
 from typing import Sequence
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
+#import matplotlib.pyplot as plt
+#from matplotlib.lines import Line2D
 import numpy as np
 
 # Interactive Plotting
-plt.ion()
+#plt.ion()
 
 def accum_sum(xs: Sequence):
     """Return accumulative reduction
@@ -136,7 +136,7 @@ def robo_tensorflow(batch_size, n_links, **options):
 
 from common import gen_rand_data
 if __name__ == "__main__":
-    plot_cb = plot_callback()
+    #plot_cb = plot_callback()
     options = {'model': robo_tensorflow,
                'n_links': 3,
                'n_angles': 3,

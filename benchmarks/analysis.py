@@ -8,13 +8,13 @@ from reverseflow.train.callbacks import pickle_it
 import pickle
 import os
 import glob
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from collections import defaultdict
 import tensorflow as tf
 import numpy as np
 
-plt.ion()
+#plt.ion()
 
 path = "/Users/minasyan03/Documents/urop/rf_data/rf/"
 
@@ -39,7 +39,7 @@ def best_hyperparameters(prefix, names, num_iterations):
     min_hyper = []
     ddata = {}
 
-    save_dir = os.path.join(options[0]['save_dir'], 'hyper_data.pickle')
+    savedir = os.path.join(options[0]['savedir'], 'hyper_data.pickle')
 
     for i in range(len(data)):
         hyperparameters = [options[i][name] for name in names]
@@ -59,7 +59,7 @@ def best_hyperparameters(prefix, names, num_iterations):
             ddata['to_print'] = to_print
             min_loss = test_loss['general_loss']
             min_hyper = to_print
-    pickle_it(ddata, save_dir)
+    pickle_it(ddata, savedir)
     return tuple(min_hyper)
 
 def get_mean(data, n_data):

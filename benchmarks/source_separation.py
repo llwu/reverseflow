@@ -228,4 +228,4 @@ if __name__ == "__main__":
                'gen_data': gen_sound_data,
                'model_name': 'source_separation',
                'error': ['supervised_error']}
-    nn_benchmarks('source_separation', options=options)
+    pi_benchmarks('source_separation', options=options)

@@ -12,23 +12,9 @@ from reverseflow.train.supervised import supervised_train
 from reverseflow.train.callbacks import save_callback, save_options, save_every_n, save_everything_last
 from reverseflow.invert import invert
 from analysis import best_hyperparameters
-
-import tensortemplates.res_net as res_net
-import tensortemplates.conv_res_net as conv_res_net
 import numpy as np
 import tensorflow as tf
 
-
-def gen_sfx_key(keys, options):
-    sfx_dict = {}
-    for key in keys:
-        sfx_dict[key] = options[key]
-    sfx = stringy_dict(sfx_dict)
-    print("sfx:", sfx)
-    return sfx
-
-
-template_module = {'res_net': res_net, 'conv_res_net': conv_res_net}
 
 def boolify(x):
     if x in ['0', 0, False, 'False', 'false']:
