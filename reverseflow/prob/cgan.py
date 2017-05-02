@@ -1,15 +1,18 @@
 """Posterior Inference with Conditional GAN"""
+import os
 from arrows.config import floatX
 from tensorflow import Tensor
 import tensorflow as tf
 from wacacore.train.common import (train_loop, updates, variable_summaries,
-  setup_file_writers)
+                                   setup_file_writers)
 from wacacore.util.generators import infinite_samples
 from wacacore.train.callbacks import every_n, summary_writes
+from wacacore.train.search import rand_hyper_search
 from typing import Generator, Callable, Sequence
 import numpy as np
 from tflearn.layers import fully_connected
 from tflearn.layers.normalization import batch_normalization
+
 
 def tf_cgan(x_prior: Tensor,
             x_prior_gen: Generator,
@@ -52,11 +55,14 @@ def tf_cgan(x_prior: Tensor,
   # 1st element from update is update tensor, 0th is optimizer
   # Make loss updates from losses
   g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator')
-  d_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='discriminator')
+  d_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+                             scope='discriminator')
   loss_updates = [updates(loss_d, d_vars, options)[1],
                   updates(loss_g, g_vars, options)[1]]
 
+  # FIXME: Hyperparameterize this
   loss_ratios = [1, 3]
+
   def generator():
     while True:
       yield {x_prior: next(x_prior_gen),
@@ -64,7 +70,6 @@ def tf_cgan(x_prior: Tensor,
 
   train_generators = [generator()]
 
-  # FIXME: Hyperparameterize this
 
   # Init
   sess = tf.Session()
@@ -174,6 +179,28 @@ def main():
           disc,
           options)
 
+def hyper_search():
+  options = {'train': True,
+             'save': True,
+             'num_iterations': 100000,
+             'save_every': 1000,
+             'learning_rate': 0.001,
+             'batch_size': [256, 512],
+             'datadir': os.path.join(os.environ['DATADIR'], "pdt"),
+             'nl': ['relu', 'elu']}
+  var_option_keys = ['batch_size',
+                     'nl']
+  file_Path = os.path.abspath(__file__)
+  hyper_search(run_sbatch, file_Path, options, var_option_keys, nsamples=1, nrepeats=1, prefix='scalarfieldf')
+
+
 
 if __name__ == "__main__":
   main()
+
+
+
+# TODO
+# Hyper parameterize the neural network architectures
+# Do hyperparameter search on openmind
+# So what it should be is that I add the tag --hyper_search
