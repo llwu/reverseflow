@@ -118,3 +118,22 @@ class InvPowArrow(CompositeArrow):
                          out_ports=out_ports,
                          name=name)
         make_param_port(self.ports()[1])
+
+class InvAbsArrow(CompositeArrow):
+    """
+    Parametric Inverse abs
+    abs-1(y; theta) = theta * y, where theta = -1, 1
+    """
+    def __init__(self) -> None:
+        name = 'InvAbs'
+        edges = Bimap() # type: EdgeMap
+        mul = MulArrow()
+
+        in_ports = [mul.in_ports()[0], mul.in_ports()[1]]
+        out_ports = [mul.out_ports()[0]]
+
+        super().__init__(edges=edges,
+                       in_ports=in_ports,
+                       out_ports=out_ports,
+                       name=name)
+        make_param_port(self.ports()[1])

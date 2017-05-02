@@ -2,6 +2,7 @@
 
 import arrows.port_attributes as pa
 import arrows.apply.constants as co
+import arrows.apply.shapes as shp
 
 class Arrow:
     """Abstract arrow class"""
@@ -19,6 +20,12 @@ class Arrow:
             return self._ports
         else:
             return [self._ports[i] for i in idx]
+
+    def all_ports(self):
+        allports = list(self._ports)
+        for arrow in self.get_sub_arrows():
+            allports += arrow.all_ports()
+        return allports
 
     def port(self, index: int):
         return self.ports()[index]
@@ -96,7 +103,8 @@ class Arrow:
         return None
 
     def get_dispatches(self):
-        return {co.constant_pred: co.constant_dispatch}
+        return {co.constant_pred: co.constant_dispatch,
+                shp.val_to_shape_pred: shp.val_to_shape_dispatch}
 
     def get_topo_order(self):
         if self.parent is None:

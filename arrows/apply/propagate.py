@@ -26,21 +26,37 @@ import numpy as np
 # Do not propagate port attributes of this kind
 DONT_PROP = set(['InOut', 'parametric', 'error'])
 
-def is_equal(x, y):
-    a = (x == y)
-    if isinstance(a, np.ndarray):
-        return a.all()
+def resolve(x, y, fail_on_conflict=True):
+    # _x = x
+    # _y = y
+    if isinstance(x, np.ndarray) or isinstance(x, int) or isinstance(x, float) or isinstance(x, np.number):
+        # _x = np.where(np.isfinite(x), x, y)
+        # _y = np.where(np.isfinite(y), y, x)
+        # diff = np.abs(_x - _y)
+        # diff = np.where(np.isfinite(diff), diff, 0)
+        diff = np.abs(x - y)
+        err = np.mean(diff)
+        # if fail_on_conflict and err >= 1e-6:
+        #     import pdb; pdb.set_trace()
+        assert not fail_on_conflict or err < 1e-6, "conflicting: %s, %s" % (x, y)
     else:
-        return a
+        assert not fail_on_conflict or x == y, "conflicting: %s, %s" % (x, y)
+    # if isinstance(x, int):
+    #     _x = int(_x)
+    # if isinstance(x, float):
+    #     _x = float(_x)
+    # return _x
+    return x
 
 def update_port_attr(to_update: PortAttributes,
                      with_p: PortAttributes,
                      dont_update: Set,
+                     do_update=None,
                      fail_on_conflict=True):
     for key, value in with_p.items():
-        if key not in dont_update:
-            if key in to_update and fail_on_conflict:
-                assert is_equal(value, to_update[key]), "conflict %s, %s" % (value, to_update[key])
+        if (do_update is None or key in do_update) and (key not in dont_update):
+            if key in to_update:
+                value = resolve(value, to_update[key], fail_on_conflict)
             to_update[key] = value
 
 def equiv_neigh(port: Port, context):
@@ -60,6 +76,8 @@ def equiv_neigh(port: Port, context):
 def update_neigh(sub_port_attr: PortAttributes,
                  port_attr: PortAttributes,
                  context: CompositeArrow,
+                 comp_arrow: CompositeArrow,
+                 do_update,
                  working_set: Set[Arrow]):
     """
     For every port in sub_port_attr the port_attr data all of its connected nodes
@@ -74,22 +92,25 @@ def update_neigh(sub_port_attr: PortAttributes,
         for neigh_port in neigh_ports:
             # If the neighbouring node doesn't have a key which I have, then it will
             # have to be added to working set to propagate again
-            if (neigh_port.arrow != context):
+            if (neigh_port.arrow != comp_arrow):
                 neigh_attr_keys = port_attr[neigh_port].keys()
                 if any((attr_key not in neigh_attr_keys for attr_key in attrs.keys())):
                     working_set.add(neigh_port.arrow)
-            update_port_attr(port_attr[neigh_port], attrs, dont_update=DONT_PROP)
+            update_port_attr(port_attr[neigh_port], attrs, dont_update=DONT_PROP, do_update=do_update)
         # Update global with this port
-        update_port_attr(port_attr[port], attrs, dont_update=DONT_PROP)
+        update_port_attr(port_attr[port], attrs, dont_update=DONT_PROP, do_update=do_update)
 
 
 def extract_port_attr(comp_arrow, port_attr):
     for sub_arrow in comp_arrow.get_all_arrows():
-        for port in sub_arrow.ports():
-            attributes = get_port_attr(port)
-            if port not in port_attr:
-                port_attr[port] = {}
-            update_port_attr(port_attr[port], attributes, set())
+        if isinstance(sub_arrow, CompositeArrow) and sub_arrow is not comp_arrow:
+            extract_port_attr(sub_arrow, port_attr)
+        else:
+            for port in sub_arrow.ports():
+                attributes = get_port_attr(port)
+                if port not in port_attr:
+                    port_attr[port] = {}
+                update_port_attr(port_attr[port], attributes, set())
 
 #FIXME: Does unnecessary Propagate, will do a dispatch more than once
 # which is (probably) never needed
@@ -97,7 +118,9 @@ def extract_port_attr(comp_arrow, port_attr):
 # remove __eq__ form symbolictensor and run voxel render to sees
 def propagate(comp_arrow: CompositeArrow,
               port_attr: PortAttributes=None,
-              state=None) -> PortAttributes:
+              state=None,
+              already_prop=None,
+              only_prop=None) -> PortAttributes:
     """
     Propagate values around a composite arrow to determine knowns from unknowns
     The knowns should be determined by the knowns, otherwise an error throws
@@ -111,6 +134,7 @@ def propagate(comp_arrow: CompositeArrow,
     Returns:
         port->value map for all ports in composite arrow
     """
+    already_prop = set() if already_prop is None else already_prop
     print("Propagating")
     # Copy port_attr to avoid affecting input
     port_attr = {} if port_attr is None else port_attr
@@ -125,8 +149,8 @@ def propagate(comp_arrow: CompositeArrow,
     # update port_attr with values stored on port
     extract_port_attr(comp_arrow, _port_attr)
 
-    updated = set(comp_arrow.get_sub_arrows())
-    update_neigh(_port_attr, _port_attr, comp_arrow, updated)
+    updated = set(comp_arrow.get_sub_arrows_nested())
+    update_neigh(_port_attr, _port_attr, comp_arrow, comp_arrow, only_prop, updated)
     while len(updated) > 0:
         # print(len(updated), " arrows updating in proapgation iteration")
         sub_arrow = updated.pop()
@@ -136,14 +160,14 @@ def propagate(comp_arrow: CompositeArrow,
 
         pred_dispatches = sub_arrow.get_dispatches()
         for pred, dispatch in pred_dispatches.items():
-            if pred(sub_arrow, sub_port_attr):
+            if pred(sub_arrow, sub_port_attr) and (sub_arrow, dispatch) not in already_prop:
                 new_sub_port_attr = dispatch(sub_arrow, sub_port_attr)
-                update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
+                update_neigh(new_sub_port_attr, _port_attr, sub_arrow.parent, comp_arrow, only_prop, updated)
+                already_prop.add((sub_arrow, dispatch))
         if isinstance(sub_arrow, CompositeArrow):
-            sub_port_attr = {port: _port_attr[port]
-                            for port in sub_arrow.ports()
-                            if port in _port_attr}
-            new_sub_port_attr = propagate(sub_arrow, sub_port_attr, state)
-            update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
+            # new_sub_port_attr = propagate(sub_arrow, sub_port_attr, state, already_prop)
+            # update_neigh(new_sub_port_attr, _port_attr, comp_arrow, updated)
+            update_neigh(sub_port_attr, _port_attr, sub_arrow, comp_arrow, only_prop, updated)
+            update_neigh(sub_port_attr, _port_attr, sub_arrow.parent, comp_arrow, only_prop, updated)
     print("Done Propagating")
     return _port_attr

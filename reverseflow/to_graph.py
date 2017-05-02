@@ -55,19 +55,24 @@ def conv(a: BroadcastArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 
 @overload
+def conv(a: InvBroadcastArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [args[0][tuple(0 for i in a.ext_shape)]]
+
+
+@overload
 def conv(a: AddArrow, args: TensorVarList, state) -> Sequence[Tensor]:
     return [tf.add(*args)]
 
 
 @overload
 def conv(a: ExpArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    # return [tf.exp(*args)]
+    return [tf.exp(*args)]
     # FIXME Deal with me in a better way
     # FIXME This one is quite bad
-    with tf.name_scope("Safe_Exp"):
-        arg = args[0]
-        safe_arg = 40.0 * tf.tanh(arg / 40.0)
-        return [tf.exp(safe_arg)]
+    # with tf.name_scope("Safe_Exp"):
+    #     arg = args[0]
+    #     safe_arg = 40.0 * tf.tanh(arg / 40.0)
+    #     return [tf.exp(safe_arg)]
 
 
 
@@ -101,8 +106,8 @@ def conv(a: LogBaseArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: MulArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    # return [tf.multiply(*args)]
-    return [40.0 * tf.tanh(tf.multiply(*args) / 40.0)]
+    return [tf.multiply(*args)]
+    # return [40.0 * tf.tanh(tf.multiply(*args) / 40.0)]
 
 
 @overload
@@ -177,8 +182,11 @@ def conv(a: ReshapeArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: SqueezeArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    import pdb; pdb.set_trace()
     return [tf.squeeze(*args)]
+
+@overload
+def conv(a: SelectArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.select(*args)]
 
 @overload
 def conv(a: FloorDivArrow, args: TensorVarList, state) -> Sequence[Tensor]:

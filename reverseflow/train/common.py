@@ -127,7 +127,7 @@ def gen_fetch(sess: Session,
     return fetch
 
 
-def gen_update_step(loss: Tensor, learning_rate: float) -> Tensor:
+def gen_update_step(loss: Tensor, learning_rate: float=1e-4) -> Tensor:
     with tf.name_scope('optimization'):
         # optimizer = tf.train.MomentumOptimizer(0.001,
         #                                        momentum=0.1)
