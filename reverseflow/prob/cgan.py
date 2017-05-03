@@ -1,10 +1,12 @@
 """Posterior Inference with Conditional GAN"""
 import os
+import sys
 from arrows.config import floatX
 from tensorflow import Tensor
 import tensorflow as tf
 from wacacore.train.common import (train_loop, updates, variable_summaries,
                                    setup_file_writers)
+from wacacore.util.io import handle_args
 from wacacore.util.generators import infinite_samples
 from wacacore.train.callbacks import every_n, summary_writes
 from wacacore.train.search import rand_hyper_search
@@ -104,7 +106,7 @@ def tf_cgan(x_prior: Tensor,
              **options)
 
 
-def main():
+def main(options):
   """Simple Example"""
   # x, y sampled from normal distribution
   batch_size = 512
@@ -155,7 +157,6 @@ def main():
         x = tf.concat([x_1, x_2], 1)
         return x
 
-
   def disc(x, y, reuse, use_y=False):
     """Discriminator"""
     with tf.name_scope("discriminator"):
@@ -179,25 +180,31 @@ def main():
           disc,
           options)
 
+
 def hyper_search():
-  options = {'train': True,
+  options = {'update': 'adam',
+             'learning_rate': 0.0001,
+             'train': True,
              'save': True,
-             'num_iterations': 100000,
+             'num_iterations': 100,
              'save_every': 1000,
              'learning_rate': 0.001,
              'batch_size': [256, 512],
-             'datadir': os.path.join(os.environ['DATADIR'], "pdt"),
+             'datadir': os.path.join(os.environ['DATADIR'], "rf"),
              'nl': ['relu', 'elu']}
   var_option_keys = ['batch_size',
                      'nl']
   file_Path = os.path.abspath(__file__)
-  hyper_search(run_sbatch, file_Path, options, var_option_keys, nsamples=1, nrepeats=1, prefix='scalarfieldf')
-
+  rand_hyper_search(options, file_Path, var_option_keys, nsamples=4,
+                    prefix='cgan', nrepeats=1)
 
 
 if __name__ == "__main__":
-  main()
-
+  if "--hyper" in sys.argv:
+    hyper_search()
+  else:
+    options = handle_args(sys.argv[1:])
+    main(options)
 
 
 # TODO
