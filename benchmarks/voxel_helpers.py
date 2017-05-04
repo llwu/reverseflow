@@ -4,10 +4,13 @@ import os
 import math
 from functools import reduce
 
+# Datasets
+
 
 def model_net_40(voxels_path=os.path.join(os.environ['DATADIR'],
                                           'ModelNet40',
                                           'alltrain32.npy')):
+    """Model net 40 scaled to betwee 0 and 1.0"""
     voxel_grids = np.load(voxels_path) / 255.0
     return voxel_grids
 
@@ -15,11 +18,8 @@ def model_net_40(voxels_path=os.path.join(os.environ['DATADIR'],
 def model_net_40_grads(voxels_path=os.path.join(os.environ['DATADIR'],
                                                 'ModelNet40',
                                                 'alltrain32grads.npz')):
+    """Model net 40 gradients computed offline using finite differences"""
     return np.load(voxels_path)['arr_0']
-
-
-def model_net_fake(data_size=1024):
-    return np.random.rand(data_size, 32, 32, 32)
 
 
 def voxel_indices(voxels, limit, missing_magic_num=-1):
@@ -112,7 +112,14 @@ def rand_rotation_matrix(deflection=1.0, randnums=None, floatX='float32'):
     M = (np.outer(V, V) - np.eye(3)).dot(R)
     return np.array(M, dtype=floatX)
 
+
+def rand_rotation_matrices(nmats):
+    """Generate `nmats` random rotation matrices"""
+    return np.stack([rand_rotation_matrix() for i in range(nmats)])
+
+
 def show_voxel_grid(grid):
+    """Interactively visualize voxel grid"""
     from mayavi import mlab
     # from mayavi import mlab
     """Vizualise voxel grid with mlab

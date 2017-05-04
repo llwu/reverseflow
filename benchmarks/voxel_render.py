@@ -24,58 +24,7 @@ from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
 from reverseflow.train.supervised import supervised_train
 from reverseflow.train.unparam import unparam
 
-from voxel_helpers import model_net_40
-
-
-def rand_rotation_matrix(deflection=1.0, randnums=None):
-    """
-    Creates a random rotation matrix.
-    deflection: the magnitude of the rotation. For 0, no rotation; for 1,
-    competely random
-    rotation. Small deflection => small perturbation.
-    randnums: 3 random numbers in the range [0, 1]. If `None`, they will be
-    auto-generated.
-    """
-    # from realtimerendering.com/resources/GraphicsGems/gemsiii/rand_rotation.c
-
-    if randnums is None:
-        randnums = np.random.uniform(size=(3,))
-
-    theta, phi, z = randnums
-
-    theta = theta * 2.0 * deflection * np.pi  # Rotation about the pole (Z).
-    phi = phi * 2.0 * np.pi  # For direction of pole deflection.
-    z = z * 2.0 * deflection  # For magnitude of pole deflection.
-
-    # Compute a vector V used for distributing points over the sphere
-    # via the reflection I - V Transpose(V).  This formulation of V
-    # will guarantee that if x[1] and x[2] are uniformly distributed,
-    # the reflected points will be uniform on the sphere.  Note that V
-    # has length sqrt(2) to eliminate the 2 in the Householder matrix.
-
-    r = np.sqrt(z)
-    Vx, Vy, Vz = V = (
-        np.sin(phi) * r,
-        np.cos(phi) * r,
-        np.sqrt(2.0 - z)
-        )
-
-    st = np.sin(theta)
-    ct = np.cos(theta)
-
-    R = np.array(((ct, st, 0), (-st, ct, 0), (0, 0, 1)))
-
-    # Construct the rotation matrix  ( V Transpose(V) - I ) R.
-
-    M = (np.outer(V, V) - np.eye(3)).dot(R)
-    return np.array(M, dtype=floatX())
-
-
-# n random matrices
-def rand_rotation_matrices(nmats):
-    """Generate `nmats` random rotation matrices"""
-    return np.stack([rand_rotation_matrix() for i in range(nmats)])
-
+from voxel_helpers import model_net_40, rand_rotation_matrices
 
 # Genereate values in raster space, x[i,j] = [i,j]
 def gen_fragcoords(width, height):
@@ -134,33 +83,23 @@ def make_ro(r, raster_space, width, height):
     return rd, ro_t
 
 
-
-def gdotl(res):
-    # For each voxel grid, compute grid of dot product of light vector and voxel
-    vox_grid = gen_voxel_grid(res)
-    vox_grads = compute_gradient(vox_grid.reshape(-1,3), voxels, res, 1.0/nsteps, tnp = tnp)
-    light_dir = floatX([[[0,1,1]]])
-    gdotl = T.sum((light_dir * vox_grads), axis=2)
-    gdotl_cube = gdotl.reshape((nvoxgrids, res, res, res))
-    # Filter the gradients
-    gdotl_cube = cube_filter(gdotl_cube, res, 1)
-    gdotl_cube = cube_filter(gdotl_cube, res, 2)
-    gdotl_cube = cube_filter(gdotl_cube, res, 3)
-    gdotl_cube = cube_filter(gdotl_cube, res, 4)
-    gdotl_cube = cube_filter(gdotl_cube, res, 5)
-    gdotl_cube = T.maximum(0, gdotl_cube)
-    return gdotl_cube
-
-
 def gen_img(voxels, rotation_matrix, width, height, nsteps, res, batch_size,
             gdotl_cube=None, phong=False):
     """Renders n voxel grids in m different views
-    voxels : (n, res, res, res)
-    rotation_matrix : (m, 4)
-    returns (n, m, width, height))
-    gdot_cube: dot product of gradient and light, can be computed offline
-               from voxel data from functions in voxel_helpers
-    phong: do phong shading
+    Args:
+      voxels : (n, res, res, res)
+      rotation_matrix : (m, 4)
+      width: width in pixels of rendered image
+      height: height in pixels of rendered image
+      nsteps: number of points along each ray to sample voxel grid
+      res: voxel resolution 'voxels' should be res * res * res
+      batch_size: number of voxels to render in batch
+      gdot_cube: dot product of gradient and light, can be computed offline
+                 used only in phond shading
+      phong: do phong shading
+
+    Returns:
+      (n, m, width, height)) - from voxel data from functions in voxel_helpers
     """
     if phong:
       if gdotl_cube is None:
@@ -207,14 +146,15 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res, batch_size,
     orig = np.reshape(orig, (nmatrices * width * height, 3))
     rd = np.reshape(rd, (nmatrices * width * height, 3))
     step_sz = np.reshape(step_size, (nmatrices * width * height, 1))
-    print(voxels)
-    # voxels = tf.reshape(voxels, [-1])
+    step_sz_flat = step_sz.reshape(nmatrices * width * height)
 
+    # For batch rendering, we treat each voxel in each voxel independently,
+    nrays = width * height
     x = np.arange(batch_size)
+    x_tiled = np.repeat(x, nrays)
+    density = 20.0  # material property
 
     for i in range(nsteps):
-        # print "step", i
-
         # Find the position (x,y,z) of ith step
         pos = orig + rd * step_sz * i
 
@@ -223,23 +163,22 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res, batch_size,
         pruned = np.clip(voxel_indices, 0, res - 1)
         p_int = pruned.astype('int64')
         indices = np.reshape(p_int, (nmatrices * width * height, 3))
+
+        # convert to indices in flat list of voxels
         flat_indices = indices[:, 0] + res * (indices[:, 1] + res * indices[:, 2])
 
-
-        batched_indices = np.transpose([np.repeat(x, len(flat_indices)),
-                np.tile(flat_indices, len(x))])
+        # tile the indices to repeat for all elements of batch
+        tiled_indices = np.tile(flat_indices, batch_size)
+        batched_indices = np.transpose([x_tiled, tiled_indices])
+        import pdb; pdb.set_trace()
         batched_indices = batched_indices.reshape(batch_size, len(flat_indices), 2)
         attenuation = tf.gather_nd(voxels, batched_indices)
-        left_over = left_over*tf.exp(-attenuation * 0.015625 * step_sz.reshape(nmatrices * width * height))
+        if phong:
+          grad_samples = tf.gather_nd(gdotl_cube, batched_indices)
+        left_over = left_over * tf.exp(-attenuation * density * step_sz_flat)
 
     img = left_over
-    img_shape = tf.TensorShape((batch_size, nmatrices, width, height))
     return img
-    # pixels = tf.reshape(img, img_shape)
-    # mask = t14 > t04
-    # # print(mask.reshape())
-    # return pixels,
-    # return tf.select(mask.reshape(img_shape), pixels, tf.ones_like(pixels)), rd, ro, tn_x, tf.ones(img_shape), orig, voxels
 
 
 def default_options():
@@ -247,8 +186,9 @@ def default_options():
     return {'width': 128,
             'height': 128,
             'res': 32,
-            'nsteps': 40,
-            'nviews': 1}
+            'nsteps': 100,
+            'nviews': 1,
+            'density': 1.0}
 
 
 def render_fwd_f(inputs, batch_size, options):
@@ -301,6 +241,7 @@ def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None,
             pickle.dump((inputs, params), f)
     return inputs, params
 
+
 def plot_batch(image_batch):
   """Plot a batch of images"""
   batch_size = len(image_batch)
@@ -346,6 +287,26 @@ def render_rand_voxels(voxel_grids, batch_size, options):
     return {'inputs': input_data, 'outputs': output_data}
 
 
+def main():
+    def debug_signal_handler(signal, frame):
+        pdb.set_trace()
+    signal.signal(signal.SIGINT, debug_signal_handler)
+    voxel_grids = model_net_40()
+    inv_viz_allones(voxel_grids, options, batch_size=8)
+    # generalization_bench()
+
+def test_renderer():
+    voxel_grids = model_net_40()
+    options = default_options()
+    data = render_rand_voxels(voxel_grids, 8, options)
+    plot_batch(data['outputs'][0])
+    import pdb; pdb.set_trace()
+
+if __name__ == "__main__":
+    test_renderer()
+    # main()
+
+# Benchmarking
 def pi_supervised(options):
     """Neural network enhanced Parametric inverse! to do supervised learning"""
     tf.reset_default_graph()
@@ -378,34 +339,13 @@ def pi_supervised(options):
                      options=options)
 
 
-# Benchmarks
 def generalization_bench():
+    """Benchmark generalization ability of inverse graphics methods"""
     options = handle_options('voxel_render', sys.argv[1:])
     sfx = gen_sfx_key(('nblocks', 'block_size'), options)
     options['sfx'] = sfx
     options['description'] = "Voxel Generalization Benchmark"
     test_generalization(pi_supervised, options)
-
-
-def main():
-    def debug_signal_handler(signal, frame):
-        pdb.set_trace()
-    signal.signal(signal.SIGINT, debug_signal_handler)
-    voxel_grids = model_net_40()
-    inv_viz_allones(voxel_grids, options, batch_size=8)
-    # generalization_bench()
-
-def test_renderer():
-    voxel_grids = model_net_40()
-    options = default_options()
-    data = render_rand_voxels(voxel_grids, 8, options)
-    plot_batch(data['outputs'][0])
-    import pdb; pdb.set_trace()
-
-if __name__ == "__main__":
-    test_renderer()
-    # main()
-
 
 # TODO
 # 1. Compute the gradients offline and test render
