@@ -2,6 +2,7 @@
 import os
 import signal
 import sys
+import pdb
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,6 +23,8 @@ from reverseflow.train.common import get_tf_num_params
 from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
 from reverseflow.train.supervised import supervised_train
 from reverseflow.train.unparam import unparam
+
+from voxel_helpers import model_net_40
 
 
 def rand_rotation_matrix(deflection=1.0, randnums=None):
@@ -131,7 +134,25 @@ def make_ro(r, raster_space, width, height):
     return rd, ro_t
 
 
-def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
+
+def gdotl(res):
+    # For each voxel grid, compute grid of dot product of light vector and voxel
+    vox_grid = gen_voxel_grid(res)
+    vox_grads = compute_gradient(vox_grid.reshape(-1,3), voxels, res, 1.0/nsteps, tnp = tnp)
+    light_dir = floatX([[[0,1,1]]])
+    gdotl = T.sum((light_dir * vox_grads), axis=2)
+    gdotl_cube = gdotl.reshape((nvoxgrids, res, res, res))
+    # Filter the gradients
+    gdotl_cube = cube_filter(gdotl_cube, res, 1)
+    gdotl_cube = cube_filter(gdotl_cube, res, 2)
+    gdotl_cube = cube_filter(gdotl_cube, res, 3)
+    gdotl_cube = cube_filter(gdotl_cube, res, 4)
+    gdotl_cube = cube_filter(gdotl_cube, res, 5)
+    gdotl_cube = T.maximum(0, gdotl_cube)
+    return gdotl_cube
+
+
+def gen_img(voxels, rotation_matrix, width, height, nsteps, res, batch_size):
     """Renders n voxel grids in m different views
     voxels : (n, res, res, res)
     rotation_matrix : (m, 4)
@@ -170,10 +191,8 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
     t04 = t04 * 1.001
     t14 = t14 * 0.999
 
-    batched = len(voxels.get_shape()) > 1
-    batch_size = int(voxels.get_shape()[0]) if batched else 1
     left_over = np.ones((batch_size, nmatrices * width * height,))
-    step_size = (t14 - t04)/nsteps
+    step_size = (t14 - t04) / nsteps
     orig = np.reshape(ro, (nmatrices, 1, 1, 3)) + rd * np.reshape(t04,(nmatrices, width, height, 1))
     xres = yres = res
 
@@ -182,6 +201,8 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
     step_sz = np.reshape(step_size, (nmatrices * width * height, 1))
     print(voxels)
     # voxels = tf.reshape(voxels, [-1])
+
+    # Phong rendering
 
     for i in range(nsteps):
         # print "step", i
@@ -194,14 +215,10 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
         # print("ishape", flat_indices.shape, "vshape", voxels.get_shape())
         # attenuation = voxels[:, indices[:,0],indices[:,1],indices[:,2]]
         attenuation = None
-        if batched:
-            x = np.arange(batch_size)
-            batched_indices = np.transpose([np.repeat(x, len(flat_indices)),
-                    np.tile(flat_indices, len(x))]).reshape(batch_size, len(flat_indices), 2)
-            attenuation = tf.gather_nd(voxels, batched_indices)
-        else:
-            attenuation = tf.gather(voxels, flat_indices)
-        print("attenuation step", attenuation.get_shape(), step_sz.shape)
+        x = np.arange(batch_size)
+        batched_indices = np.transpose([np.repeat(x, len(flat_indices)),
+                np.tile(flat_indices, len(x))]).reshape(batch_size, len(flat_indices), 2)
+        attenuation = tf.gather_nd(voxels, batched_indices)
         left_over = left_over*tf.exp(-attenuation * 0.015625 * step_sz.reshape(nmatrices * width * height))
 
     img = left_over
@@ -215,28 +232,31 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
     # return tf.select(mask.reshape(img_shape), pixels, tf.ones_like(pixels)), rd, ro, tn_x, tf.ones(img_shape), orig, voxels
 
 
-def render_fwd_f(inputs):
+def default_options():
+    """Default options for rendering"""
+    return {'width': 128,
+            'height': 128,
+            'res': 32,
+            'nsteps': 10,
+            'nviews': 1}
+
+
+def render_fwd_f(inputs, options):
     """Render the input voxels"""
     voxels = inputs['voxels']
-    options = {}
-    width = options['width'] = 128
-    height = options['height'] = 128
-    res = options['res'] = 32
-    nsteps = options['nsteps'] = 5
-    nviews = options['nviews'] = 1
+    width, height, nsteps, res, nviews = getn(options, 'width', 'height',
+                                              'nsteps', 'res', 'nviews')
     rotation_matrices = rand_rotation_matrices(nviews)
     out_img = gen_img(voxels, rotation_matrices, width, height, nsteps, res)
     outputs = {"out_img": out_img}
     return outputs
 
 
-def render_gen_graph(g, batch_size):
+def render_gen_graph(g, batch_size, res=32):
     """Generate a graph for the rendering function"""
-    nvoxgrids = 1
-    res = 32
     with g.name_scope("fwd_g"):
         voxels = tf.placeholder(floatX(), name="voxels",
-                                shape=(batch_size, nvoxgrids * res * res * res))
+                                shape=(batch_size, res * res * res))
         inputs = {"voxels": voxels}
         outputs = render_fwd_f(inputs)
         return {"inputs": inputs, "outputs": outputs}
@@ -251,7 +271,8 @@ def test_render_graph(batch_size):
     return arrow_renderer, inv_renderer
 
 
-def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None, pickle_to=None):
+def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None,
+                    pickle_to=None):
     """Pulls params from 'forward' runs. FIXME: mutates port_attr."""
     if port_attr is None:
         port_attr = propagate(inv)
@@ -270,10 +291,13 @@ def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None, pickle_to=N
             pickle.dump((inputs, params), f)
     return inputs, params
 
-def inv_viz_allones(batch_size):
+
+def inv_viz_allones(voxel_grids, batch_size):
+    """Invert voxel renderer, run with all 1s as parameters, visualize"""
     arrow, inv = test_render_graph(batch_size=batch_size)
     info = propagate(inv)
-    inputs, params = get_param_pairs(inv, voxel_grids, batch_size, 1, port_attr=info)
+    inputs, params = get_param_pairs(inv, voxel_grids, batch_size, 1,
+                                     port_attr=info)
     outputs = apply(arrow, inputs[0])
     output_list = [outputs[0]] + params[0]
     recons = apply(inv, output_list)[0]
@@ -288,8 +312,8 @@ def inv_viz_allones(batch_size):
         plt.show()
 
 
-def gen_data(batch_size):
-    """Generate data for training"""
+def render_rand_voxels(voxel_grids, batch_size):
+    """Render `batch_size` randomly selected voxels for voxel_grids"""
     graph = tf.Graph()
     with graph.as_default():
         inputs, outputs = getn(render_gen_graph(graph, batch_size), 'inputs', 'outputs')
@@ -316,8 +340,8 @@ def pi_supervised(options):
     right_inv = unparam(inv_arrow)
     sup_right_inv = supervised_loss_arrow(right_inv)
     # Get training and test_data
-    train_data = gen_data(batch_size)
-    test_data = gen_data(1024)
+    train_data = render_rand_voxels(batch_size)
+    test_data = render_rand_voxels(1024)
 
     # Have to switch input from output because data is from fwd model
     train_input_data = train_data['outputs']
@@ -344,12 +368,26 @@ def generalization_bench():
     test_generalization(pi_supervised, options)
 
 
-if __name__ == "__main__":
+def main():
     def debug_signal_handler(signal, frame):
         pdb.set_trace()
     signal.signal(signal.SIGINT, debug_signal_handler)
-    voxels_path = os.path.join(os.environ['DATADIR'],
-                               'ModelNet40', 'alltrain32.npy')
-    voxel_grids = np.load(voxels_path)
-    inv_viz_allones(batch_size=8)
+    voxel_grids = model_net_40()
+    inv_viz_allones(voxel_grids, batch_size=8)
     # generalization_bench()
+
+def test_renderer():
+    voxel_grids = model_net_40()
+    data = render_rand_voxels(voxel_grids, batch_size=8)
+    import pdb; pdb.set_trace()
+
+if __name__ == "__main__":
+    test_renderer()
+    # main()
+
+
+# TODO
+# 1. Compute the gradients offline and test render
+# 2. Compute them all and save as modelnetgradients
+# 3. Make gradients additional input to render function
+# 4. Add phong rendering
