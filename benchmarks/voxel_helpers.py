@@ -11,6 +11,11 @@ def model_net_40(voxels_path=os.path.join(os.environ['DATADIR'],
     return voxel_grids
 
 
+def model_net_40_grads(voxels_path=os.path.join(os.environ['DATADIR'],
+                                          'ModelNet40',
+                                          'alltrain32grads.npz')):
+    return np.load(voxels_path)['arr_0']
+
 def model_net_fake(data_size=1024):
     return np.random.rand(data_size, 32, 32, 32)
 
