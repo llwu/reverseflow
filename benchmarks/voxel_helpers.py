@@ -2,19 +2,21 @@
 import numpy as np
 import os
 import math
+from functools import reduce
 
 
 def model_net_40(voxels_path=os.path.join(os.environ['DATADIR'],
                                           'ModelNet40',
                                           'alltrain32.npy')):
-    voxel_grids = np.load(voxels_path)/255.0
+    voxel_grids = np.load(voxels_path) / 255.0
     return voxel_grids
 
 
 def model_net_40_grads(voxels_path=os.path.join(os.environ['DATADIR'],
-                                          'ModelNet40',
-                                          'alltrain32grads.npz')):
+                                                'ModelNet40',
+                                                'alltrain32grads.npz')):
     return np.load(voxels_path)['arr_0']
+
 
 def model_net_fake(data_size=1024):
     return np.random.rand(data_size, 32, 32, 32)
@@ -196,3 +198,60 @@ def batch_compute_grad(voxels, res, batch_size, n=1):
         voxel_batch = voxels[lb:ub]
         grad_batch.append(compute_gradient(pos, voxel_batch, res, n=n))
     return np.concatenate(grad_batch, axis=0)
+
+
+def cartesian_product(arrays):
+    broadcastable = np.ix_(*arrays)
+    broadcasted = np.broadcast_arrays(*broadcastable)
+    rows, cols = reduce(np.multiply, broadcasted[0].shape), len(broadcasted)
+    out = np.empty(rows * cols, dtype=broadcasted[0].dtype)
+    start, end = 0, rows
+    for a in broadcasted:
+        out[start:end] = a.reshape(-1)
+        start, end = end, end + rows
+    return out.reshape(cols, rows).T
+
+
+def cube_filter(voxels, res, n=1):
+    """Smooth gradients
+    Take nvoxels,res,res,res voxels and return something of the same size"""
+    indices_range = np.arange(res)
+    indices = cartesian_product([indices_range, indices_range, indices_range])
+    x_zero = indices[:, 0]
+    y_zero = indices[:, 1]
+    z_zero = indices[:, 2]
+    x_neg = np.clip(indices[:, 0] - n, 0, res - 1)
+    x_add = np.clip(indices[:, 0] + n, 0, res - 1)
+    y_neg = np.clip(indices[:, 1] - n, 0, res - 1)
+    y_add = np.clip(indices[:, 1] + n, 0, res - 1)
+    z_neg = np.clip(indices[:, 2] - n, 0, res - 1)
+    z_add = np.clip(indices[:, 2] + n, 0, res - 1)
+    v_x_add = voxels[:, x_add, y_zero, z_zero]
+    v_x_neg = voxels[:, x_neg, y_zero, z_zero]
+    v_y_add = voxels[:, x_zero, y_add, z_zero]
+    v_y_neg = voxels[:, x_zero, y_neg, z_zero]
+    v_z_add = voxels[:, x_zero, y_zero, z_add]
+    v_z_neg = voxels[:, x_zero, y_zero, z_neg]
+
+    voxels_flat = voxels.reshape((-1, res**3))
+    voxels_mean = (v_x_add + v_x_neg + v_y_add + v_y_neg + v_z_add + v_z_neg + voxels_flat)/7.0
+    return voxels_mean.reshape(voxels.shape)
+
+
+def gdotl(light_dir, vox_grads, res, batch_size, nfilters=5):
+    """
+    Compute dot product of light vector with filted gradient vector
+    light_dir: vector direction of light, e.g, np.array([[[0, 1, 1]]])
+    """
+    gdotl = np.sum((light_dir * vox_grads), axis=2)
+    gdotl_cube = gdotl.reshape((batch_size, res, res, res))
+    # Filter the gradients
+    for i in range(1, nfilters):
+      gdotl_cube = cube_filter(gdotl_cube, res, i)
+    gdotl_cube = np.maximum(0, gdotl_cube)
+    return gdotl_cube
+
+
+# vox_grads = model_net_40_grads()
+# light_dir = np.array([[[0, 1, 1]]])
+# smelly = gdotl(light_dir, vox_grads, 32, 10)
