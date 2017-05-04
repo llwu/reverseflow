@@ -1,6 +1,5 @@
 """ (Inverse) Rendering"""
 import os
-import pdb
 import signal
 import sys
 
@@ -15,7 +14,7 @@ from arrows.port_attributes import is_param_port, is_error_port
 from arrows.transform.eliminate_gather import eliminate_gathernd
 from arrows.util.misc import getn
 from arrows.util.viz import show_tensorboard, show_tensorboard_graph
-from benchmarks.common import handle_options, gen_sfx_key
+from benchmarks.common import handle_options
 from metrics.generalization import test_generalization
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
@@ -41,9 +40,9 @@ def rand_rotation_matrix(deflection=1.0, randnums=None):
 
     theta, phi, z = randnums
 
-    theta = theta * 2.0*deflection*np.pi  # Rotation about the pole (Z).
-    phi = phi * 2.0*np.pi  # For direction of pole deflection.
-    z = z * 2.0*deflection  # For magnitude of pole deflection.
+    theta = theta * 2.0 * deflection * np.pi  # Rotation about the pole (Z).
+    phi = phi * 2.0 * np.pi  # For direction of pole deflection.
+    z = z * 2.0 * deflection  # For magnitude of pole deflection.
 
     # Compute a vector V used for distributing points over the sphere
     # via the reflection I - V Transpose(V).  This formulation of V
@@ -70,8 +69,9 @@ def rand_rotation_matrix(deflection=1.0, randnums=None):
 
 
 # n random matrices
-def rand_rotation_matrices(n):
-    return np.stack([rand_rotation_matrix() for i in range(n)])
+def rand_rotation_matrices(nmats):
+    """Generate `nmats` random rotation matrices"""
+    return np.stack([rand_rotation_matrix() for i in range(nmats)])
 
 
 # Genereate values in raster space, x[i,j] = [i,j]
@@ -81,7 +81,7 @@ def gen_fragcoords(width, height):
     raster_space = np.zeros([width, height, 2], dtype=floatX())
     for i in range(width):
         for j in range(height):
-            raster_space[i,j] = np.array([i,j], dtype=floatX()) + 0.5
+            raster_space[i, j] = np.array([i, j], dtype=floatX()) + 0.5
     return raster_space
 
 
@@ -89,15 +89,6 @@ def gen_fragcoords(width, height):
 def stack(intensor, width, height, scalar):
     scalars = np.ones([width, height, 1], dtype=floatX()) * scalar
     return np.concatenate([intensor, scalars], axis=2)
-
-
-def switch(cond, a, b):
-    return cond*a + (1-cond)*b
-
-
-def dot(a, b):
-    """Dot product of a and b"""
-    return tf.reduce_sum(a * b)
 
 
 def norm(x):
@@ -114,7 +105,7 @@ def make_ro(r, raster_space, width, height):
     # Put it in NDC space, -1, 1
     screen_space = -1.0 + 2.0 * norm_raster_space
     # Make pixels square by mul by aspect ratio
-    aspect_ratio = resolution[0]/resolution[1]
+    aspect_ratio = resolution[0] / resolution[1]
     ndc_space = screen_space * np.array([aspect_ratio, 1.0], dtype=floatX())
     # Ray Direction
 
@@ -176,15 +167,15 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
     t14 = np.where(tff_x < t13, tff_x, t13)
 
     # Shift a little bit to avoid numerial inaccuracies
-    t04 = t04*1.001
-    t14 = t14*0.999
+    t04 = t04 * 1.001
+    t14 = t14 * 0.999
 
     batched = len(voxels.get_shape()) > 1
     batch_size = int(voxels.get_shape()[0]) if batched else 1
     left_over = np.ones((batch_size, nmatrices * width * height,))
     step_size = (t14 - t04)/nsteps
     orig = np.reshape(ro, (nmatrices, 1, 1, 3)) + rd * np.reshape(t04,(nmatrices, width, height, 1))
-    xres = yres = zres = res
+    xres = yres = res
 
     orig = np.reshape(orig, (nmatrices * width * height, 3))
     rd = np.reshape(rd, (nmatrices * width * height, 3))
@@ -194,11 +185,11 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
 
     for i in range(nsteps):
         # print "step", i
-        pos = orig + rd*step_sz*i
+        pos = orig + rd * step_sz * i
         voxel_indices = np.floor(pos*res)
-        pruned = np.clip(voxel_indices,0,res-1)
+        pruned = np.clip(voxel_indices, 0, res - 1)
         p_int = pruned.astype('int64')
-        indices = np.reshape(p_int, (nmatrices*width*height,3))
+        indices = np.reshape(p_int, (nmatrices * width * height, 3))
         flat_indices = indices[:, 0] + res * (indices[:, 1] + res * indices[:, 2])
         # print("ishape", flat_indices.shape, "vshape", voxels.get_shape())
         # attenuation = voxels[:, indices[:,0],indices[:,1],indices[:,2]]
@@ -211,7 +202,7 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
         else:
             attenuation = tf.gather(voxels, flat_indices)
         print("attenuation step", attenuation.get_shape(), step_sz.shape)
-        left_over = left_over*tf.exp(-attenuation*0.015625*step_sz.reshape(nmatrices * width * height))
+        left_over = left_over*tf.exp(-attenuation * 0.015625 * step_sz.reshape(nmatrices * width * height))
 
     img = left_over
     img_shape = tf.TensorShape((batch_size, nmatrices, width, height))
@@ -225,6 +216,7 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res):
 
 
 def render_fwd_f(inputs):
+    """Render the input voxels"""
     voxels = inputs['voxels']
     options = {}
     width = options['width'] = 128
@@ -244,7 +236,7 @@ def render_gen_graph(g, batch_size):
     res = 32
     with g.name_scope("fwd_g"):
         voxels = tf.placeholder(floatX(), name="voxels",
-                                shape=(batch_size, nvoxgrids*res*res*res))
+                                shape=(batch_size, nvoxgrids * res * res * res))
         inputs = {"voxels": voxels}
         outputs = render_fwd_f(inputs)
         return {"inputs": inputs, "outputs": outputs}
@@ -257,6 +249,7 @@ def test_render_graph(batch_size):
     arrow_renderer = graph_to_arrow([out_img_tensor], name="renderer")
     inv_renderer = invert(arrow_renderer)
     return arrow_renderer, inv_renderer
+
 
 def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None, pickle_to=None):
     """Pulls params from 'forward' runs. FIXME: mutates port_attr."""
