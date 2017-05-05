@@ -278,5 +278,3 @@ def gen_gdotl_cube(light_dir=np.array([[[0, 1, 1]]]), batch_size=10):
               lambda batch_vox_grads: gdotl(light_dir, batch_vox_grads, 32),
               lambda list_batches: np.concatenate(list_batches, axis=0),
               batch_size)
-
-lolcats = gen_gdotl_cube()

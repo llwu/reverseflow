@@ -24,7 +24,7 @@ from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
 from reverseflow.train.supervised import supervised_train
 from reverseflow.train.unparam import unparam
 
-from voxel_helpers import model_net_40, rand_rotation_matrices
+from voxel_helpers import model_net_40, model_net_40_gdotl, rand_rotation_matrices
 
 # Genereate values in raster space, x[i,j] = [i,j]
 def gen_fragcoords(width, height):
@@ -178,14 +178,11 @@ def gen_img(voxels, gdotl_cube, rotation_matrix, options):
         # tile the indices to repeat for all elements of batch
         tiled_indices = np.tile(flat_indices, batch_size)
         batched_indices = np.transpose([x_tiled, tiled_indices])
-        import pdb; pdb.set_trace()
         batched_indices = batched_indices.reshape(batch_size, len(flat_indices), 2)
         attenuation = tf.gather_nd(voxels, batched_indices)
-        import pdb; pdb.set_trace()
         if phong:
             grad_samples = tf.gather_nd(gdotl_cube, batched_indices)
-            rgb = 0.5
-            rgb = rgb
+            attenuation = attenuation * grad_samples
         left_over = left_over * tf.exp(-attenuation * density * step_sz_flat)
 
     img = left_over
@@ -219,13 +216,13 @@ def render_gen_graph(options):
 
         if phong:
             gdotl_cube = tf.placeholder(floatX(), name="gdotl",
-                                        shape=(batch_size, nvoxels, 3))
+                                        shape=(batch_size, nvoxels))
         else:
             gdotl_cube = None
 
         rotation_matrices = rand_rotation_matrices(nviews)
         out_img = gen_img(voxels, gdotl_cube, rotation_matrices, options)
-        return {'input_voxels': voxels,
+        return {'voxels': voxels,
                 'gdotl_cube': gdotl_cube,
                 'out_img': out_img}
 
@@ -288,20 +285,26 @@ def inv_viz_allones(voxel_grids, options, batch_size):
         plt.show()
 
 
-def render_rand_voxels(voxel_grids, options):
+def render_rand_voxels(voxels_data, gdotl_cube_data, options):
     """Render `batch_size` randomly selected voxels for voxel_grids"""
+    assert len(voxels_data) == len(gdotl_cube_data)
     batch_size = options.get('batch_size')
     graph = tf.Graph()
     with graph.as_default():
-        voxels, gdotl, out_img = getn(render_gen_graph(options),
-                                      'voxels', 'gdotl', 'out_img')
-        outputs = [outputs['out_img']]
-        rand_voxel_id = np.random.randint(0, voxel_grids.shape[0], size=batch_size)
-        input_data = [voxel_grids[rand_voxel_id].reshape(i.get_shape()) for i in voxels]
+        voxels, gdotl_cube, out_img = getn(render_gen_graph(options),
+                                           'voxels', 'gdotl_cube', 'out_img')
+        rand_id = np.random.randint(len(voxels_data), size=batch_size)
+        input_voxels = [voxels_data[rand_id[i]].reshape(voxels[i].get_shape()) for i in range(batch_size)]
+        input_gdotl_cube = [gdotl_cube_data[rand_id[i]].reshape(gdotl_cube[i].get_shape()) for i in range(batch_size)]
+
         sess = tf.Session()
-        output_data = sess.run(outputs, feed_dict=dict(zip(inputs, input_data)))
+        feed_dict = {voxels: input_voxels}
+        if options['phong']:
+            feed_dict[gdotl_cube] = input_gdotl_cube
+        out_img_data = sess.run(out_img, feed_dict=feed_dict)
         sess.close()
-    return {'inputs': input_data, 'outputs': output_data}
+    return {'input_voxels': input_voxels,
+            'out_img_data': out_img_data}
 
 
 def main():
@@ -312,12 +315,14 @@ def main():
     inv_viz_allones(voxel_grids, options, batch_size=8)
     # generalization_bench()
 
+
 def test_renderer():
     voxel_grids = model_net_40()
+    gdotl_cube_data = model_net_40_gdotl()
     options = default_options()
-    data = render_rand_voxels(voxel_grids, options)
-    plot_batch(data['outputs'][0])
-    import pdb; pdb.set_trace()
+    inp_out = render_rand_voxels(voxel_grids, gdotl_cube_data, options)
+    plot_batch(inp_out['out_img_data'])
+
 
 if __name__ == "__main__":
     test_renderer()
