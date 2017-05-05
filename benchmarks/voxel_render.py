@@ -106,8 +106,8 @@ def gen_img(voxels, gdotl_cube, rotation_matrix, options):
     Returns:
       (n, m, width, height) - from voxel data from functions in voxel_helpers
     """
-    width, height, nsteps, res, batch_size, phong = getn(options,
-      'width', 'height', 'nsteps', 'res', 'batch_size', 'phong')
+    width, height, nsteps, res, batch_size, phong, density = getn(options,
+      'width', 'height', 'nsteps', 'res', 'batch_size', 'phong', 'density')
 
     if phong:
       if gdotl_cube is None:
@@ -160,7 +160,6 @@ def gen_img(voxels, gdotl_cube, rotation_matrix, options):
     nrays = width * height
     x = np.arange(batch_size)
     x_tiled = np.repeat(x, nrays)
-    density = 20.0  # material property
 
     for i in range(nsteps):
         # Find the position (x,y,z) of ith step
@@ -197,8 +196,8 @@ def default_options():
             'res': 32,
             'nsteps': 100,
             'nviews': 1,
-            'density': 1.0,
-            'phong': True}
+            'density': 100.0,
+            'phong': False}
 
 
 def render_gen_graph(options):
@@ -287,7 +286,6 @@ def inv_viz_allones(voxel_grids, options, batch_size):
 
 def render_rand_voxels(voxels_data, gdotl_cube_data, options):
     """Render `batch_size` randomly selected voxels for voxel_grids"""
-    assert len(voxels_data) == len(gdotl_cube_data)
     batch_size = options.get('batch_size')
     graph = tf.Graph()
     with graph.as_default():
@@ -295,11 +293,11 @@ def render_rand_voxels(voxels_data, gdotl_cube_data, options):
                                            'voxels', 'gdotl_cube', 'out_img')
         rand_id = np.random.randint(len(voxels_data), size=batch_size)
         input_voxels = [voxels_data[rand_id[i]].reshape(voxels[i].get_shape()) for i in range(batch_size)]
-        input_gdotl_cube = [gdotl_cube_data[rand_id[i]].reshape(gdotl_cube[i].get_shape()) for i in range(batch_size)]
 
         sess = tf.Session()
         feed_dict = {voxels: input_voxels}
         if options['phong']:
+            input_gdotl_cube = [gdotl_cube_data[rand_id[i]].reshape(gdotl_cube[i].get_shape()) for i in range(batch_size)]
             feed_dict[gdotl_cube] = input_gdotl_cube
         out_img_data = sess.run(out_img, feed_dict=feed_dict)
         sess.close()
@@ -317,9 +315,12 @@ def main():
 
 
 def test_renderer():
-    voxel_grids = model_net_40()
-    gdotl_cube_data = model_net_40_gdotl()
     options = default_options()
+    voxel_grids = model_net_40()
+    if options['phong']:
+        gdotl_cube_data = model_net_40_gdotl()
+    else:
+        gdotl_cube_data = None
     inp_out = render_rand_voxels(voxel_grids, gdotl_cube_data, options)
     plot_batch(inp_out['out_img_data'])
 
