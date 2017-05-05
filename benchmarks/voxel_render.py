@@ -26,6 +26,12 @@ from reverseflow.train.unparam import unparam
 
 from voxel_helpers import model_net_40, model_net_40_gdotl, rand_rotation_matrices
 
+# For repeatability
+# STD_ROTATION_MATRIX = rand_rotation_matrices(nviews)
+STD_ROTATION_MATRIX = np.array([[[0.94071758, -0.33430171, -0.05738258],
+                                 [-0.33835238, -0.91297877, -0.2280076],
+                                 [0.02383425, 0.2339063, -0.97196698]]])
+
 # Genereate values in raster space, x[i,j] = [i,j]
 def gen_fragcoords(width, height):
     """Create a (width * height * 2) matrix, where element i,j is [i,j]
@@ -196,7 +202,7 @@ def default_options():
             'res': 32,
             'nsteps': 100,
             'nviews': 1,
-            'density': 100.0,
+            'density': 10.0,
             'phong': False}
 
 
@@ -219,7 +225,7 @@ def render_gen_graph(options):
         else:
             gdotl_cube = None
 
-        rotation_matrices = rand_rotation_matrices(nviews)
+        rotation_matrices = STD_ROTATION_MATRIX
         out_img = gen_img(voxels, gdotl_cube, rotation_matrices, options)
         return {'voxels': voxels,
                 'gdotl_cube': gdotl_cube,
