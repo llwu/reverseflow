@@ -3,6 +3,7 @@ import numpy as np
 import os
 import math
 from functools import reduce
+from wacacore.util.misc import batch_map
 
 # Datasets
 
@@ -18,6 +19,13 @@ def model_net_40(voxels_path=os.path.join(os.environ['DATADIR'],
 def model_net_40_grads(voxels_path=os.path.join(os.environ['DATADIR'],
                                                 'ModelNet40',
                                                 'alltrain32grads.npz')):
+    """Model net 40 gradients computed offline using finite differences"""
+    return np.load(voxels_path)['arr_0']
+
+
+def model_net_40_gdotl(voxels_path=os.path.join(os.environ['DATADIR'],
+                                                'ModelNet40',
+                                                'alltrain32gdotl.npz')):
     """Model net 40 gradients computed offline using finite differences"""
     return np.load(voxels_path)['arr_0']
 
@@ -193,7 +201,7 @@ def full_compute_grad(voxels, res, n=1):
     pos = get_indices(vox_grid, 32)
     return compute_gradient(pos, voxels, res, n=n)
 
-# FIXME: This batch should be abstracted to another funciton
+# FIXME: update to use batch_map
 def batch_compute_grad(voxels, res, batch_size, n=1):
     vox_grid = gen_voxel_grid(res)
     pos = get_indices(vox_grid, 32)
@@ -263,29 +271,12 @@ def gdotl(light_dir, vox_grads, res, nfilters=5):
     return gdotl_cube
 
 
-def batch_map(inp, func, reduce_func, batch_size):
-    """Batched_map: like map but does a batch at a time then combines
-    Args:
-      inp: input to map over
-      func: function to map with
-      reduce_func: function to combine list of batched mapped values
-      batch_size: number of elements to do in each batch
-    """
-    niters = math.ceil(len(inp) // batch_size)
-    everything = []
-    for i in range(niters):
-        lb = i * batch_size
-        ub = min((i * batch_size) + batch_size, len(inp))
-        batch = inp[lb:ub]
-        everything.append(func(batch))
-    return reduce_func(everything)
+def gen_gdotl_cube(light_dir=np.array([[[0, 1, 1]]]), batch_size=10):
+    """Generate gdotl voxel cube"""
+    vox_grads = model_net_40_grads()
+    return batch_map(vox_grads,
+              lambda batch_vox_grads: gdotl(light_dir, batch_vox_grads, 32),
+              lambda list_batches: np.concatenate(list_batches, axis=0),
+              batch_size)
 
-# vox_grads = model_net_40_grads()
-# light_dir = np.array([[[0, 1, 1]]])
-# smelly = gdotl(light_dir, vox_grads[0:10], 32, 10)
-#
-# batch_size = 10
-# batch_map(vox_grads[0:300],
-#           lambda batch_vox_grads: gdotl(light_dir, batch_vox_grads, 32),
-#           lambda list_batches: np.concatenate(list_batches, axis=0),
-#           batch_size)
+lolcats = gen_gdotl_cube()
