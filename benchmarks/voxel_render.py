@@ -82,12 +82,17 @@ def make_ro(r, raster_space, width, height):
     rd = unnorm_rd / np.reshape(norm(unnorm_rd), (nmatrices, width, height, 1))
     return rd, ro_t
 
+# 1. possibly some constraints on the options, i.e. a struct ratehr than anything
+# goes dictionary
+# 2. want to be able to call the function independently from creating a struct
+# 3. I want to be able to pass the struct along easily without its members being lost
 
-def gen_img(voxels, rotation_matrix, width, height, nsteps, res, batch_size,
-            gdotl_cube=None, phong=False):
-    """Renders n voxel grids in m different views
+
+
+def gen_img(voxels, gdotl_cube, rotation_matrix, options):
+    """Renders `batch_size` voxel grids
     Args:
-      voxels : (n, res, res, res)
+      voxels : (batch_size, res, res, res)
       rotation_matrix : (m, 4)
       width: width in pixels of rendered image
       height: height in pixels of rendered image
@@ -99,8 +104,11 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res, batch_size,
       phong: do phong shading
 
     Returns:
-      (n, m, width, height)) - from voxel data from functions in voxel_helpers
+      (n, m, width, height) - from voxel data from functions in voxel_helpers
     """
+    width, height, nsteps, res, batch_size, phong = getn(options,
+      'width', 'height', 'nsteps', 'res', 'batch_size', 'phong')
+
     if phong:
       if gdotl_cube is None:
         raise(ValueError("Must provide gdotl_cube for phong rendering"))
@@ -173,8 +181,11 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res, batch_size,
         import pdb; pdb.set_trace()
         batched_indices = batched_indices.reshape(batch_size, len(flat_indices), 2)
         attenuation = tf.gather_nd(voxels, batched_indices)
+        import pdb; pdb.set_trace()
         if phong:
-          grad_samples = tf.gather_nd(gdotl_cube, batched_indices)
+            grad_samples = tf.gather_nd(gdotl_cube, batched_indices)
+            rgb = 0.5
+            rgb = rgb
         left_over = left_over * tf.exp(-attenuation * density * step_sz_flat)
 
     img = left_over
@@ -183,39 +194,44 @@ def gen_img(voxels, rotation_matrix, width, height, nsteps, res, batch_size,
 
 def default_options():
     """Default options for rendering"""
-    return {'width': 128,
+    return {'batch_size': 8,
+            'width': 128,
             'height': 128,
             'res': 32,
             'nsteps': 100,
             'nviews': 1,
-            'density': 1.0}
+            'density': 1.0,
+            'phong': True}
 
 
-def render_fwd_f(inputs, batch_size, options):
-    """Render the input voxels"""
-    voxels = inputs['voxels']
-    width, height, nsteps, res, nviews = getn(options, 'width', 'height',
-                                              'nsteps', 'res', 'nviews')
-    rotation_matrices = rand_rotation_matrices(nviews)
-    out_img = gen_img(voxels, rotation_matrices, width, height, nsteps, res, batch_size)
-    outputs = {"out_img": out_img}
-    return outputs
-
-
-def render_gen_graph(g, batch_size, res, options):
+def render_gen_graph(options):
     """Generate a graph for the rendering function"""
-    with g.name_scope("fwd_g"):
+    res = options.get('res')
+    batch_size = options.get('batch_size')
+    phong = options.get('phong')
+    nviews = options.get('nviews')
+
+    nvoxels = res * res * res
+
+    with tf.name_scope("fwd_g"):
         voxels = tf.placeholder(floatX(), name="voxels",
-                                shape=(batch_size, res * res * res))
-        inputs = {"voxels": voxels}
-        outputs = render_fwd_f(inputs, batch_size, options)
-        return {"inputs": inputs, "outputs": outputs}
+                                shape=(batch_size, nvoxels))
+
+        if phong:
+            gdotl_cube = tf.placeholder(floatX(), name="gdotl",
+                                        shape=(batch_size, nvoxels, 3))
+        else:
+            gdotl_cube = None
+
+        rotation_matrices = rand_rotation_matrices(nviews)
+        out_img = gen_img(voxels, gdotl_cube, rotation_matrices, options)
+        return {'input_voxels': voxels,
+                'gdotl_cube': gdotl_cube,
+                'out_img': out_img}
 
 
-def test_render_graph(options, batch_size):
-    g = tf.get_default_graph()
-    results = render_gen_graph(g, batch_size, options)
-    out_img_tensor = results['outputs']['out_img']
+def test_invert_render_graph(options):
+    out_img = render_gen_graph(options)['out_img']
     arrow_renderer = graph_to_arrow([out_img_tensor], name="renderer")
     inv_renderer = invert(arrow_renderer)
     return arrow_renderer, inv_renderer
@@ -272,15 +288,16 @@ def inv_viz_allones(voxel_grids, options, batch_size):
         plt.show()
 
 
-def render_rand_voxels(voxel_grids, batch_size, options):
+def render_rand_voxels(voxel_grids, options):
     """Render `batch_size` randomly selected voxels for voxel_grids"""
+    batch_size = options.get('batch_size')
     graph = tf.Graph()
     with graph.as_default():
-        inputs, outputs = getn(render_gen_graph(graph, batch_size, 32, options), 'inputs', 'outputs')
-        inputs = [inputs['voxels']]
+        voxels, gdotl, out_img = getn(render_gen_graph(options),
+                                      'voxels', 'gdotl', 'out_img')
         outputs = [outputs['out_img']]
         rand_voxel_id = np.random.randint(0, voxel_grids.shape[0], size=batch_size)
-        input_data = [voxel_grids[rand_voxel_id].reshape(i.get_shape()) for i in inputs]
+        input_data = [voxel_grids[rand_voxel_id].reshape(i.get_shape()) for i in voxels]
         sess = tf.Session()
         output_data = sess.run(outputs, feed_dict=dict(zip(inputs, input_data)))
         sess.close()
@@ -298,7 +315,7 @@ def main():
 def test_renderer():
     voxel_grids = model_net_40()
     options = default_options()
-    data = render_rand_voxels(voxel_grids, 8, options)
+    data = render_rand_voxels(voxel_grids, options)
     plot_batch(data['outputs'][0])
     import pdb; pdb.set_trace()
 
@@ -352,3 +369,4 @@ def generalization_bench():
 # 2. Compute them all and save as modelnetgradients
 # 3. Make gradients additional input to render function
 # 4. Add phong rendering
+# 5. Fix viewpoint

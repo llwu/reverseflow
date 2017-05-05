@@ -245,20 +245,47 @@ def cube_filter(voxels, res, n=1):
     return voxels_mean.reshape(voxels.shape)
 
 
-def gdotl(light_dir, vox_grads, res, batch_size, nfilters=5):
+def gdotl(light_dir, vox_grads, res, nfilters=5):
     """
     Compute dot product of light vector with filted gradient vector
     light_dir: vector direction of light, e.g, np.array([[[0, 1, 1]]])
     """
+    # First compute dot product with light vector
     gdotl = np.sum((light_dir * vox_grads), axis=2)
-    gdotl_cube = gdotl.reshape((batch_size, res, res, res))
-    # Filter the gradients
+    gdotl_cube = gdotl.reshape((-1, res, res, res))
+
+    # Cube filter for smoothness
     for i in range(1, nfilters):
       gdotl_cube = cube_filter(gdotl_cube, res, i)
+
+    # Should be positive
     gdotl_cube = np.maximum(0, gdotl_cube)
     return gdotl_cube
 
 
+def batch_map(inp, func, reduce_func, batch_size):
+    """Batched_map: like map but does a batch at a time then combines
+    Args:
+      inp: input to map over
+      func: function to map with
+      reduce_func: function to combine list of batched mapped values
+      batch_size: number of elements to do in each batch
+    """
+    niters = math.ceil(len(inp) // batch_size)
+    everything = []
+    for i in range(niters):
+        lb = i * batch_size
+        ub = min((i * batch_size) + batch_size, len(inp))
+        batch = inp[lb:ub]
+        everything.append(func(batch))
+    return reduce_func(everything)
+
 # vox_grads = model_net_40_grads()
 # light_dir = np.array([[[0, 1, 1]]])
-# smelly = gdotl(light_dir, vox_grads, 32, 10)
+# smelly = gdotl(light_dir, vox_grads[0:10], 32, 10)
+#
+# batch_size = 10
+# batch_map(vox_grads[0:300],
+#           lambda batch_vox_grads: gdotl(light_dir, batch_vox_grads, 32),
+#           lambda list_batches: np.concatenate(list_batches, axis=0),
+#           batch_size)
