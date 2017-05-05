@@ -9,7 +9,7 @@ from wacacore.train.common import (train_loop, updates, variable_summaries,
 from wacacore.util.io import handle_args
 from wacacore.util.generators import infinite_samples
 from wacacore.train.callbacks import every_n, summary_writes
-from wacacore.train.search import rand_hyper_search
+from wacacore.train.search import rand_local_hyper_search
 from typing import Generator, Callable, Sequence
 import numpy as np
 from tflearn.layers import fully_connected
@@ -101,15 +101,14 @@ def tf_cgan(x_prior: Tensor,
              test_generators=None,
              loss_ratios=loss_ratios,
              test_every=100,
-             num_iterations=100000,
              callbacks=callbacks,
              **options)
 
 
-def main(options):
+def run(options):
   """Simple Example"""
   # x, y sampled from normal distribution
-  batch_size = 512
+  batch_size = options['batch_size']
   x_len = 2
   x_prior_gen = infinite_samples(lambda *shape: np.random.exponential(size=shape),
                                  shape=(x_len,),
@@ -170,7 +169,6 @@ def main(options):
         out = fully_connected(inp, 1, activation='sigmoid')
         return out
 
-  options = {'update': 'adam', 'learning_rate': 0.0001, 'save': True}
   tf_cgan(x_prior,
           x_prior_gen,
           z,
@@ -182,29 +180,50 @@ def main(options):
 
 
 def hyper_search():
+  """Do hyper parameter search for cgan"""
   options = {'update': 'adam',
-             'learning_rate': 0.0001,
              'train': True,
              'save': True,
-             'num_iterations': 100,
+             'num_iterations': 10,
              'save_every': 1000,
              'learning_rate': 0.001,
-             'batch_size': [256, 512],
-             'datadir': os.path.join(os.environ['DATADIR'], "rf"),
-             'nl': ['relu', 'elu']}
-  var_option_keys = ['batch_size',
-                     'nl']
+             'batch_size': [64, 128],
+             'datadir': os.path.join(os.environ['DATADIR'], "rf")}
+  var_option_keys = ['batch_size']
   file_Path = os.path.abspath(__file__)
-  rand_hyper_search(options, file_Path, var_option_keys, nsamples=4,
+  rand_local_hyper_search(options, file_Path, var_option_keys, nsamples=2,
                     prefix='cgan', nrepeats=1)
 
 
-if __name__ == "__main__":
+def default_options():
+    "Get default options for pdt training"
+    options = {}
+    options['num_iterations'] = (int, 100)
+    options['save_every'] = (int, 100)
+    options['batch_size'] = (int, 512)
+    options['gpu'] = (bool, False)
+    options['dirname'] = (str, "dirname")
+    options['datadir'] = (str, os.path.join(os.environ['DATADIR'], "pdt"))
+    return options
+
+
+def main():
   if "--hyper" in sys.argv:
     hyper_search()
   else:
-    options = handle_args(sys.argv[1:])
-    main(options)
+    cust_opts = default_options()
+    options = handle_args(sys.argv[1:], cust_opts)
+    if options['gpu']:
+      print("Using GPU")
+      run(options)
+    else:
+      print("Using CPU")
+      with tf.device('/cpu:0'):
+        run(options)
+
+
+if __name__ == "__main__":
+  main()
 
 
 # TODO

@@ -369,10 +369,3 @@ def generalization_bench():
     options['sfx'] = sfx
     options['description'] = "Voxel Generalization Benchmark"
     test_generalization(pi_supervised, options)
-
-# TODO
-# 1. Compute the gradients offline and test render
-# 2. Compute them all and save as modelnetgradients
-# 3. Make gradients additional input to render function
-# 4. Add phong rendering
-# 5. Fix viewpoint
