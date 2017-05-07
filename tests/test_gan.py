@@ -34,6 +34,12 @@ def test_set_gan_nn_arrow():
       inp = batch_normalization(inp)
       return [inp]
 
+  def gen_func(args):
+    """Generator function"""
+    with tf.variable_scope("generator", reuse=False):
+      return [args[0]]
+
+
   def disc_func(args):
     """Discriminator function"""
     with tf.variable_scope("discriminator", reuse=False):
@@ -73,14 +79,14 @@ def test_set_gan_nn_arrow():
 
   from wacacore.train.common import updates, train_loop, get_variables
   losses = {'d_loss': d_loss, 'g_loss': g_loss}
-  options = {'learning_rate': 0.001, 'update': 'adam'}
+  options = {'learning_rate': 0.01, 'update': 'adam'}
   d_vars = get_variables('discriminator')
   g_vars = get_variables('generator')
-  loss_updates = [updates(d_loss, d_vars, options=options)[1],
-                  updates(g_loss, g_vars, options=options)[1]]
+  loss_updates = [updates(d_loss, d_vars, options=options)[1]]
+                  # updates(g_loss, g_vars, options=options)[1]]
 
   fetch['check'] = tf.add_check_numerics_ops()
-  loss_ratios = [1, 1000]
+  loss_ratios = [1]
   def train_gen():
     while True:
       x = np.random.rand(batch_size, 1)

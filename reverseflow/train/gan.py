@@ -60,10 +60,13 @@ def GanLossArrow(nsamples):
     assert len(args) == 2
     xs = args[0]
     perm = args[1]
-    xs = tf.split(xs, axis=1, num_or_size_splits=nsamples)
 
     # Only the tensor as position nsamples is authentic
-    is_auth = tf.equal(perm, nsamples)
+    is_auth = tf.equal(perm, nsamples-1)
+    is_auth = tf.Print(is_auth, [is_auth, perm, nsamples-1])
+
+    # xs = tf.Print(xs, [xs], message="xs", summarize=1000)
+    xs = tf.split(xs, axis=1, num_or_size_splits=nsamples)
 
     losses_d = []
     losses_g = []
@@ -77,8 +80,9 @@ def GanLossArrow(nsamples):
                               lambda_log(x + eps),
                               lambda_log(1 - x + eps)))
       losses_g.append(tf.cond(is_auth[i],
-                              lambda: tf.constant(0.0),
+                              lambda: tf.zeros_like(x),
                               lambda_log(x + eps)))
+
     loss_d = tf.concat(losses_d, axis=1)
     loss_g = tf.concat(losses_g, axis=1)
     sum_loss_d = tf.reduce_sum(loss_d, axis=1)
