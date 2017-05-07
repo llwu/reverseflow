@@ -10,7 +10,7 @@ from arrows.port_attributes import (make_in_port, make_out_port, make_error_port
 import tensorflow as tf
 
 
-def ConcatShuffleArrow(n_inputs: int):
+def ConcatShuffleArrow(n_inputs: int, ndims: int):
   """Concatenate n_inputs inputs and shuffle
   Arrow first n_inputs inputs are arrays to shuffle
   last input is permutation vector"""
@@ -34,11 +34,8 @@ def ConcatShuffleArrow(n_inputs: int):
   # Switch the first and last dimension
   # FIXME: I do this only because gather seems to affect only first dimension
   # There's a better way, probably using gather_nd
-  tp_perm = [i for i in range(n_inputs)]
-  first = tp_perm[0]
-  last = tp_perm[-1]
-  tp_perm[0] = last
-  tp_perm[-1] = first
+  a = [i for i in range(ndims + 1)]
+  tp_perm = [a[i+1] for i in range(len(a) - 1)] + [a[0]]
 
   transpose = TransposeArrow(tp_perm)
   c.add_edge(gather.out_port(0), transpose.in_port(0))
@@ -86,7 +83,7 @@ def GanLossArrow(nsamples):
     loss_g = tf.concat(losses_g, axis=1)
     sum_loss_d = tf.reduce_sum(loss_d, axis=1)
     sum_loss_g = tf.reduce_sum(loss_g, axis=1)
-    return [sum_loss_g, sum_loss_d]
+    return [sum_loss_d, sum_loss_g]
 
   return TfLambdaArrow(2, 2, func=func)
 
@@ -94,7 +91,8 @@ def GanLossArrow(nsamples):
 def set_gan_arrow(arrow: Arrow,
                   cond_gen: Arrow,
                   disc: Arrow,
-                  sample_size: int) -> CompositeArrow:
+                  sample_size: int,
+                  ndims: int) -> CompositeArrow:
     """
     Arrow wihch computes loss for amortized random variable using set gan.
     Args:
@@ -102,8 +100,9 @@ def set_gan_arrow(arrow: Arrow,
         cond_gen: Y x Z -> X - Conditional Generators
         disc: X^n -> {0,1}^n
         sample_size: n, number of samples seen by discriminator at once
+        ndims: dimensionality of dims
     Returns:
-        CompositeArrow: X x Z x ... Z x RAND_PERM -> Loss x Y x ... Y
+        CompositeArrow: X x Z x ... Z x RAND_PERM -> d_Loss x g_Loss x Y x ... Y
     """
     # TODO: Assumes that f has single in_port and single out_port, generalize
     c = CompositeArrow(name="%s_set_gan" % arrow.name)
@@ -123,7 +122,7 @@ def set_gan_arrow(arrow: Arrow,
       make_in_port(noise_in_port)
       c.add_edge(noise_in_port, cond_gens[i].in_port(1))
 
-    stack_shuffle = ConcatShuffleArrow(sample_size + 1)
+    stack_shuffle = ConcatShuffleArrow(sample_size + 1, ndims)
 
     # Add each output from generator to shuffle set
     for i in range(sample_size):
@@ -162,7 +161,13 @@ def set_gan_arrow(arrow: Arrow,
     assert c.is_wired_correctly()
     return c
 
+
+# def train_cgan(gan_arrow: Arrow):
 # TODO
+
+# Make neural network example
+# Freeze parameters
+
 # Make loss arrow
 # Make disc stochastic
 # Parameterize disc stochasticity

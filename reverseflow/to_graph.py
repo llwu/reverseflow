@@ -28,14 +28,15 @@ def gen_input_tensors(arrow: Arrow,
     state = propagate(arrow)
     for in_port in arrow.in_ports():
         shape = state[in_port]['shape']
+        dtype = get_port_dtype(in_port)
         if is_param_port(in_port) and param_port_as_var:
             name = "param_input_%s" % in_port.index
             var = tf.Variable(np.random.rand(*shape), name=name,
-                              dtype=floatX())
+                              dtype=dtype)
             input_tensors.append(var)
         elif is_in_port(in_port):
             name = "input_%s" % in_port.index
-            inp = tf.placeholder(name=name, shape=shape, dtype=floatX())
+            inp = tf.placeholder(name=name, shape=shape, dtype=dtype)
             input_tensors.append(inp)
         else:
             assert False, "Don't know how to handle %s" % in_port
