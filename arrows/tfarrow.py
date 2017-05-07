@@ -20,3 +20,15 @@ class TfArrow(PrimitiveArrow):
                             'block_size': 2,
                             'reuse': False}
         super().__init__(n_in_ports, n_out_ports, name=name)
+
+
+class TfLambdaArrow(PrimitiveArrow):
+    """TensorFlow arrow. Can compile to any TensorFlow graph."""
+
+    def is_tf(self) -> bool:
+        return True
+
+    def __init__(self, n_in_ports: int, n_out_ports: int, func) -> None:
+        name = 'TfArrow'
+        self.func = func
+        super().__init__(n_in_ports, n_out_ports, name=name)

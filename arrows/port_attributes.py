@@ -1,4 +1,5 @@
 from arrows.port import Port
+from arrows.config import floatX
 from typing import Sequence, Dict, Any
 PortAttributes = Dict[Port, Dict[str, Any]]
 
@@ -105,6 +106,28 @@ def set_port_shape(port: Port, shape: Shape):
     """Set the shape of `port` to `shape`"""
     port_attr = port.arrow.port_attr[port.index]
     port_attr["shape"] = shape
+
+
+def is_valid_dtype(dtype: str) -> bool:
+    """Is dtype a valid dtype"""
+    return dtype in ["float32", "float64", "int32", "int64"]
+
+
+def set_port_dtype(port: Port, dtype: str) -> str:
+    """Get the dtype of `port'"""
+    assert is_valid_dtype(dtype), "invalid dtype"
+    port_attr = port.arrow.port_attr[port.index]
+    port_attr["dtype"] = dtype
+
+
+def get_port_dtype(port: Port, default_to_floatX=True):
+    """Set the dtype of a `port` to dtype"""
+    port_attr = port.arrow.port_attr[port.index]
+    if "dtype" in port_attr:
+        return port_attr["dtype"]
+    else:
+        assert default_to_floatX, "no dtype and no default dtype"
+        return floatX()
 
 
 def set_port_value(port: Port, value):

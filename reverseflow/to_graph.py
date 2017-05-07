@@ -8,7 +8,7 @@ from arrows.port_attributes import *
 from arrows.arrow import Arrow
 from arrows.sourcearrow import SourceArrow
 from arrows.compositearrow import CompositeArrow, EdgeMap
-from arrows.tfarrow import TfArrow
+from arrows.tfarrow import TfArrow, TfLambdaArrow
 from arrows.std_arrows import *
 from arrows.apply.interpret import interpret
 from arrows.apply.propagate import propagate
@@ -263,6 +263,18 @@ def conv(a: TfArrow, args: TensorVarList, state) -> Sequence[Tensor]:
         r, p = template(args, inp_shapes=inp_shapes, out_shapes=out_shapes,
                         **options)
     return r
+
+@overload
+def conv(a: TfLambdaArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return a.func(args)
+
+@overload
+def conv(a: StackArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.stack(args, axis=a.axis)]
+
+@overload
+def conv(a: TransposeArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    return [tf.transpose(args[0], a.perm)]
 
 
 @overload

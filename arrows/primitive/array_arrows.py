@@ -443,3 +443,61 @@ class UpdateArrow(compositearrows.CompositeArrow):
             zeros_pred: zeros_disp
             })
         return disp
+
+
+def stack_shapes(shapes: Sequence, axis: int):
+    """if `axis == 0` then the `output` tensor will have the shape `(N, A, B, C)`.
+       if `axis == 1` then the `output` tensor will have the shape `(A, N, B, C)`.
+    """
+    assert same(shapes), "shapes of input to stack should be the same"
+    s = shapes[0]
+    n = len(shapes)
+    new_shape = s[0:axis] + [n] + s[axis:]
+    return tuple(new_shape)
+
+
+def stack_shape_pred(arr: "StackArrow", port_attr: PortAttributes):
+    q = ports_has(arr.in_ports(), 'shape', port_attr)
+    return ports_has(arr.in_ports(), 'shape', port_attr)
+
+
+def stack_shape_disp(arr: "StackArrow", port_attr: PortAttributes):
+    ptv = extract_attribute('shape', port_attr)
+    import pdb; pdb.set_trace()
+    o = port_attr[arr.out_port(0)]
+    return {arr.out_port(0): {'shape': new_shape}}
+
+
+class StackArrow(PrimitiveArrow):
+    """
+    tf.stack
+    """
+    def __init__(self, n_inputs, axis):
+        """Stacks inputs along axis"""
+        name = 'Stack'
+        self.axis = axis
+        super().__init__(n_in_ports=n_inputs, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+          disp = super().get_dispatches()
+          disp.update({
+              stack_shape_pred: stack_shape_disp
+              })
+          return disp
+
+
+class TransposeArrow(PrimitiveArrow):
+    """
+    tf.stack
+    """
+    def __init__(self, perm):
+        """Stacks inputs along perm"""
+        name = 'Transpose'
+        self.perm = perm
+        super().__init__(n_in_ports=1, n_out_ports=1, name=name)
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({
+            })
+        return disp

@@ -7,7 +7,8 @@ from arrows.apply.propagate import propagate
 from arrows.arrow import Arrow
 from reverseflow.to_graph import arrow_to_graph
 from arrows.config import floatX
-from arrows.port_attributes import is_error_port, extract_attribute, is_param_port
+from arrows.port_attributes import (is_error_port, extract_attribute,
+  is_param_port, get_port_dtype)
 
 
 def apply(arrow: Arrow, inputs: List[np.ndarray]) -> List[np.ndarray]:
@@ -21,7 +22,10 @@ def apply(arrow: Arrow, inputs: List[np.ndarray]) -> List[np.ndarray]:
     graph = tf.Graph()
     sess = tf.Session(graph=graph)
     with graph.as_default():
-        input_tensors = [tf.placeholder(dtype=floatX()) for i in range(len(inputs))]
+        input_tensors = []
+        for i in range(len(inputs)):
+            dtype = get_port_dtype(arrow.in_port(i))
+            input_tensors.append(tf.placeholder(dtype=dtype))
         outputs = arrow_to_graph(arrow, input_tensors)
         feed_dict = dict(zip(input_tensors, inputs))
         init = tf.global_variables_initializer()
