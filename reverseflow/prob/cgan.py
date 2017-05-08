@@ -203,7 +203,7 @@ def default_options():
     options['batch_size'] = (int, 512)
     options['gpu'] = (bool, False)
     options['dirname'] = (str, "dirname")
-    options['datadir'] = (str, os.path.join(os.environ['DATADIR'], "pdt"))
+    options['datadir'] = (str, os.path.join(os.environ['DATADIR'], "rf"))
     return options
 
 
