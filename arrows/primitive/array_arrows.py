@@ -457,9 +457,8 @@ def stack_shapes(shapes: Sequence, axis: int):
 
 
 def stack_shape_pred(arr: "StackArrow", port_attr: PortAttributes):
-    q = ports_has(arr.in_ports(), 'shape', port_attr)
-    return ports_has(arr.in_ports(), 'shape', port_attr)
-
+    return False
+    # return ports_has(arr.in_ports(), 'shape', port_attr)
 
 def stack_shape_disp(arr: "StackArrow", port_attr: PortAttributes):
     ptv = extract_attribute('shape', port_attr)

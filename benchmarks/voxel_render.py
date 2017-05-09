@@ -212,7 +212,6 @@ def render_gen_graph(options):
     batch_size = options.get('batch_size')
     phong = options.get('phong')
     nviews = options.get('nviews')
-
     nvoxels = res * res * res
 
     with tf.name_scope("fwd_g"):
@@ -234,7 +233,7 @@ def render_gen_graph(options):
 
 def test_invert_render_graph(options):
     out_img = render_gen_graph(options)['out_img']
-    arrow_renderer = graph_to_arrow([out_img_tensor], name="renderer")
+    arrow_renderer = graph_to_arrow([out_img], name="renderer")
     inv_renderer = invert(arrow_renderer)
     return arrow_renderer, inv_renderer
 
