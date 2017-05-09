@@ -26,7 +26,6 @@ def ConcatShuffleArrow(n_inputs: int, ndims: int):
   make_in_port(perm)
   set_port_dtype(perm, 'int32')
   gather = GatherArrow()
-  import pdb; pdb.set_trace()
 
   c.add_edge(stack.out_port(0), gather.in_port(0))
   c.add_edge(perm, gather.in_port(1))
@@ -64,8 +63,6 @@ def GanLossArrow(nsamples):
 
       # Only the tensor as position nsamples is authentic
       is_auth = tf.equal(perm, nsamples-1)
-      import pdb; pdb.set_trace()
-
 
       # xs = tf.Print(xs, [xs], message="xs", summarize=1000)
       is_auth = tf.Print(is_auth, [is_auth, perm, nsamples-1, xs[0, 0], xs[0, 1]])

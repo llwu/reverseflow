@@ -19,6 +19,7 @@ from wacacore.util.io import handle_args
 
 def test_set_gan_nn_arrow(options):
   gan_arr = gan_renderer_arrow(options)
+  # gan_arr = set_gan_nn_arrow(options)
   train_gan_arr(gan_arr, options)
 
 
@@ -32,27 +33,31 @@ def set_gan_nn_arrow(options):
   def gen_func(args):
     """Generator function"""
     with tf.variable_scope("generator", reuse=False):
-      # inp = tf.concat(args, axis=1
+      # inp = tf.concat(args, axis=1)
       inp = args[0]
-      inp = fully_connected(inp, 20, activation='elu')
+      inp = fully_connected(inp, 10, activation='elu')
       # inp = batch_normalization(inp)
-      inp = fully_connected(inp, 20, activation='elu')
+      # inp = fully_connected(inp, 10, activation='elu')
       # inp = batch_normalization(inp)
-      inp = fully_connected(inp, 1, activation='elu')
+      inp = fully_connected(inp, 1, activation='sigmoid')
       # inp = batch_normalization(inp)
       return [inp]
 
   # def gen_func(args):
   #   """Generator function"""
   #   with tf.variable_scope("generator", reuse=False):
-  #     return [args[0]]
+  #     return [args[0]+0.2]
 
   def disc_func(args):
     """Discriminator function"""
     with tf.variable_scope("discriminator", reuse=False):
       assert len(args) == 1
       inp = args[0]
-      inp = fully_connected(inp, 10, activation='elu')
+      inp = fully_connected(inp, 5, activation='elu')
+      # inp = batch_normalization(inp)
+      inp = fully_connected(inp, 5, activation='elu')
+      # inp = batch_normalization(inp)
+      inp = args[0]
       inp = fully_connected(inp, n_samples, activation='sigmoid')
       return [inp]
 
@@ -81,7 +86,6 @@ def gan_renderer_arrow(options):
   info = propagate(inv)
 
   def gen_func(args):
-    import pdb; pdb.set_trace()
     """Generator function"""
     with tf.variable_scope("generator", reuse=False):
       # inp = tf.concat(args, axis=1
@@ -91,7 +95,6 @@ def gan_renderer_arrow(options):
       return [fully_connected(inp, shape[1], activation='elu') for shape in shapes]
 
   def disc_func(args):
-    import pdb; pdb.set_trace()
     """Discriminator function"""
     with tf.variable_scope("discriminator", reuse=False):
       assert len(args) == 1
@@ -103,7 +106,6 @@ def gan_renderer_arrow(options):
   g_theta = TfLambdaArrow(inv.num_in_ports() - inv.num_param_ports() + 1,
                           inv.num_param_ports(), func=gen_func)
   cond_gen = g_from_g_theta(inv, g_theta)
-  import pdb; pdb.set_trace()
 
   disc = TfLambdaArrow(1, 1, func=disc_func)
   gan_arr = set_gan_arrow(fwd, cond_gen, disc, n_fake_samples, 2,
@@ -117,12 +119,13 @@ def train_gan_arr(gan_arr: Arrow, options):
   n_samples = n_fake_samples + 1
   batch_size = options['batch_size']
 
+  tf.reset_default_graph()
   with tf.name_scope(gan_arr.name):
       input_tensors = gen_input_tensors(gan_arr, param_port_as_var=False)
       output_tensors = arrow_to_graph(gan_arr, input_tensors)
 
   x_ten, z_ten, perm_ten = input_tensors
-  d_loss, g_loss, fake_x_1 = output_tensors
+  d_loss, g_loss = output_tensors[0:2]
   d_loss = tf.reduce_mean(- d_loss)
   g_loss = tf.reduce_mean(- g_loss)
   # fetch = {'d_loss': d_loss, 'g_loss': g_loss, 'x_ten': x_ten, 'fake': fake_x_1}
@@ -131,22 +134,36 @@ def train_gan_arr(gan_arr: Arrow, options):
 
   losses = {'d_loss': d_loss, 'g_loss': g_loss}
   loss_updates = []
-  # d_vars = get_variables('discriminator')
-  # loss_updates.append(updates(d_loss, d_vars, options=options)[1])
+  d_vars = get_variables('discriminator')
+  loss_updates.append(updates(d_loss, d_vars, options=options)[1])
   g_vars = get_variables('generator')
-  loss_updates.append(updates(d_loss, g_vars, options=options)[1])
+  loss_updates.append(updates(g_loss, g_vars, options=options)[1])
 
-  fetch['check'] = tf.add_check_numerics_ops()
+  # fetch['check'] = tf.add_check_numerics_ops()
   # loss_ratios = [1, 10000]
   loss_ratios = None
 
+  # def train_gen():
+  #   """Generator for x, z and permutation"""
+  #   while True:
+  #     x = np.random.rand(batch_size, 1)
+  #     x = np.ones(shape=(batch_size, 1)) * 0.23
+  #     z = np.random.rand(batch_size, 1)
+  #     # z = np.ones(shape=(batch_size, 1)) * 0.23
+  #     perm = np.arange(n_samples)
+  #     np.random.shuffle(perm)
+  #     yield {x_ten: x, z_ten: z, perm_ten: perm}
+
   def train_gen():
     """Generator for x, z and permutation"""
+    from wacacore.util.generators import infinite_batches
+    from voxel_helpers import model_net_40
+    voxel_data = model_net_40()
+    x_gen = infinite_batches(voxel_data, batch_size=batch_size)
     while True:
-      x = np.random.rand(batch_size, 1)
-      x = np.ones(shape=(batch_size, 1)) * 0.23
+      x = next(x_gen)
+      x = x.reshape(batch_size, -1)
       z = np.random.rand(batch_size, 1)
-      z = np.ones(shape=(batch_size, 1)) * 0.23
       perm = np.arange(n_samples)
       np.random.shuffle(perm)
       yield {x_ten: x, z_ten: z, perm_ten: perm}
@@ -154,7 +171,7 @@ def train_gan_arr(gan_arr: Arrow, options):
   # Summaries
   # import pdb; pdb.set_trace()
   tf.summary.scalar("real_variance", tf.nn.moments(x_ten, axes=[0])[1][0])
-  tf.summary.scalar("fake_variance", tf.nn.moments(fake_x_1, axes=[0])[1][0])
+  # tf.summary.scalar("fake_variance", tf.nn.moments(fake_x_1, axes=[0])[1][0])
 
   summaries = variable_summaries(losses)
   writers = setup_file_writers('summaries', sess)
@@ -162,7 +179,7 @@ def train_gan_arr(gan_arr: Arrow, options):
   callbacks = [every_n(summary_writes, 25)]
   fetch['summaries'] = summaries
   fetch['losses'] = losses
-  fetch['losses']['x_fake'] = fake_x_1[0:5]
+  # fetch['losses']['x_fake'] = fake_x_1[0:5]
   fetch['losses']['x_real'] = x_ten[0:5]
 
   sess.run(tf.initialize_all_variables())

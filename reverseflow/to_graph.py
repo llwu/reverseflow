@@ -275,7 +275,6 @@ def conv(a: StackArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: TransposeArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    import pdb; pdb.set_trace()
     inp = args[0]
     inp = tf.transpose(inp, a.perm)
     # inp = tf.Print(inp, [inp[0, 0, 0], inp[0, 0, 1]], message="transpose")
