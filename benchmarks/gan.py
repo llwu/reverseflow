@@ -139,7 +139,7 @@ def train_gan_arr(gan_arr: Arrow, options):
   g_vars = get_variables('generator')
   loss_updates.append(updates(g_loss, g_vars, options=options)[1])
 
-  # fetch['check'] = tf.add_check_numerics_ops()
+  fetch['check'] = tf.add_check_numerics_ops()
   # loss_ratios = [1, 10000]
   loss_ratios = None
 
