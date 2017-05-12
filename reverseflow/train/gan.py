@@ -117,10 +117,12 @@ def set_gan_arrow(arrow: Arrow,
     assert cond_gen.num_in_ports() == 2, "don't handle case of more than one Y input"
     cond_gens = [deepcopy(cond_gen) for i in range(n_fake_samples)]
 
+    comp_in_ports = []
     # Connect x to arrow in puts
     for i in range(arrow.num_in_ports()):
       in_port = c.add_port()
       make_in_port(in_port)
+      comp_in_ports.append(in_port)
       c.add_edge(in_port, arrow.in_port(i))
       if x_shapes is not None:
         set_port_shape(in_port, x_shapes[i])
@@ -152,11 +154,11 @@ def set_gan_arrow(arrow: Arrow,
       stack_shuffle = ConcatShuffleArrow(n_fake_samples + 1, ndims)
       stack_shuffles.append(stack_shuffle)
       # Add each output from generator to shuffle set
-      for i in range(n_fake_samples):
-        c.add_edge(cond_gens[i].out_port(0), stack_shuffle.in_port(i))
+      for j in range(n_fake_samples):
+        c.add_edge(cond_gens[j].out_port(i), stack_shuffle.in_port(j))
 
       # Add the posterior sample x to the shuffle set
-      c.add_edge(in_port, stack_shuffle.in_port(n_fake_samples))
+      c.add_edge(comp_in_ports[i], stack_shuffle.in_port(n_fake_samples))
       c.add_edge(rand_perm_in_port, stack_shuffle.in_port(n_fake_samples + 1))
 
     gan_loss_arrow = GanLossArrow(n_fake_samples + 1)

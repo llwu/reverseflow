@@ -85,8 +85,10 @@ def gan_shopping_arrow_pi(nitems: int, options) -> CompositeArrow:
     """Generator function"""
     with tf.variable_scope("generator", reuse=False):
       inp = tf.concat(args, axis=1)
+      # inp = fully_connected(inp, 10, activation='elu')
       inp = fully_connected(inp, inv.num_param_ports(), activation='elu')
       inps = tf.split(inp, axis=1, num_or_size_splits=inv.num_param_ports())
+      inps = [tf.Print(inp, [inp[0]], message="Generated!", summarize=100) for inp in inps]
       return inps
 
   def disc_func(args):
@@ -94,6 +96,9 @@ def gan_shopping_arrow_pi(nitems: int, options) -> CompositeArrow:
     """Discriminator function """
     with tf.variable_scope("discriminator", reuse=False):
       inp = tf.concat(args, axis=2)
+      inp = tf.Print(inp, [inp[0]], message="inp to disc", summarize=100)
+      inp = fully_connected(inp, 20, activation='elu')
+      inp = fully_connected(inp, 20, activation='elu')
       inp = fully_connected(inp, n_samples, activation='sigmoid')
       return [inp]
 
