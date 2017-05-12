@@ -259,3 +259,57 @@ def g_from_g_theta(inv: Arrow,
 
     assert c.is_wired_correctly()
     return c
+
+
+
+from wacacore.train.common import (train_loop, updates, variable_summaries,
+                                   setup_file_writers, get_variables)
+from tensorflow import Tensor
+from typing import Generator, Sequence, Callable
+
+
+def train_gan_arr(d_loss: Tensor,
+                  g_loss: Tensor,
+                  train_generators: Sequence[Generator],
+                  test_generators: Sequence[Generator],
+                  callbacks: Sequence[Callable],
+                  fetch,
+                  options):
+  """Train a set-generative adversarial network"""
+  fetch = {} if fetch is None else fetch
+  d_loss = tf.reduce_mean(- d_loss)
+  g_loss = tf.reduce_mean(- g_loss)
+  fetch['losses'] = {'d_loss': d_loss, 'g_loss': g_loss}
+  sess = tf.Session()
+
+  loss_updates = []
+  d_vars = get_variables('discriminator')
+  loss_updates.append(updates(d_loss, d_vars, options=options)[1])
+  g_vars = get_variables('generator')
+  loss_updates.append(updates(g_loss, g_vars, options=options)[1])
+
+  if 'debug' in options and options['debug'] is True:
+    fetch['check'] = tf.add_check_numerics_ops()
+  loss_ratios = None
+
+  # Summaries
+  # x_ten = x_tens[0]
+  # tf.summary.scalar("real_variance", tf.nn.moments(x_ten, axes=[0])[1][0])
+  # tf.summary.scalar("fake_variance", tf.nn.moments(fake_x_1, axes=[0])[1][0])
+
+  # summaries = variable_summaries(losses)
+  # writers = setup_file_writers('summaries', sess)
+  # options['writers'] = writers
+
+  # callbacks = [every_n(summary_writes, 25)]
+  # fetch['summaries'] = summaries
+  # fetch['losses'] = losses
+  sess.run(tf.initialize_all_variables())
+  train_loop(sess,
+             loss_updates,
+             fetch,
+             train_generators=test_generators,
+             test_generators=train_generators,
+             loss_ratios=loss_ratios,
+             callbacks=callbacks,
+             **options)

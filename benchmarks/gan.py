@@ -70,83 +70,6 @@ def set_gan_nn_arrow(options):
   return gan_arr
 
 
-def SumNArrow(ninputs: int):
-  """
-  Create arrow f(x1, ..., xn) = sum(x1, ..., xn)
-  Args:
-    n: number of inputs
-  Returns:
-    Arrow of n inputs and one output
-  """
-  assert ninputs > 1
-  from arrows.compositearrow import CompositeArrow
-  from arrows.port_attributes import make_in_port, make_out_port
-  c = CompositeArrow(name="SumNArrow")
-  light_port = c.add_port()
-  make_in_port(light_port)
-
-  for _ in range(ninputs - 1):
-    add = AddArrow()
-    c.add_edge(light_port, add.in_port(0))
-    dark_port = c.add_port()
-    make_in_port(dark_port)
-    c.add_edge(dark_port, add.in_port(1))
-    light_port = add.out_port(0)
-
-  out_port = c.add_port()
-  make_out_port(out_port)
-  c.add_edge(add.out_port(0), out_port)
-
-  assert c.is_wired_correctly()
-  assert c.num_in_ports() == ninputs
-  return c
-
-
-def gan_shopping_arrow(options):
-  """Gan on shopping basket"""
-  n_fake_samples = options['n_fake_samples']
-  n_samples = n_fake_samples + 1
-  batch_size = options['batch_size']
-  # nitems = options['nitems']
-  nitems = 3
-  fwd = SumNArrow(nitems)
-  from reverseflow.invert import invert
-  inv = invert(fwd)
-  from arrows.apply.propagate import propagate
-  info = propagate(inv)
-
-  def gen_func(args):
-    import pdb; pdb.set_trace()
-    """Generator function"""
-    with tf.variable_scope("generator", reuse=False):
-      # inp = tf.concat(args, axis=1
-      inp = args[0]
-      inp = fully_connected(inp, inv.num_param_ports(), activation='elu')
-      inps = tf.split(inp, axis=1, num_or_size_splits=inv.num_param_ports())
-      return inps
-
-  def disc_func(args):
-    import pdb; pdb.set_trace()
-    """Discriminator function """
-    with tf.variable_scope("discriminator", reuse=False):
-      inp = tf.concat(args, axis=2)
-      inp = fully_connected(inp, n_samples, activation='sigmoid')
-      return [inp]
-
-  # Make a conditional generator from the inverse\
-  num_non_param_in_ports = inv.num_in_ports() - inv.num_param_ports()
-  g_theta = TfLambdaArrow(inv.num_in_ports() - inv.num_param_ports() + 1,
-                          inv.num_param_ports(), func=gen_func)
-  cond_gen = g_from_g_theta(inv, g_theta)
-
-  disc = TfLambdaArrow(nitems, 1, func=disc_func)
-  gan_arr = set_gan_arrow(fwd, cond_gen, disc, n_fake_samples, 2,
-                          x_shapes=[(batch_size, 1) for i in range(nitems)],
-                          z_shape=(batch_size, 1))
-
-  return gan_arr
-
-
 def gan_renderer_arrow(options):
   """Gan on renderer"""
   n_fake_samples = options['n_fake_samples']
@@ -186,57 +109,6 @@ def gan_renderer_arrow(options):
   cond_gen = g_from_g_theta(inv, g_theta)
 
   disc = TfLambdaArrow(1, 1, func=disc_func)
-  gan_arr = set_gan_arrow(fwd, cond_gen, disc, n_fake_samples, 2,
-                          x_shape=(batch_size, nvoxels), z_shape=(batch_size, 1))
-
-  return gan_arr
-
-
-def train_gan_arr(gan_arr: Arrow, options):
-  n_fake_samples = options['n_fake_samples']
-  n_samples = n_fake_samples + 1
-  batch_size = options['batch_size']
-
-  tf.reset_default_graph()
-  with tf.name_scope(gan_arr.name):
-      input_tensors = gen_input_tensors(gan_arr, param_port_as_var=False)
-      output_tensors = arrow_to_graph(gan_arr, input_tensors)
-
-  nitems  = 3
-  x_tens = input_tensors[0:nitems]
-  z_ten = input_tensors[nitems]
-  perm_ten = input_tensors[nitems + 1]
-  d_loss, g_loss = output_tensors[0:2]
-
-  # x_ten, z_ten, perm_ten = input_tensors
-  # d_loss, g_loss = output_tensors[0:2]
-  d_loss = tf.reduce_mean(- d_loss)
-  g_loss = tf.reduce_mean(- g_loss)
-  # fetch = {'d_loss': d_loss, 'g_loss': g_loss, 'x_ten': x_ten, 'fake': fake_x_1}
-  fetch = {'d_loss': d_loss, 'g_loss': g_loss}
-  sess = tf.Session()
-
-  losses = {'d_loss': d_loss, 'g_loss': g_loss}
-  loss_updates = []
-  d_vars = get_variables('discriminator')
-  loss_updates.append(updates(d_loss, d_vars, options=options)[1])
-  g_vars = get_variables('generator')
-  loss_updates.append(updates(g_loss, g_vars, options=options)[1])
-
-  fetch['check'] = tf.add_check_numerics_ops()
-  # loss_ratios = [1, 10000]
-  loss_ratios = None
-
-  # def train_gen():
-  #   """Generator for x, z and permutation"""
-  #   while True:
-  #     x = np.random.rand(batch_size, 1)
-  #     x = np.ones(shape=(batch_size, 1)) * 0.23
-  #     z = np.random.rand(batch_size, 1)
-  #     # z = np.ones(shape=(batch_size, 1)) * 0.23
-  #     perm = np.arange(n_samples)
-  #     np.random.shuffle(perm)
-  #     yield {x_ten: x, z_ten: z, perm_ten: perm}
 
   def train_gen():
     """Generator for x, z and permutation"""
@@ -252,44 +124,12 @@ def train_gan_arr(gan_arr: Arrow, options):
       np.random.shuffle(perm)
       yield {x_ten: x, z_ten: z, perm_ten: perm}
 
-  def train_gen():
-    """Generator for x, z and permutation"""
-    while True:
-      data = {}
-      x_ten_data = {x_tens[i]: np.random.rand(batch_size, 1) for i in range(3)}
-      data.update(x_ten_data)
-      x = np.ones(shape=(batch_size, 1)) * 0.23
-      data[z_ten] = np.random.rand(batch_size, 1)
-      # z = np.ones(shape=(batch_size, 1)) * 0.23
-      perm = np.arange(n_samples)
-      np.random.shuffle(perm)
-      data[perm_ten] = perm
-      yield data
+  gan_arr = set_gan_arrow(fwd, cond_gen, disc, n_fake_samples, 2,
+                          x_shape=(batch_size, nvoxels), z_shape=(batch_size, 1))
 
-  # Summaries
-  # import pdb; pdb.set_trace()
-  x_ten = x_tens[0]
-  tf.summary.scalar("real_variance", tf.nn.moments(x_ten, axes=[0])[1][0])
-  # tf.summary.scalar("fake_variance", tf.nn.moments(fake_x_1, axes=[0])[1][0])
+  return gan_arr
 
-  summaries = variable_summaries(losses)
-  writers = setup_file_writers('summaries', sess)
-  options['writers'] = writers
-  callbacks = [every_n(summary_writes, 25)]
-  fetch['summaries'] = summaries
-  fetch['losses'] = losses
-  # fetch['losses']['x_fake'] = fake_x_1[0:5]
-  fetch['losses']['x_real'] = x_ten[0:5]
 
-  sess.run(tf.initialize_all_variables())
-  train_loop(sess,
-             loss_updates,
-             fetch,
-             train_generators=[train_gen()],
-             test_generators=None,
-             loss_ratios=loss_ratios,
-             callbacks=callbacks,
-             **options)
 
 
 
