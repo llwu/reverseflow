@@ -12,7 +12,9 @@ import tensorflow as tf
 def ConcatShuffleArrow(n_inputs: int, ndims: int):
   """Concatenate n_inputs inputs and shuffle
   Arrow first n_inputs inputs are arrays to shuffle
-  last input is permutation vector"""
+  last input is permutation vector
+  Args:
+    n_inputs"""
   c = CompositeArrow(name="ConcatShuffle")
 
   stack = StackArrow(n_inputs, axis=0)
@@ -97,7 +99,7 @@ def set_gan_arrow(arrow: Arrow,
                   disc: Arrow,
                   n_fake_samples: int,
                   ndims: int,
-                  x_shape=None,
+                  x_shapes=None,
                   z_shape=None) -> CompositeArrow:
     """
     Arrow wihch computes loss for amortized random variable using set gan.
@@ -115,36 +117,54 @@ def set_gan_arrow(arrow: Arrow,
     assert cond_gen.num_in_ports() == 2, "don't handle case of more than one Y input"
     cond_gens = [deepcopy(cond_gen) for i in range(n_fake_samples)]
 
-    in_port = c.add_port()
-    make_in_port(in_port)
-    c.add_edge(in_port, arrow.in_port(0))
+    # Connect x to arrow in puts
+    for i in range(arrow.num_in_ports()):
+      in_port = c.add_port()
+      make_in_port(in_port)
+      c.add_edge(in_port, arrow.in_port(i))
+      if x_shapes is not None:
+        set_port_shape(in_port, x_shapes[i])
 
     # Connect f(x) to generator
     for i in range(n_fake_samples):
-      c.add_edge(arrow.out_port(0), cond_gens[i].in_port(0))
+      for j in range(arrow.num_out_ports()):
+        c.add_edge(arrow.out_port(j), cond_gens[i].in_port(j))
 
     # Connect noise input to generator second inport
     for i in range(n_fake_samples):
       noise_in_port = c.add_port()
       make_in_port(noise_in_port)
-      c.add_edge(noise_in_port, cond_gens[i].in_port(1))
+      if z_shape is not None:
+        set_port_shape(noise_in_port, z_shape)
+      cg_noise_in_port_id = cond_gens[i].num_in_ports() - 1
+      c.add_edge(noise_in_port, cond_gens[i].in_port(cg_noise_in_port_id))
 
-    stack_shuffle = ConcatShuffleArrow(n_fake_samples + 1, ndims)
-
-    # Add each output from generator to shuffle set
-    for i in range(n_fake_samples):
-      c.add_edge(cond_gens[i].out_port(0), stack_shuffle.in_port(i))
-
-    # Add the posterior sample x to the shuffle set
-    c.add_edge(in_port, stack_shuffle.in_port(n_fake_samples))
-
+    stack_shuffles = []
     rand_perm_in_port = c.add_port()
     make_in_port(rand_perm_in_port)
+    set_port_shape(rand_perm_in_port, (n_fake_samples + 1,))
     set_port_dtype(rand_perm_in_port, 'int32')
-    c.add_edge(rand_perm_in_port, stack_shuffle.in_port(n_fake_samples + 1))
+
+    # For every output of g, i.e. x and y if f(x, y) = z
+    # Stack all the Xs from the differet samples together and shuffle
+    cond_gen_non_error_out_ports = cond_gen.num_out_ports() - cond_gen.num_error_ports()
+    for i in range(cond_gen_non_error_out_ports):
+      stack_shuffle = ConcatShuffleArrow(n_fake_samples + 1, ndims)
+      stack_shuffles.append(stack_shuffle)
+      # Add each output from generator to shuffle set
+      for i in range(n_fake_samples):
+        c.add_edge(cond_gens[i].out_port(0), stack_shuffle.in_port(i))
+
+      # Add the posterior sample x to the shuffle set
+      c.add_edge(in_port, stack_shuffle.in_port(n_fake_samples))
+      c.add_edge(rand_perm_in_port, stack_shuffle.in_port(n_fake_samples + 1))
 
     gan_loss_arrow = GanLossArrow(n_fake_samples + 1)
-    c.add_edge(stack_shuffle.out_port(0), disc.in_port(0))
+
+    # Connect output of each stack shuffle to discriminator
+    for i in range(cond_gen_non_error_out_ports):
+      c.add_edge(stack_shuffles[i].out_port(0), disc.in_port(i))
+
     c.add_edge(disc.out_port(0), gan_loss_arrow.in_port(0))
     c.add_edge(rand_perm_in_port, gan_loss_arrow.in_port(1))
 
@@ -161,27 +181,19 @@ def set_gan_arrow(arrow: Arrow,
 
     # Connect fake samples to output of composition
     for i in range(n_fake_samples):
-      sample = c.add_port()
-      make_out_port(sample)
-      c.add_edge(cond_gens[0].out_port(0), sample)
+      for j in range(cond_gen_non_error_out_ports):
+        sample = c.add_port()
+        make_out_port(sample)
+        c.add_edge(cond_gens[i].out_port(j), sample)
 
     # Pipe up error ports
     for cond_gen in cond_gens:
-      for i in range(1, cond_gen.num_out_ports()):
+      for i in range(cond_gen_non_error_out_ports, cond_gen.num_out_ports()):
         error_port = c.add_port()
         make_out_port(error_port)
         c.add_edge(cond_gen.out_port(i), error_port)
 
-
     assert c.is_wired_correctly()
-    if x_shape is not None:
-      set_port_shape(c.in_port(0), x_shape)
-
-    if z_shape is not None:
-      set_port_shape(c.in_port(1), z_shape)
-
-    set_port_shape(c.in_port(2), (n_fake_samples + 1,))
-    set_port_dtype(c.in_port(2), 'int32')
     return c
 
 def split_ports(inv: Arrow):
@@ -209,7 +221,7 @@ def g_from_g_theta(inv: Arrow,
     Construct an amoritzed random variable g from a parametric inverse `inv`
     and function `g_theta` which constructs parameters for `inv`
     Args:
-      g_theta: Y x Z -> Theta
+      g_theta: Y x Y ... Y x Z -> Theta
     Returns:
       Y x Y x .. x Z -> X x ... X x Error x ... Error
     """

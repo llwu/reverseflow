@@ -52,6 +52,14 @@ class Arrow:
         """
         return [port for port in self._ports if pa.is_param_port(port)]
 
+    def error_ports(self):
+        """
+        Get ErrorPorts of an Arrow.
+        Returns:
+            List of ErrorPorts
+        """
+        return [port for port in self._ports if pa.is_error_port(port)]
+
     def out_ports(self):
         """
         Get OutPorts of an Arrow.
@@ -77,6 +85,9 @@ class Arrow:
 
     def num_param_ports(self) -> int:
         return len(self.param_ports())
+
+    def num_error_ports(self) -> int:
+        return len(self.error_ports())
 
     def is_primitive(self) -> bool:
         return False
