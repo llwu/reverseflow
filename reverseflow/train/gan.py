@@ -268,7 +268,8 @@ from tensorflow import Tensor
 from typing import Generator, Sequence, Callable
 
 
-def train_gan_arr(d_loss: Tensor,
+def train_gan_arr(sess,
+                  d_loss: Tensor,
                   g_loss: Tensor,
                   train_generators: Sequence[Generator],
                   test_generators: Sequence[Generator],
@@ -280,7 +281,6 @@ def train_gan_arr(d_loss: Tensor,
   d_loss = tf.reduce_mean(- d_loss)
   g_loss = tf.reduce_mean(- g_loss)
   fetch['losses'] = {'d_loss': d_loss, 'g_loss': g_loss}
-  sess = tf.Session()
 
   loss_updates = []
   d_vars = get_variables('discriminator')
@@ -294,6 +294,10 @@ def train_gan_arr(d_loss: Tensor,
 
   # Summaries
   # x_ten = x_tens[0]
+  tf.summary.scalar("d_loss", d_loss)
+  tf.summary.scalar("g_loss", g_loss)
+  fetch['summaries'] = tf.summary.merge_all()
+  fetch['g_loss'] = g_loss
   # tf.summary.scalar("real_variance", tf.nn.moments(x_ten, axes=[0])[1][0])
   # tf.summary.scalar("fake_variance", tf.nn.moments(fake_x_1, axes=[0])[1][0])
 

@@ -17,7 +17,28 @@ from reverseflow.to_graph import gen_input_tensors, arrow_to_graph
 from wacacore.train.common import (train_loop, updates, variable_summaries,
                                    setup_file_writers, get_variables)
 from reverseflow.train.gan import train_gan_arr
+from matplotlib.colors import LogNorm
 
+def hist(x, y):
+  plt.hist2d(x, y, bins=40, norm=LogNorm())
+  plt.colorbar()
+  plt.show()
+
+def ground_truth(n, batch_size, tol=1e-5):
+  """Generate n samples from posterior normal + normal == 0"""
+  total = 0
+  good_samples = []
+  while total < n:
+    samples = np.random.randn(batch_size, 2)
+    summed = np.sum(samples, axis=1)
+    valid = abs(summed) < tol
+    total = total + sum(valid)
+    if sum(valid) > 0:
+      print(total)
+      indices = np.where(valid)
+      good_samples.append(samples[indices])
+
+  return np.array(good_samples).reshape(-1, 2)[0:n]
 
 def SumNArrow(ninputs: int):
   """
@@ -142,6 +163,7 @@ def gan_arr_tf_stuff(gan_arr: Arrow, nitems: int, options):
   batch_size = options['batch_size']
 
   tf.reset_default_graph()
+  sess = tf.Session()
   with tf.name_scope(gan_arr.name):
       input_tensors = gen_input_tensors(gan_arr, param_port_as_var=False)
       output_tensors = arrow_to_graph(gan_arr, input_tensors)
@@ -153,6 +175,16 @@ def gan_arr_tf_stuff(gan_arr: Arrow, nitems: int, options):
   d_loss, g_loss = output_tensors[0:2]
   xyz = output_tensors[2:]
   fetch['xyz'] = xyz
+
+  xyz_stacked = tf.concat(xyz, axis=1)
+  moments = tf.nn.moments(xyz_stacked, axes=[0])
+  tf.summary.scalar("x_mean_x", moments[0][0])
+  tf.summary.scalar("x_mean_y", moments[0][1])
+  tf.summary.scalar("x_var_x", moments[1][0])
+  tf.summary.scalar("x_var_y", moments[1][1])
+
+  # Summaries and writers
+  options['writers'] = [tf.summary.FileWriter('summaries', sess.graph)]
 
   def train_gen():
     """Generator for x, z and permutation"""
@@ -178,9 +210,10 @@ def gan_arr_tf_stuff(gan_arr: Arrow, nitems: int, options):
       data[perm_ten] = perm
       yield data
 
-  callbacks = [make_nice_plots]
-  callbacks = []
-  train_gan_arr(d_loss, g_loss, [train_gen()], [test_gen()], callbacks,
+  from wacacore.train.callbacks import summary_writes, every_n
+  callbacks = [#make_nice_plots,
+               every_n(summary_writes, 100)]
+  train_gan_arr(sess, d_loss, g_loss, [train_gen()], [test_gen()], callbacks,
                 fetch, options)
 
 
