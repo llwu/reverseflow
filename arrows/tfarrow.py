@@ -28,7 +28,7 @@ class TfLambdaArrow(PrimitiveArrow):
     def is_tf(self) -> bool:
         return True
 
-    def __init__(self, n_in_ports: int, n_out_ports: int, func) -> None:
-        name = 'TfArrow'
+    def __init__(self, n_in_ports: int, n_out_ports: int, func, name: str) -> None:
+        name = 'TfArrow_{}'.format(name)
         self.func = func
         super().__init__(n_in_ports, n_out_ports, name=name)

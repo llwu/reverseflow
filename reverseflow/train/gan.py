@@ -49,7 +49,7 @@ def ConcatShuffleArrow(n_inputs: int, ndims: int):
 
 
 def GanLossArrow(nsamples):
-  def func(args, eps=1e-6):
+  def func(args, eps=1e-6, reuse=False):
     """Do Gan Loss in TensorFlow
     Args:
       x : (batch_size, nsamples)
@@ -91,7 +91,7 @@ def GanLossArrow(nsamples):
       sum_loss_g = tf.reduce_sum(loss_g, axis=1)
       return [sum_loss_d, sum_loss_g]
 
-  return TfLambdaArrow(2, 2, func=func)
+  return TfLambdaArrow(2, 2, func=func, name="ganloss")
 
 
 def set_gan_arrow(arrow: Arrow,

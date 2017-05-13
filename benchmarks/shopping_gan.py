@@ -80,25 +80,25 @@ def gan_shopping_arrow_pi(nitems: int, options) -> CompositeArrow:
   inv = invert(fwd)
   info = propagate(inv)
 
-  def gen_func(args):
+  def gen_func(args, reuse=False):
     # import pdb; pdb.set_trace()
     """Generator function"""
-    with tf.variable_scope("generator", reuse=False):
+    with tf.variable_scope("generator", reuse=reuse):
       inp = tf.concat(args, axis=1)
       # inp = fully_connected(inp, 10, activation='elu')
       inp = fully_connected(inp, inv.num_param_ports(), activation='elu')
       inps = tf.split(inp, axis=1, num_or_size_splits=inv.num_param_ports())
-      inps = [tf.Print(inp, [inp[0]], message="Generated!", summarize=100) for inp in inps]
+      # inps = [tf.Print(inp, [inp[0]], message="Generated!", summarize=100) for inp in inps]
       return inps
 
-  def disc_func(args):
+  def disc_func(args, reuse=False):
     # import pdb; pdb.set_trace()
     """Discriminator function """
-    with tf.variable_scope("discriminator", reuse=False):
+    with tf.variable_scope("discriminator", reuse=reuse):
       inp = tf.concat(args, axis=2)
-      inp = tf.Print(inp, [inp[0]], message="inp to disc", summarize=100)
-      inp = fully_connected(inp, 20, activation='elu')
-      inp = fully_connected(inp, 20, activation='elu')
+      # inp = tf.Print(inp, [inp[0]], message="inp to disc", summarize=100)
+      # inp = fully_connected(inp, 20, activation='elu')
+      inp = fully_connected(inp, 10, activation='elu')
       inp = fully_connected(inp, n_samples, activation='sigmoid')
       return [inp]
 
@@ -124,25 +124,26 @@ def gan_shopping_arrow_compare(nitems: int, options) -> CompositeArrow:
   # nitems = options['nitems']
   fwd = SumNArrow(nitems)
 
-  def gen_func(args):
+  def gen_func(args, reuse=False):
     # import pdb; pdb.set_trace()
     """Generator function"""
-    with tf.variable_scope("generator", reuse=False):
+    with tf.variable_scope("generator", reuse=reuse):
       inp = tf.concat(args, axis=1)
       inp = fully_connected(inp, nitems, activation='elu')
       inps = tf.split(inp, axis=1, num_or_size_splits=nitems)
       return inps
 
-  def disc_func(args):
+  def disc_func(args, reuse=False):
     # import pdb; pdb.set_trace()
     """Discriminator function """
-    with tf.variable_scope("discriminator", reuse=False):
+    with tf.variable_scope("discriminator", reuse=reuse):
       inp = tf.concat(args, axis=2)
+      inp = fully_connected(inp, 10, activation='elu')
       inp = fully_connected(inp, n_samples, activation='sigmoid')
       return [inp]
 
-  cond_gen = TfLambdaArrow(2, nitems, func=gen_func)
-  disc = TfLambdaArrow(nitems, 1, func=disc_func)
+  cond_gen = TfLambdaArrow(2, nitems, func=gen_func, name="cond_gen")
+  disc = TfLambdaArrow(nitems, 1, func=disc_func, name="disc")
   gan_arr = set_gan_arrow(fwd, cond_gen, disc, n_fake_samples, 2,
                           x_shapes=[(batch_size, 1) for i in range(nitems)],
                           z_shape=(batch_size, 1))
@@ -158,7 +159,7 @@ def make_nice_plots(fetch_data, feed_dict, i: int, **kwargs):
     print("VARS!", [np.var(xyz_data[i]) for i in range(len(xyz_data))])
     print("Sum check!", sum([xyz_data[i][0] for i in range(len(xyz_data))]))
     plt.scatter(xyz_data[0], xyz_data[1])
-    plt.savefig('scatter_{}.png'.format(i))
+    plt.savefig('comp/scatter_{}.png'.format(i))
 
 
 def gan_arr_tf_stuff(gan_arr: Arrow, nitems: int, options):
@@ -175,8 +176,8 @@ def gan_arr_tf_stuff(gan_arr: Arrow, nitems: int, options):
 
   fetch = {}
   x_tens = input_tensors[0:nitems]
-  z_ten = input_tensors[nitems]
-  perm_ten = input_tensors[nitems + 1]
+  z_tens = input_tensors[nitems:nitems + n_fake_samples]
+  perm_ten = input_tensors[nitems + n_fake_samples]
   d_loss, g_loss = output_tensors[0:2]
   xyz = output_tensors[2:]
   fetch['xyz'] = xyz
@@ -197,7 +198,8 @@ def gan_arr_tf_stuff(gan_arr: Arrow, nitems: int, options):
       data = {}
       x_ten_data = {x_tens[i]: np.random.randn(batch_size, 1) for i in range(nitems)}
       data.update(x_ten_data)
-      data[z_ten] = np.random.randn(batch_size, 1)
+      z_ten_data = {z_tens[i]: np.random.randn(batch_size, 1) for i in range(n_fake_samples)}
+      data.update(z_ten_data)
       perm = np.arange(n_samples)
       np.random.shuffle(perm)
       data[perm_ten] = perm
@@ -207,16 +209,17 @@ def gan_arr_tf_stuff(gan_arr: Arrow, nitems: int, options):
     """Generator for x, z and permutation"""
     while True:
       data = {}
-      x_ten_data = {x_tens[i]: np.ones(shape=(batch_size, 1)) * 7.0 for i in range(nitems)}
+      x_ten_data = {x_tens[i]: np.zeros(shape=(batch_size, 1)) for i in range(nitems)}
       data.update(x_ten_data)
-      data[z_ten] = np.random.randn(batch_size, 1)
+      z_ten_data = {z_tens[i]: np.random.randn(batch_size, 1) for i in range(n_fake_samples)}
+      data.update(z_ten_data)
       perm = np.arange(n_samples)
       np.random.shuffle(perm)
       data[perm_ten] = perm
       yield data
 
   from wacacore.train.callbacks import summary_writes, every_n
-  callbacks = [#make_nice_plots,
+  callbacks = [every_n(make_nice_plots, 1000),
                every_n(summary_writes, 100)]
   train_gan_arr(sess, d_loss, g_loss, [train_gen()], [test_gen()], callbacks,
                 fetch, options)
@@ -230,7 +233,7 @@ def default_options():
   options['batch_size'] = (int, 512)
   options['gpu'] = (bool, False)
   options['dirname'] = (str, "dirname")
-  options['n_fake_samples'] = (int, 1)
+  options['n_fake_samples'] = (int, 2)
   options['datadir'] = (str, os.path.join(os.environ['DATADIR'], "rf"))
   return options
 
