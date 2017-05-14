@@ -3,10 +3,12 @@ import os
 import signal
 import sys
 import pdb
+from typing import Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+from tensorflow import Tensor
 
 from arrows.apply.apply import apply, apply_backwards
 from arrows.apply.propagate import propagate
@@ -15,16 +17,18 @@ from arrows.port_attributes import is_param_port, is_error_port
 from arrows.transform.eliminate_gather import eliminate_gathernd
 from arrows.util.misc import getn
 from arrows.util.viz import show_tensorboard, show_tensorboard_graph
-from benchmarks.common import handle_options
+from benchmarks.common import (handle_options, add_additional_options,
+  default_benchmark_options, pi_supervised)
 from metrics.generalization import test_generalization
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.common import get_tf_num_params
-from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
+from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow, testy
 from reverseflow.train.supervised import supervised_train
 from reverseflow.train.unparam import unparam
-
 from voxel_helpers import model_net_40, model_net_40_gdotl, rand_rotation_matrices
+
+from wacacore.util.io import handle_args, gen_sfx_key
 
 # For repeatability
 # STD_ROTATION_MATRIX = rand_rotation_matrices(nviews)
@@ -33,7 +37,7 @@ STD_ROTATION_MATRIX = np.array([[[0.94071758, -0.33430171, -0.05738258],
                                  [0.02383425, 0.2339063, -0.97196698]]])
 
 # Genereate values in raster space, x[i,j] = [i,j]
-def gen_fragcoords(width, height):
+def gen_fragcoords(width: int, height: int):
     """Create a (width * height * 2) matrix, where element i,j is [i,j]
        This is used to generate ray directions based on an increment"""
     raster_space = np.zeros([width, height, 2], dtype=floatX())
@@ -44,7 +48,7 @@ def gen_fragcoords(width, height):
 
 
 # Append an image filled with scalars to the back of an image.
-def stack(intensor, width, height, scalar):
+def stack(intensor, width: int, height: int, scalar):
     scalars = np.ones([width, height, 1], dtype=floatX()) * scalar
     return np.concatenate([intensor, scalars], axis=2)
 
@@ -87,12 +91,6 @@ def make_ro(r, raster_space, width, height):
     unnorm_rd = ndc_t - np.reshape(ro_t, (nmatrices, 1, 1, 3))
     rd = unnorm_rd / np.reshape(norm(unnorm_rd), (nmatrices, width, height, 1))
     return rd, ro_t
-
-# 1. possibly some constraints on the options, i.e. a struct ratehr than anything
-# goes dictionary
-# 2. want to be able to call the function independently from creating a struct
-# 3. I want to be able to pass the struct along easily without its members being lost
-
 
 
 def gen_img(voxels, gdotl_cube, rotation_matrix, options):
@@ -194,16 +192,17 @@ def gen_img(voxels, gdotl_cube, rotation_matrix, options):
     return img
 
 
-def default_options():
+def default_render_options():
     """Default options for rendering"""
-    return {'batch_size': 8,
-            'width': 128,
-            'height': 128,
-            'res': 32,
-            'nsteps': 100,
-            'nviews': 1,
-            'density': 10.0,
-            'phong': False}
+    return {'batch_size': (int, 8),
+            'width': (int, 128),
+            'height': (int, 128),
+            'res': (int, 32),
+            'nsteps': (int, 5),
+            'nviews': (int, 1),
+            'density': (int, 10.0),
+            'phong': (bool, False),
+            'name': (str, 'Voxel_Render')}
 
 
 def render_gen_graph(options):
@@ -310,17 +309,8 @@ def render_rand_voxels(voxels_data, gdotl_cube_data, options):
             'out_img_data': out_img_data}
 
 
-def main():
-    def debug_signal_handler(signal, frame):
-        pdb.set_trace()
-    signal.signal(signal.SIGINT, debug_signal_handler)
-    voxel_grids = model_net_40()
-    inv_viz_allones(voxel_grids, options, batch_size=8)
-    # generalization_bench()
-
-
 def test_renderer():
-    options = default_options()
+    options = default_render_options()
     voxel_grids = model_net_40()
     if options['phong']:
         gdotl_cube_data = model_net_40_gdotl()
@@ -330,23 +320,28 @@ def test_renderer():
     plot_batch(inp_out['out_img_data'])
 
 
-if __name__ == "__main__":
-    test_renderer()
-    # main()
+def tensor_to_sup_right_inv(output_tensors: Sequence[Tensor]):
+    """Convert outputs from tensoflow graph into supervised loss arrow"""
+    fwd = graph_to_arrow(output_tensors)
+    inv = invert(fwd)
+    inv_arrow = inv_fwd_loss_arrow(fwd, inv)
+    right_inv = unparam(inv_arrow)
+    sup_right_inv = supervised_loss_arrow(right_inv)
+    return sup_right_inv
+    # smekky = testy(fwd, sup_right_inv)
+    # return smekky
+
 
 # Benchmarking
 def pi_supervised(options):
     """Neural network enhanced Parametric inverse! to do supervised learning"""
     tf.reset_default_graph()
-    g = tf.get_default_graph()
-    batch_size = options['batch_size']
-    results = render_gen_graph(g, batch_size)
-    out_img_tensor = results['outputs']['out_img']
-    arrow_renderer = graph_to_arrow([out_img_tensor])
-    inverted = invert(arrow_renderer)
-    inv_arrow = inv_fwd_loss_arrow(arrow_renderer, inverted)
-    right_inv = unparam(inv_arrow)
-    sup_right_inv = supervised_loss_arrow(right_inv)
+    tens = render_gen_graph(options)
+    voxels, gdotl_cube, out_img = getn(tens, 'voxels', 'gdotl_cube', 'out_img')
+
+    # Do the inversion
+    sup_right_inv = tensor_to_sup_right_inv([out_img])
+
     # Get training and test_data
     train_data = render_rand_voxels(batch_size)
     test_data = render_rand_voxels(1024)
@@ -366,7 +361,6 @@ def pi_supervised(options):
                      callbacks=[],
                      options=options)
 
-
 def generalization_bench():
     """Benchmark generalization ability of inverse graphics methods"""
     options = handle_options('voxel_render', sys.argv[1:])
@@ -374,3 +368,40 @@ def generalization_bench():
     options['sfx'] = sfx
     options['description'] = "Voxel Generalization Benchmark"
     test_generalization(pi_supervised, options)
+
+
+def combine_options():
+    """Get options by combining default and command line"""
+    cust_options = {}
+    argv = sys.argv[1:]
+
+    # add default options like num_iterations
+    cust_options.update(default_benchmark_options())
+
+    # add render specific options like width/height
+    cust_options = default_render_options()
+
+    # Update with options passed in through command line
+    cust_options.update(add_additional_options(argv))
+
+    options = handle_args(argv, cust_options)
+    return options
+
+
+def main():
+    def debug_signal_handler(signal, frame):
+        pdb.set_trace()
+    signal.signal(signal.SIGINT, debug_signal_handler)
+
+    voxel_grids = model_net_40()
+    options = combine_options()
+    sfx = gen_sfx_key(('name', 'learning_rate'), options)
+    options['sfx'] = sfx
+    # inv_viz_allones(voxel_grids, options, batch_size=8)
+    # test_renderer()
+    pi_supervised(options)
+    # generalization_bench()
+
+
+if __name__ == "__main__":
+    main()

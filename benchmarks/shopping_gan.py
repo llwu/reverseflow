@@ -18,6 +18,7 @@ from wacacore.train.common import (train_loop, updates, variable_summaries,
                                    setup_file_writers, get_variables)
 from reverseflow.train.gan import train_gan_arr
 from matplotlib.colors import LogNorm
+from wacacore.util.io import gen_sfx_key
 
 def hist(x, y):
   plt.hist2d(x, y, bins=40, norm=LogNorm())
@@ -105,10 +106,10 @@ def gan_shopping_arrow_pi(nitems: int, options) -> CompositeArrow:
   # Make a conditional generator from the inverse\
   num_non_param_in_ports = inv.num_in_ports() - inv.num_param_ports()
   g_theta = TfLambdaArrow(inv.num_in_ports() - inv.num_param_ports() + 1,
-                          inv.num_param_ports(), func=gen_func)
+                          inv.num_param_ports(), func=gen_func, name="g_theta")
   cond_gen = g_from_g_theta(inv, g_theta)
 
-  disc = TfLambdaArrow(nitems, 1, func=disc_func)
+  disc = TfLambdaArrow(nitems, 1, func=disc_func, name="disc")
   gan_arr = set_gan_arrow(fwd, cond_gen, disc, n_fake_samples, 2,
                           x_shapes=[(batch_size, 1) for i in range(nitems)],
                           z_shape=(batch_size, 1))
@@ -219,22 +220,24 @@ def gan_arr_tf_stuff(gan_arr: Arrow, nitems: int, options):
       yield data
 
   from wacacore.train.callbacks import summary_writes, every_n
-  callbacks = [every_n(make_nice_plots, 1000),
-               every_n(summary_writes, 100)]
+  callbacks = [every_n(make_nice_plots, 1000)]
   train_gan_arr(sess, d_loss, g_loss, [train_gen()], [test_gen()], callbacks,
                 fetch, options)
 
 
 def default_options():
-  "Default options for pdt training"
+  "Default options specific to shopping gan"
   options = {}
+  options['name'] = (str, 'unnamed_gan')
   options['num_iterations'] = (int, 100)
   options['save_every'] = (int, 100)
   options['batch_size'] = (int, 512)
   options['gpu'] = (bool, False)
+  options['train'] = (bool, False)
   options['dirname'] = (str, "dirname")
-  options['n_fake_samples'] = (int, 2)
   options['datadir'] = (str, os.path.join(os.environ['DATADIR'], "rf"))
+  # Should only really be this
+  options['n_fake_samples'] = (int, 1)
   return options
 
 
@@ -245,13 +248,14 @@ def run_shopping_gan(options):
   # gan_arr = gan_shopping_arrow_compare(nitems, options)
   gan_arr_tf_stuff(gan_arr, nitems, options)
 
-
 def main():
   if "--hyper" in sys.argv:
     hyper_search()
   else:
     cust_opts = default_options()
     options = handle_args(sys.argv[1:], cust_opts)
+    options['name'] = 'shopping_gan'
+    options['dirname'] = gen_sfx_key(('name',), options)
     if options['gpu']:
       print("Using GPU")
       run_shopping_gan(options)

@@ -6,6 +6,7 @@ from arrows.port_attributes import (is_error_port, make_error_port,
     transfer_labels)
 from reverseflow.invert import invert
 
+
 def inv_fwd_loss_arrow(arrow: Arrow,
                        inverse: Arrow,
                        DiffArrow=SquaredDifference) -> CompositeArrow:
@@ -65,9 +66,10 @@ def supervised_loss_arrow(arrow: Arrow,
     """
     Creates an arrow that  computes |f(y) - x|
     Args:
-        Arrow: The arrow to modify
-        DiffArrow: Arrow for computing difference
+        Arrow: f: Y -> X - The arrow to modify
+        DiffArrow: d: X x X - R - Arrow for computing difference
     Returns:
+        f: Y/Theta x .. Y/Theta x X -> |f^{-1}(y) - X| x X
         Arrow with same input and output as arrow except that it takes an
         addition input with label 'train_output' that should contain examples
         in Y, and it returns an additional error output labelled
@@ -115,3 +117,37 @@ def supervised_loss_arrow(arrow: Arrow,
 
     assert c.is_wired_correctly()
     return c
+
+def testy(fwd: Arrow,
+          sup_right_inv: Arrow):
+  """
+  Connect up forward arrow to right inverse
+  Args:
+    fwd: f: X -> Y
+    sup_right_inv: X x Y -> |f^{-1}(y) - X| x X
+  Returns:
+    f: X -> X x Error
+  """
+  import pdb; pdb.set_trace()
+  assert fwd.num_out_ports() == 1
+  c = CompositeArrow(name="testy_fwd")
+  for in_port in fwd.in_ports():
+      c_in_port = c.add_port()
+      make_in_port(c_in_port)
+      if is_param_port(in_port):
+          make_param_port(c_in_port)
+      c.add_edge(c_in_port, in_port)
+
+  # Connect every out_port to the train_in_port of
+  for in_port in sup_right_inv.in_ports():
+    c.add_edge(fwd.out_port(0), in_port)
+
+  for i in range(sup_right_inv.num_out_ports()):
+    out_port = c.add_port()
+    make_out_port(out_port)
+    if is_error_port(sup_right_inv.out_port(i)):
+      make_error_port(out_port)
+    c.add_edge(sup_right_inv.out_port(i), out_port)
+
+  assert c.is_wired_correctly()
+  return c

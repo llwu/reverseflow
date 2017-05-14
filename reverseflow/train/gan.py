@@ -1,4 +1,5 @@
 """Using set-generative adversarial training for amortized random variable"""
+from typing import Generator, Sequence, Callable
 from copy import deepcopy
 from arrows.arrow import Arrow
 from arrows.primitive.array_arrows import (GatherArrow, StackArrow,
@@ -6,7 +7,9 @@ from arrows.primitive.array_arrows import (GatherArrow, StackArrow,
 from arrows.compositearrow import CompositeArrow
 from arrows.tfarrow import TfLambdaArrow
 from arrows.port_attributes import *
+from wacacore.train.common import (train_load_save, updates, get_variables)
 import tensorflow as tf
+from tensorflow import Tensor, Session
 
 
 def ConcatShuffleArrow(n_inputs: int, ndims: int):
@@ -52,7 +55,7 @@ def GanLossArrow(nsamples):
   def func(args, eps=1e-6, reuse=False):
     """Do Gan Loss in TensorFlow
     Args:
-      x : (batch_size, nsamples)
+      x : (batch_size, nsamples) discriminator output
       perm: (namples)
     Returns:
       (nsamples) - Generator loss (per batch)
@@ -67,7 +70,7 @@ def GanLossArrow(nsamples):
       is_auth = tf.equal(perm, nsamples-1)
 
       # xs = tf.Print(xs, [xs], message="xs", summarize=1000)
-      is_auth = tf.Print(is_auth, [is_auth, perm, nsamples-1, xs[0, 0], xs[0, 1]])
+      is_auth = tf.Print(is_auth, [is_auth, perm] + [xs[0, i] for i in range(nsamples)])
       xs = tf.split(xs, axis=1, num_or_size_splits=nsamples)
       assert len(xs) == nsamples
       losses_d = []
@@ -87,6 +90,7 @@ def GanLossArrow(nsamples):
 
       loss_d = tf.concat(losses_d, axis=1)
       loss_g = tf.concat(losses_g, axis=1)
+      loss_d = tf.Print(loss_d, [loss_d[0], loss_g[0]], message="losses")
       sum_loss_d = tf.reduce_sum(loss_d, axis=1)
       sum_loss_g = tf.reduce_sum(loss_g, axis=1)
       return [sum_loss_d, sum_loss_g]
@@ -264,13 +268,8 @@ def g_from_g_theta(inv: Arrow,
 
 
 
-from wacacore.train.common import (train_loop, updates, variable_summaries,
-                                   setup_file_writers, get_variables)
-from tensorflow import Tensor
-from typing import Generator, Sequence, Callable
 
-
-def train_gan_arr(sess,
+def train_gan_arr(sess: Session,
                   d_loss: Tensor,
                   g_loss: Tensor,
                   train_generators: Sequence[Generator],
@@ -284,38 +283,19 @@ def train_gan_arr(sess,
   g_loss = tf.reduce_mean(- g_loss)
   fetch['losses'] = {'d_loss': d_loss, 'g_loss': g_loss}
 
+  # Loss terms
   loss_updates = []
   d_vars = get_variables('discriminator')
   loss_updates.append(updates(d_loss, d_vars, options=options)[1])
   g_vars = get_variables('generator')
   loss_updates.append(updates(g_loss, g_vars, options=options)[1])
 
-  if 'debug' in options and options['debug'] is True:
-    fetch['check'] = tf.add_check_numerics_ops()
-  loss_ratios = None
-
   # Summaries
-  # x_ten = x_tens[0]
   tf.summary.scalar("d_loss", d_loss)
   tf.summary.scalar("g_loss", g_loss)
   fetch['summaries'] = tf.summary.merge_all()
   fetch['g_loss'] = g_loss
   # tf.summary.scalar("real_variance", tf.nn.moments(x_ten, axes=[0])[1][0])
   # tf.summary.scalar("fake_variance", tf.nn.moments(fake_x_1, axes=[0])[1][0])
-
-  # summaries = variable_summaries(losses)
-  # writers = setup_file_writers('summaries', sess)
-  # options['writers'] = writers
-
-  # callbacks = [every_n(summary_writes, 25)]
-  # fetch['summaries'] = summaries
-  # fetch['losses'] = losses
-  sess.run(tf.initialize_all_variables())
-  train_loop(sess,
-             loss_updates,
-             fetch,
-             train_generators=train_generators,
-             test_generators=test_generators,
-             loss_ratios=loss_ratios,
-             callbacks=callbacks,
-             **options)
+  return train_load_save(sess, loss_updates, fetch, train_generators,
+                         test_generators, callbacks, options)

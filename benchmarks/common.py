@@ -1,7 +1,7 @@
 """Functions common for examples"""
 import sys
 from arrows.util.io import *
-# from stanford_kinematics import stanford_tensorflow
+from arrows.apply.propagate import propagate
 from arrows.util.misc import rand_string, getn
 from metrics.generalization import test_everything
 from reverseflow.train.common import layer_width
@@ -11,28 +11,22 @@ from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
 from reverseflow.train.supervised import supervised_train
 from reverseflow.train.callbacks import save_callback, save_options, save_every_n, save_everything_last
 from reverseflow.invert import invert
+from wacacore.util.misc import boolify
 from analysis import best_hyperparameters
 import numpy as np
 import tensorflow as tf
+from tensortemplates.module import template_module
 
 
-def boolify(x):
-    if x in ['0', 0, False, 'False', 'false']:
-        return False
-    elif x in ['1', 1, True, 'True', 'true']:
-        return True
-    else:
-        assert False, "couldn't convert to bool"
-
-def default_kwargs():
-    """Default kwargs"""
+def default_benchmark_options():
+    """Default options"""
     options = {}
-    options['learning_rate'] = (float, 0.1)
-    options['update'] = (str, 'momentum')
-    options['params_file'] = (str, 28)
+    options['learning_rate'] = (float, 0.01)
+    options['update'] = (str, 'adam')
+    options['params_file'] = (str, "")
     options['momentum'] = (float, 0.9)
     options['description'] = (str, "")
-    options['batch_size'] = (int, 100)
+    options['batch_size'] = (int, 128)
     options['debug'] = (boolify, False)
     options['data_size'] = (int, 500)
     options['save_every'] = (int, 100)
@@ -45,14 +39,14 @@ def default_kwargs():
     options['script'] = (boolify, False)
     return options
 
-
+# FIXME: Delete me
 def handle_options(name, argv):
     """Parse options from the command line and populate with defaults"""
     parser = PassThroughOptionParser()
     parser.add_option('-t', '--template', dest='template', nargs=1, type='string')
     (poptions, args) = parser.parse_args(argv)
     # Get default options
-    options = default_kwargs()
+    options = default_benchmark_options()
     if poptions.template is None:
         options['template'] = 'res_net'
     else:
@@ -61,22 +55,39 @@ def handle_options(name, argv):
     # Get template specific options
     template_kwargs = template_module[options['template']].kwargs()
     options.update(template_kwargs)
-    options['name'] = (str, name)
     options = handle_args(argv, options)
     options['template_name'] = options['template']
     options['template'] = template_module[options['template']].template
     return options
 
 
-# Training stuff
+def add_additional_options(argv):
+    """Add options which only exist depending on other options"""
+    parser = PassThroughOptionParser()
+    parser.add_option('-t', '--template', dest='template', nargs=1,
+                      type='string')
+    (poptions, args) = parser.parse_args(argv)
+    # Get default options
+    options = {}
+    if poptions.template is None:
+        options['template'] = 'res_net'
+    else:
+        options['template'] = poptions.template
 
+    # Get template specific options
+    options.update(template_module[options['template']].kwargs())
+    return options
+
+
+# Training stuff
 def gen_arrow(batch_size, model_tensorflow, options):
     inputs, outputs = getn(model_tensorflow(**options), 'inputs', 'outputs')
     name = options['model_name']
     arrow = graph_to_arrow(outputs,
                            input_tensors=inputs,
-                           name="name")
+                           name=name)
     return arrow
+
 
 def rand_input(batch_size, n_angles, n_lengths):
     input_data = []
@@ -85,6 +96,7 @@ def rand_input(batch_size, n_angles, n_lengths):
     for _ in range(n_lengths):
         input_data.append(np.random.rand(batch_size, 1))
     return input_data
+
 
 def gen_rand_data(batch_size, model_tensorflow, options):
     """Generate data for training"""
@@ -125,8 +137,14 @@ def gen_rand_data(batch_size, model_tensorflow, options):
 
     return {'inputs': all_all_in_data, 'outputs': all_all_out_data}
 
+
 def pi_supervised(options):
-    """Neural network enhanced Parametric inverse! to do supervised learning"""
+    """Neural network enhanced Parametric inverse! to do supervised learning
+    Args:
+      batch_size: the batch_size
+      model_tensorflow: f: options -> {'inputs': inp_tensors, 'outputs': out_tensors}
+      gen_data
+    """
     tf.reset_default_graph()
     batch_size = options['batch_size']
     model_tensorflow = options['model']
@@ -137,6 +155,7 @@ def pi_supervised(options):
     inv_arrow = inv_fwd_loss_arrow(arrow, inv_arrow)
     right_inv = unparam(inv_arrow)
     sup_right_inv = supervised_loss_arrow(right_inv)
+
     # Get training and test_data
     train_data = gen_data(batch_size, model_tensorflow, options)
     test_data = gen_data(batch_size, model_tensorflow, options)
@@ -157,8 +176,6 @@ def pi_supervised(options):
                      test_output_data,
                      callbacks=[save_every_n, save_everything_last, save_options],
                      options=options)
-
-from arrows.apply.propagate import propagate
 
 def nn_supervised(options):
     """Plain neural network to do supervised learning"""

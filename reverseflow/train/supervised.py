@@ -1,15 +1,15 @@
 """Supervised Training of Arrows"""
+from typing import List, Generator
 from arrows.arrow import Arrow
 from arrows.compositearrow import CompositeArrow
-from arrows.port_attributes import is_error_port, has_port_label, is_in_port, is_param_port
-from arrows.util.misc import getn, inn
+from arrows.port_attributes import has_port_label, is_in_port, is_param_port
 from arrows.util.generators import infinite_batches
-from reverseflow.train.common import extract_tensors, prep_save, train_loop, gen_fetch
+from reverseflow.train.common import extract_tensors, gen_fetch
 from reverseflow.train.common import accumulate_losses, gen_update_step
 from arrows.util.misc import print_one_per_line
-
-from typing import List, Generator
+from wacacore.train.common import train_load_save
 import tensorflow as tf
+
 
 def okok(batch_size, input_data, output_data, input_tensors, output_tensors):
     """
@@ -79,19 +79,14 @@ def supervised_train(arrow: Arrow,
     fetch['output_tensors'] = tensors['output']
     fetch['loss'] = loss_dict
 
-    if inn(options, 'save', 'dirname', 'params_file', 'load'):
-        ops = prep_save(sess, *getn(options, 'save', 'dirname', 'params_file', 'load'))
-        options.update(ops)
-
-
-    train_loop(sess,
-               loss_updates,
-               fetch,
-               train_feed_gens,
-               test_feed_gens,
-               loss_ratios=loss_ratios,
-               callbacks=callbacks,
-               **options)
+    train_load_save(sess,
+                    loss_updates,
+                    fetch,
+                    train_feed_gens,
+                    test_feed_gens,
+                    loss_ratios=loss_ratios,
+                    callbacks=callbacks,
+                    **options)
 
 # One issue is that the input and output generators should not be completely
 # independent
