@@ -47,10 +47,19 @@ def get_tf_num_params(arrow):
         vs = tf.global_variables()
         return sum([v.get_shape().num_elements() for v in vs])
 
+
+def default_grans():
+    """Default tensors to grab"""
+    def_grabs = {'input': lambda p: is_in_port(p) and not is_param_port(p),
+                 'param': lambda p: is_param_port(p),
+                 'error': lambda p: is_error_port(p),
+                 'output': lambda p: is_out_port(p)}
+    return def_grabs
+
+
 def extract_tensors(arrow: Arrow,
+                    grabs,
                     extra_ports=[],
-                    append_default=True,
-                    grabs=None,
                     optional=None):
     """
     Converts an arrow into a graph and extracts tensors which correspond to
@@ -63,16 +72,7 @@ def extract_tensors(arrow: Arrow,
 
     """
     optional = set() if optional is None else optional
-    def_grabs   = {'input': lambda p: is_in_port(p) and not is_param_port(p),
-                   'param': lambda p: is_param_port(p),
-                   'error': lambda p: is_error_port(p),
-                   'output': lambda p: is_out_port(p)}
-
-    _grabs = {}
-    if append_default:
-        _grabs.update(def_grabs)
-
-    _grabs.update(grabs)
+    _grabs = grabs
 
     # Convert to tensorflow graph and get input, output, error, and parma_tensors
     with tf.name_scope(arrow.name):

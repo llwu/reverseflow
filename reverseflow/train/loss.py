@@ -118,36 +118,86 @@ def supervised_loss_arrow(arrow: Arrow,
     assert c.is_wired_correctly()
     return c
 
-def testy(fwd: Arrow,
-          sup_right_inv: Arrow):
-  """
-  Connect up forward arrow to right inverse
-  Args:
-    fwd: f: X -> Y
-    sup_right_inv: X x Y -> |f^{-1}(y) - X| x X
-  Returns:
-    f: X -> X x Error
-  """
-  import pdb; pdb.set_trace()
-  assert fwd.num_out_ports() == 1
-  c = CompositeArrow(name="testy_fwd")
-  for in_port in fwd.in_ports():
-      c_in_port = c.add_port()
-      make_in_port(c_in_port)
-      if is_param_port(in_port):
-          make_param_port(c_in_port)
-      c.add_edge(c_in_port, in_port)
+# def testy(fwd: Arrow,
+  #         sup_right_inv: Arrow):
+  # """
+  # Connect up forward arrow to right inverse
+  # Args:
+  #   fwd: f: X -> Y
+  #   sup_right_inv: X x Y -> |f^{-1}(y) - X| x X
+  # Returns:
+  #   f: X -> X x Error
+  # """
+  # import pdb; pdb.set_trace()
+  # assert fwd.num_out_ports() == 1
+  # c = CompositeArrow(name="testy_fwd")
+  # for in_port in fwd.in_ports():
+  #     c_in_port = c.add_port()
+  #     make_in_port(c_in_port)
+  #     if is_param_port(in_port):
+  #         make_param_port(c_in_port)
+  #     c.add_edge(c_in_port, in_port)
+  #
+  # # Connect every out_port to the train_in_port of
+  # for in_port in sup_right_inv.in_ports():
+  #   c.add_edge(fwd.out_port(0), in_port)
+  #
+  # for i in range(sup_right_inv.num_out_ports()):
+  #   out_port = c.add_port()
+  #   make_out_port(out_port)
+  #   if is_error_port(sup_right_inv.out_port(i)):
+  #     make_error_port(out_port)
+  #   c.add_edge(sup_right_inv.out_port(i), out_port)
+  #
+  # assert c.is_wired_correctly()
+  # return c
+  #
 
-  # Connect every out_port to the train_in_port of
-  for in_port in sup_right_inv.in_ports():
-    c.add_edge(fwd.out_port(0), in_port)
+# FIXME: Move me somewhere more appropriate
+def comp(fwd: Arrow, right_inv: Arrow, DiffArrow=SquaredDifference):
+    """Compositon: Pipe output of forward model into input of right inverse
+    Args:
+        fwd: X -> Y
+        right_inv: Y -> X x Error
+    Returns:
+        X -> X
+    """
+    c = CompositeArrow(name="fwd_to_right_inv")
 
-  for i in range(sup_right_inv.num_out_ports()):
-    out_port = c.add_port()
-    make_out_port(out_port)
-    if is_error_port(sup_right_inv.out_port(i)):
-      make_error_port(out_port)
-    c.add_edge(sup_right_inv.out_port(i), out_port)
+    # Connect left boundar to fwd
+    for in_port in fwd.in_ports():
+        c_in_port = c.add_port()
+        make_in_port(c_in_port)
+        c.add_edge(c_in_port, in_port)
+        transfer_labels(in_port, c_in_port)
 
-  assert c.is_wired_correctly()
-  return c
+    # Connect fwd to right_inv
+    for i, out_port in enumerate(fwd.out_ports()):
+        c.add_edge(out_port, right_inv.in_port(i))
+
+    # connect right_inv to right boundary
+    for out_port in right_inv.out_ports():
+        c_out_port = c.add_port()
+        make_out_port(c_out_port)
+        if is_error_port(out_port):
+            make_error_port(c_out_port)
+
+        c.add_edge(out_port, c_out_port)
+        transfer_labels(out_port, c_out_port)
+
+    # Find difference between X and right_inv(f(x))
+    right_inv_out_ports = list(filter(lambda port: not is_error_port(port),
+                                      right_inv.out_ports()))  # len(X)
+    assert len(right_inv_out_ports) == len(c.in_ports())
+    for i, in_port in enumerate(c.in_ports()):
+        diff = DiffArrow()
+        c.add_edge(in_port, diff.in_port(0))
+        c.add_edge(right_inv_out_ports[i], diff.in_port(1))
+        error_port = c.add_port()
+        make_out_port(error_port)
+        make_error_port(error_port)
+        add_port_label(error_port, "supervised_error")
+        c.add_edge(diff.out_port(0), error_port)
+
+    assert c.is_wired_correctly()
+    return c

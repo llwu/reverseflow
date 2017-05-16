@@ -1,14 +1,15 @@
 """ (Inverse) Rendering"""
-import os
 import signal
 import sys
 import pdb
+from copy import deepcopy
 from typing import Sequence
+from typing import Generator, Callable, Sequence
 
+from tensorflow import Session, Tensor
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from tensorflow import Tensor
 
 from arrows.apply.apply import apply, apply_backwards
 from arrows.apply.propagate import propagate
@@ -17,18 +18,24 @@ from arrows.port_attributes import is_param_port, is_error_port
 from arrows.transform.eliminate_gather import eliminate_gathernd
 from arrows.util.misc import getn
 from arrows.util.viz import show_tensorboard, show_tensorboard_graph
+from arrows.tfarrow import TfLambdaArrow
+
 from benchmarks.common import (handle_options, add_additional_options,
   default_benchmark_options, pi_supervised)
 from metrics.generalization import test_generalization
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.common import get_tf_num_params
-from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow, testy
+from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow, comp
 from reverseflow.train.supervised import supervised_train
 from reverseflow.train.unparam import unparam
+from reverseflow.train.common import extract_tensors
+
 from voxel_helpers import model_net_40, model_net_40_gdotl, rand_rotation_matrices
 
+from wacacore.util.generators import infinite_batches
 from wacacore.util.io import handle_args, gen_sfx_key
+from wacacore.train.common import updates, train_load_save
 
 # For repeatability
 # STD_ROTATION_MATRIX = rand_rotation_matrices(nviews)
@@ -186,7 +193,8 @@ def gen_img(voxels, gdotl_cube, rotation_matrix, options):
         if phong:
             grad_samples = tf.gather_nd(gdotl_cube, batched_indices)
             attenuation = attenuation * grad_samples
-        left_over = left_over * tf.exp(-attenuation * density * step_sz_flat)
+        left_over = left_over * -attenuation * density * step_sz_flat
+        # left_over = left_over * tf.exp(-attenuation * density * step_sz_flat)
 
     img = left_over
     return img
@@ -198,9 +206,9 @@ def default_render_options():
             'width': (int, 128),
             'height': (int, 128),
             'res': (int, 32),
-            'nsteps': (int, 5),
+            'nsteps': (int, 6),
             'nviews': (int, 1),
-            'density': (int, 10.0),
+            'density': (int, 1.0),
             'phong': (bool, False),
             'name': (str, 'Voxel_Render')}
 
@@ -308,7 +316,7 @@ def render_rand_voxels(voxels_data, gdotl_cube_data, options):
     return {'input_voxels': input_voxels,
             'out_img_data': out_img_data}
 
-
+from arrows.port_attributes import *
 def test_renderer():
     options = default_render_options()
     voxel_grids = model_net_40()
@@ -320,46 +328,126 @@ def test_renderer():
     plot_batch(inp_out['out_img_data'])
 
 
-def tensor_to_sup_right_inv(output_tensors: Sequence[Tensor]):
+def tensor_to_sup_right_inv(output_tensors: Sequence[Tensor], options):
     """Convert outputs from tensoflow graph into supervised loss arrow"""
-    fwd = graph_to_arrow(output_tensors)
+    fwd = graph_to_arrow(output_tensors, name="render")
     inv = invert(fwd)
     inv_arrow = inv_fwd_loss_arrow(fwd, inv)
-    right_inv = unparam(inv_arrow)
-    sup_right_inv = supervised_loss_arrow(right_inv)
-    return sup_right_inv
-    # smekky = testy(fwd, sup_right_inv)
-    # return smekky
+    info = propagate(inv_arrow)
 
+    def g_tf(args, reuse=False):
+        eps = 1.0
+        """Tensorflow map from image to pi parameters"""
+        shapes = [info[port]['shape'] for port in inv_arrow.param_ports()]
+        inp = args[0]
+        width, height = getn(options, 'width', 'height')
+        inp = tf.reshape(inp, (-1, width, height))
+        inp = tf.expand_dims(inp, axis=3)
+        from tflearn.layers import conv_2d, fully_connected
+
+        # Do convolutional layers
+        nlayers = 2
+        for i in range(nlayers):
+            inp = conv_2d(inp, nb_filter=4, filter_size=1, activation="elu")
+
+        inp = conv_2d(inp, nb_filter=options['nsteps'], filter_size=1, activation="sigmoid")
+        out = []
+        for i, shape in enumerate(shapes):
+            this_inp = inp[:, :, :, i:i+1]
+            if shape[1] == width * height:
+                this_inp = tf.reshape(this_inp, (options['batch_size'], -1)) + eps
+                out.append(this_inp)
+            else:
+                r_length = int(np.ceil(np.sqrt(shape[1])))
+                rs = tf.image.resize_images(this_inp, (r_length, r_length))
+                rs = tf.reshape(rs, (options['batch_size'], -1)) + eps
+                out.append(rs[:, 0:shape[1]])
+        return out
+
+    g_arrow = TfLambdaArrow(1, inv_arrow.num_param_ports(), func=g_tf,
+                            name="img_to_theta")
+    right_inv = unparam(inv_arrow, nnet=g_arrow)
+
+    # 1. Attach voxel input to right_inverse to feed in x data
+    fwd2 = deepcopy(fwd)
+    data_right_inv = comp(fwd2, right_inv)
+    # sup_right_inv = supervised_loss_arrow(right_inv)
+    return data_right_inv
+
+
+def train_test_model_net_40(test_hold_out=0.2, shuffle=True):
+    """Split data into train and test partition"""
+    voxel_data = model_net_40()
+    voxel_data = np.exp(voxel_data)
+    test_hold_out = int(test_hold_out * len(voxel_data))
+    if shuffle:
+        np.random.shuffle(voxel_data)
+    test_voxel_data = voxel_data[0:test_hold_out]
+    train_voxel_data = voxel_data[test_hold_out:]
+    return train_voxel_data, test_voxel_data
+
+
+def train_supervised(sess: Session,
+                     losses: Dict[str, Tensor],
+                     train_generators: Sequence[Generator],
+                     test_generators: Sequence[Generator],
+                     callbacks: Sequence[Callable],
+                     fetch,
+                     options):
+    """Train a set-generative adversarial network"""
+    # Loss terms
+    loss_updates = [updates(loss, None, options=options)[1] for loss in losses.values()]
+
+    # Summaries
+    for k, v in losses.items():
+        tf.summary.scalar(k, v)
+    fetch['summaries'] = tf.summary.merge_all()
+    return train_load_save(sess, loss_updates, fetch, train_generators,
+                           test_generators, callbacks, options)
+
+
+def accum(losses: Sequence[Tensor]):
+    import pdb; pdb.set_trace()
+    return sum([tf.reduce_mean(loss) for loss in losses])
 
 # Benchmarking
 def pi_supervised(options):
     """Neural network enhanced Parametric inverse! to do supervised learning"""
-    tf.reset_default_graph()
     tens = render_gen_graph(options)
     voxels, gdotl_cube, out_img = getn(tens, 'voxels', 'gdotl_cube', 'out_img')
 
     # Do the inversion
-    sup_right_inv = tensor_to_sup_right_inv([out_img])
+    data_right_inv = tensor_to_sup_right_inv([out_img], options)
+    callbacks = []
+    tf.reset_default_graph()
+    grabs = ({'input': lambda p: is_in_port(p) and not is_param_port(p) and not has_port_label(p, 'train_output'),
+              'supervised_error':  lambda p: has_port_label(p, 'supervised_error'),
+              'sub_arrow_error':  lambda p: has_port_label(p, 'sub_arrow_error'),
+              'inv_fwd_error':  lambda p: has_port_label(p, 'inv_fwd_error')})
+    # Not all arrows will have these ports
+    optional = ['sub_arrow_error', 'inv_fwd_error']
+    tensors = extract_tensors(data_right_inv, grabs=grabs, optional=optional)
+    train_voxel_data, test_voxel_data = train_test_model_net_40()
+    batch_size = options['batch_size']
+    train_generators = infinite_batches(train_voxel_data, batch_size=batch_size)
+    test_generators = infinite_batches(test_voxel_data, batch_size=batch_size)
 
-    # Get training and test_data
-    train_data = render_rand_voxels(batch_size)
-    test_data = render_rand_voxels(1024)
+    def gen_gen(gen):
+        while True:
+            data = next(gen)
+            data = np.reshape(data, (batch_size, -1))
+            yield {tensors['input'][0]: data}
 
-    # Have to switch input from output because data is from fwd model
-    train_input_data = train_data['outputs']
-    train_output_data = train_data['inputs']
-    test_input_data = test_data['outputs']
-    test_output_data = test_data['inputs']
-    num_params = get_tf_num_params(right_inv)
+    sess = tf.Session()
+    num_params = get_tf_num_params(data_right_inv)
+    # to_min = ['sub_arrow_error', 'extra', 'supervised_error', 'input', 'inv_fwd_error
+    to_min = ['inv_fwd_error']
+    losses = {a_min: accum(tensors[a_min]) for a_min in to_min}
+    fetch = {'losses': losses}
+    train_supervised(sess, losses, [gen_gen(train_generators)],
+                     [gen_gen(test_generators)], callbacks, fetch, options)
     print("Number of params", num_params)
-    supervised_train(sup_right_inv,
-                     train_input_data,
-                     train_output_data,
-                     test_input_data,
-                     test_output_data,
-                     callbacks=[],
-                     options=options)
+
 
 def generalization_bench():
     """Benchmark generalization ability of inverse graphics methods"""
@@ -379,7 +467,7 @@ def combine_options():
     cust_options.update(default_benchmark_options())
 
     # add render specific options like width/height
-    cust_options = default_render_options()
+    cust_options.update(default_render_options())
 
     # Update with options passed in through command line
     cust_options.update(add_additional_options(argv))

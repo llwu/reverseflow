@@ -267,11 +267,12 @@ def conv(a: TfArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: TfLambdaArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    if 'seen_tf' in state and a.name in state['seen_tf']:
-      return a.func(args, reuse=True)
-    else:
-      state['seen_tf'] = set([a.name])
-      return a.func(args, reuse=False)
+    with tf.name_scope(a.name):
+        if 'seen_tf' in state and a.name in state['seen_tf']:
+          return a.func(args, reuse=True)
+        else:
+          state['seen_tf'] = set([a.name])
+          return a.func(args, reuse=False)
 
 @overload
 def conv(a: StackArrow, args: TensorVarList, state) -> Sequence[Tensor]:

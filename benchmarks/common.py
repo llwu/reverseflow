@@ -32,10 +32,13 @@ def default_benchmark_options():
     options['save_every'] = (int, 100)
     options['compress'] = (boolify, 0,)
     options['num_iterations'] = (int, 1000)
-    options['save'] = (boolify, True)
+    options['dirname'] = (str, "dirname") # FIXME: Remove this
+    options['datadir'] = (str, os.path.join(os.environ['DATADIR'], "rf"))
+
+    # options['save'] = (boolify, True)
     options['template'] = (str, 'res_net')
     options['template_name'] = (str, 'res_net')
-    options['train'] = (boolify, True)
+    # options['train'] = (bool, True)
     options['script'] = (boolify, False)
     return options
 
