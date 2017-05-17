@@ -165,13 +165,16 @@ def gen_img(voxels, gdotl_cube, rotation_matrix, options):
     orig = np.reshape(orig, (nmatrices * width * height, 3))
     rd = np.reshape(rd, (nmatrices * width * height, 3))
     step_sz = np.reshape(step_size, (nmatrices * width * height, 1))
+    # step_sz = np.exp(-step_sz)
     step_sz_flat = step_sz.reshape(nmatrices * width * height)
 
     # For batch rendering, we treat each voxel in each voxel independently,
     nrays = width * height
     x = np.arange(batch_size)
     x_tiled = np.repeat(x, nrays)
-
+    # voxels = tf.exp(-voxels)
+    # voxels = tf.Print(voxels, [tf.reduce_sum(voxels)], message="VOXEL SUM TF")
+    # 998627.56
     for i in range(nsteps):
         # Find the position (x,y,z) of ith step
         pos = orig + rd * step_sz * i
@@ -193,8 +196,9 @@ def gen_img(voxels, gdotl_cube, rotation_matrix, options):
         if phong:
             grad_samples = tf.gather_nd(gdotl_cube, batched_indices)
             attenuation = attenuation * grad_samples
-        left_over = left_over * -attenuation * density * step_sz_flat
+        # left_over = left_over * -attenuation * density * step_sz_flat
         # left_over = left_over * tf.exp(-attenuation * density * step_sz_flat)
+        left_over = left_over * attenuation
 
     img = left_over
     return img
@@ -266,11 +270,11 @@ def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None,
     return inputs, params
 
 
-def plot_batch(image_batch):
+def plot_batch(image_batch, width, height):
   """Plot a batch of images"""
   batch_size = len(image_batch)
   for i in range(batch_size):
-      img = image_batch[i].reshape(128, 128)
+      img = image_batch[i].reshape(width, height)
       plt.imshow(img, cmap='gray')
       plt.ioff()
       plt.show()
@@ -317,15 +321,17 @@ def render_rand_voxels(voxels_data, gdotl_cube_data, options):
             'out_img_data': out_img_data}
 
 from arrows.port_attributes import *
-def test_renderer():
-    options = default_render_options()
+def test_renderer(options):
     voxel_grids = model_net_40()
+    voxel_grids = np.exp(-voxel_grids)
+    # import pdb; pdb.set_trace()
+
     if options['phong']:
         gdotl_cube_data = model_net_40_gdotl()
     else:
         gdotl_cube_data = None
     inp_out = render_rand_voxels(voxel_grids, gdotl_cube_data, options)
-    plot_batch(inp_out['out_img_data'])
+    plot_batch(inp_out['out_img_data'], options['width'], options['height'])
 
 
 def tensor_to_sup_right_inv(output_tensors: Sequence[Tensor], options):
@@ -336,7 +342,7 @@ def tensor_to_sup_right_inv(output_tensors: Sequence[Tensor], options):
     info = propagate(inv_arrow)
 
     def g_tf(args, reuse=False):
-        eps = 1.0
+        eps = 1e-3
         """Tensorflow map from image to pi parameters"""
         shapes = [info[port]['shape'] for port in inv_arrow.param_ports()]
         inp = args[0]
@@ -345,6 +351,7 @@ def tensor_to_sup_right_inv(output_tensors: Sequence[Tensor], options):
         inp = tf.expand_dims(inp, axis=3)
         from tflearn.layers import conv_2d, fully_connected
 
+        tf.summary.image("g_tf_output", inp)
         # Do convolutional layers
         nlayers = 2
         for i in range(nlayers):
@@ -375,10 +382,71 @@ def tensor_to_sup_right_inv(output_tensors: Sequence[Tensor], options):
     return data_right_inv
 
 
+def right_inv_nnet(output_tensors: Sequence[Tensor], options):
+    """Convert outputs from tensoflow graph into supervised loss arrow"""
+    fwd = graph_to_arrow(output_tensors, name="render")
+    info = propagate(fwd)
+
+    def g_tf(args, reuse=False):
+        eps = 1e-3
+        """Tensorflow map from image to pi parameters"""
+        shapes = [info[port]['shape'] for port in fwd.in_ports()]
+        inp = args[0]
+        width, height = getn(options, 'width', 'height')
+        inp = tf.reshape(inp, (-1, width, height))
+        inp = tf.expand_dims(inp, axis=3)
+        from tflearn.layers import conv_2d, fully_connected
+        tf.summary.image("g_tf_output", inp)
+
+        # Do convolutional layers
+        nlayers = 2
+        for i in range(nlayers):
+            inp = conv_2d(inp, nb_filter=4, filter_size=1, activation="elu")
+
+        ratio = width / options['res']
+        inp = conv_2d(inp, nb_filter=options['res'], filter_size=1, strides=int(ratio), activation="sigmoid")
+        return [tf.reshape(inp, (options['batch_size'], -1))]
+
+    from arrows import CompositeArrow, Arrow
+    def wrap(a: Arrow):
+        """Wrap an arrow in a composite arrow"""
+        c = CompositeArrow(name=a.name)
+        for port in a.ports():
+            c_port = c.add_port()
+            if is_in_port(port):
+                make_in_port(c_port)
+                c.add_edge(c_port, port)
+            if is_param_port(port):
+                make_param_port(c_port)
+            if is_out_port(port):
+                make_out_port(c_port)
+                c.add_edge(port, c_port)
+            if is_error_port(port):
+                make_error_port(c_port)
+            transfer_labels(port, c_port)
+
+        assert c.is_wired_correctly()
+        return c
+
+    right_inv = TfLambdaArrow(fwd.num_out_ports(), fwd.num_in_ports(), func=g_tf,
+                            name="img_to_voxels")
+    right_inv = wrap(right_inv)
+    for i, in_port in enumerate(fwd.in_ports()):
+        set_port_shape(right_inv.out_port(i), get_port_shape(in_port, info))
+
+    for i, out_port in enumerate(fwd.out_ports()):
+        set_port_shape(right_inv.in_port(i), get_port_shape(out_port, info))
+
+    inv_arrow = inv_fwd_loss_arrow(fwd, right_inv)
+    # 1. Attach voxel input to right_inverse to feed in x data
+    fwd2 = deepcopy(fwd)
+    data_right_inv = comp(fwd2, inv_arrow)
+    return data_right_inv
+
 def train_test_model_net_40(test_hold_out=0.2, shuffle=True):
     """Split data into train and test partition"""
     voxel_data = model_net_40()
-    voxel_data = np.exp(voxel_data)
+    voxel_data = np.exp(-voxel_data)
     test_hold_out = int(test_hold_out * len(voxel_data))
     if shuffle:
         np.random.shuffle(voxel_data)
@@ -407,7 +475,6 @@ def train_supervised(sess: Session,
 
 
 def accum(losses: Sequence[Tensor]):
-    import pdb; pdb.set_trace()
     return sum([tf.reduce_mean(loss) for loss in losses])
 
 # Benchmarking
@@ -418,6 +485,8 @@ def pi_supervised(options):
 
     # Do the inversion
     data_right_inv = tensor_to_sup_right_inv([out_img], options)
+    # data_right_inv = right_inv_nnet([out_img], options)
+
     callbacks = []
     tf.reset_default_graph()
     grabs = ({'input': lambda p: is_in_port(p) and not is_param_port(p) and not has_port_label(p, 'train_output'),
@@ -441,7 +510,7 @@ def pi_supervised(options):
     sess = tf.Session()
     num_params = get_tf_num_params(data_right_inv)
     # to_min = ['sub_arrow_error', 'extra', 'supervised_error', 'input', 'inv_fwd_error
-    to_min = ['inv_fwd_error']
+    to_min = ['supervised_error']
     losses = {a_min: accum(tensors[a_min]) for a_min in to_min}
     fetch = {'losses': losses}
     train_supervised(sess, losses, [gen_gen(train_generators)],
@@ -486,7 +555,7 @@ def main():
     sfx = gen_sfx_key(('name', 'learning_rate'), options)
     options['sfx'] = sfx
     # inv_viz_allones(voxel_grids, options, batch_size=8)
-    # test_renderer()
+    # test_renderer(options)
     pi_supervised(options)
     # generalization_bench()
 
