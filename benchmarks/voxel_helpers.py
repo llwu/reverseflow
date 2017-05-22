@@ -16,6 +16,14 @@ def model_net_40(voxels_path=os.path.join(os.environ['DATADIR'],
     return voxel_grids
 
 
+def model_net_40_exp(voxels_path=os.path.join(os.environ['DATADIR'],
+                                          'ModelNet40',
+                                          'alltrain32_exp.npy')):
+    """Model net 40 scaled to betwee 0 and 1.0"""
+    voxel_grids = np.load(voxels_path) / 255.0
+    return voxel_grids
+
+
 def model_net_40_grads(voxels_path=os.path.join(os.environ['DATADIR'],
                                                 'ModelNet40',
                                                 'alltrain32grads.npz')):

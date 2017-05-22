@@ -197,8 +197,8 @@ def gen_img(voxels, gdotl_cube, rotation_matrix, options):
             grad_samples = tf.gather_nd(gdotl_cube, batched_indices)
             attenuation = attenuation * grad_samples
         # left_over = left_over * -attenuation * density * step_sz_flat
-        # left_over = left_over * tf.exp(-attenuation * density * step_sz_flat)
-        left_over = left_over * attenuation
+        left_over = left_over * tf.exp(-attenuation * density * step_sz_flat)
+        # left_over = left_over * attenuation
 
     img = left_over
     return img
@@ -261,7 +261,7 @@ def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None,
         rand_voxel_id = np.random.randint(0, voxel_grids.shape[0], size=batch_size)
         input_data = [voxel_grids[rand_voxel_id].reshape(shape).astype(np.float32) for shape in shapes]
         inputs.append(input_data)
-        params_bwd = apply_backwards(inv, input_data, port_attr=port_attr)
+        params_bwd = apply_backwards(inv, input_data, port_attr=None)
         params_list = [params_bwd[port] for port in inv.in_ports() if is_param_port(port)]
         params.append(params_list)
     if pickle_to is not None:
@@ -280,20 +280,20 @@ def plot_batch(image_batch, width, height):
       plt.show()
 
 
-def inv_viz_allones(voxel_grids, options, batch_size):
+def inv_viz_allones(voxel_grids, options):
     """Invert voxel renderer, run with all 1s as parameters, visualize"""
-    arrow, inv = test_render_graph(options, batch_size=batch_size)
+    arrow, inv = test_invert_render_graph(options)
     info = propagate(inv)
-    inputs, params = get_param_pairs(inv, voxel_grids, batch_size, 1,
+    inputs, params = get_param_pairs(inv, voxel_grids, options['batch_size'], 1,
                                      port_attr=info)
     outputs = apply(arrow, inputs[0])
     output_list = [outputs[0]] + params[0]
     recons = apply(inv, output_list)[0]
     recons_fwd = apply(arrow, [recons])
     for i in range(batch_size):
-        img_A = outputs[0][i].reshape(128, 128)
+        img_A = outputs[0][i].reshape(options['width'], options['height'])
         padding = np.zeros((128, 16))
-        img_B = recons_fwd[0][i].reshape(128, 128)
+        img_B = recons_fwd[0][i].reshape(options['width'], options['height'])
         plot_image = np.concatenate((img_A, padding, img_B), axis=1)
         plt.imshow(plot_image, cmap='gray')
         plt.ioff()
@@ -446,7 +446,7 @@ def right_inv_nnet(output_tensors: Sequence[Tensor], options):
 def train_test_model_net_40(test_hold_out=0.2, shuffle=True):
     """Split data into train and test partition"""
     voxel_data = model_net_40()
-    voxel_data = np.exp(-voxel_data)
+    # voxel_data = np.exp(-voxel_data)
     test_hold_out = int(test_hold_out * len(voxel_data))
     if shuffle:
         np.random.shuffle(voxel_data)
@@ -554,9 +554,9 @@ def main():
     options = combine_options()
     sfx = gen_sfx_key(('name', 'learning_rate'), options)
     options['sfx'] = sfx
-    # inv_viz_allones(voxel_grids, options, batch_size=8)
+    inv_viz_allones(voxel_grids, options)
     # test_renderer(options)
-    pi_supervised(options)
+    # pi_supervised(options)
     # generalization_bench()
 
 
