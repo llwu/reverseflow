@@ -42,46 +42,6 @@ def default_benchmark_options():
     options['script'] = (boolify, False)
     return options
 
-# FIXME: Delete me
-def handle_options(name, argv):
-    """Parse options from the command line and populate with defaults"""
-    parser = PassThroughOptionParser()
-    parser.add_option('-t', '--template', dest='template', nargs=1, type='string')
-    (poptions, args) = parser.parse_args(argv)
-    # Get default options
-    options = default_benchmark_options()
-    if poptions.template is None:
-        options['template'] = 'res_net'
-    else:
-        options['template'] = poptions.template
-
-    # Get template specific options
-    template_kwargs = template_module[options['template']].kwargs()
-    options.update(template_kwargs)
-    options = handle_args(argv, options)
-    options['template_name'] = options['template']
-    options['template'] = template_module[options['template']].template
-    return options
-
-
-def add_additional_options(argv):
-    """Add options which only exist depending on other options"""
-    parser = PassThroughOptionParser()
-    parser.add_option('-t', '--template', dest='template', nargs=1,
-                      type='string')
-    (poptions, args) = parser.parse_args(argv)
-    # Get default options
-    options = {}
-    if poptions.template is None:
-        options['template'] = 'res_net'
-    else:
-        options['template'] = poptions.template
-
-    # Get template specific options
-    options.update(template_module[options['template']].kwargs())
-    return options
-
-
 # Training stuff
 def gen_arrow(batch_size, model_tensorflow, options):
     inputs, outputs = getn(model_tensorflow(**options), 'inputs', 'outputs')

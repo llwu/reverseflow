@@ -4,7 +4,7 @@ from arrows.port_attributes import *
 from arrows.compositearrow import CompositeArrow
 from arrows.tfarrow import TfArrow
 from arrows.util.generators import *
-from arrows.util.io import mk_dir, save_dict_csv
+from wacacore.util.io import mk_dir, save_dict_csv
 from arrows.util.misc import getn, inn
 from typing import Tuple, Callable
 from reverseflow.train.common import *

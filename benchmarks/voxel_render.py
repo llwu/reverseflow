@@ -20,8 +20,7 @@ from arrows.util.misc import getn
 from arrows.util.viz import show_tensorboard, show_tensorboard_graph
 from arrows.tfarrow import TfLambdaArrow
 
-from benchmarks.common import (handle_options, add_additional_options,
-  default_benchmark_options, pi_supervised)
+from benchmarks.common import (default_benchmark_options, pi_supervised)
 from metrics.generalization import test_generalization
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
@@ -36,6 +35,14 @@ from voxel_helpers import model_net_40, model_net_40_gdotl, rand_rotation_matric
 from wacacore.util.generators import infinite_batches
 from wacacore.util.io import handle_args, gen_sfx_key
 from wacacore.train.common import updates, train_load_save
+
+from wacacore.train.common import (train_loop, updates, variable_summaries,
+                                   setup_file_writers, get_variables)
+
+from wacacore.train.callbacks import every_n, summary_writes
+from wacacore.train.search import rand_local_hyper_search
+from wacacore.util.io import handle_args
+
 
 # For repeatability
 # STD_ROTATION_MATRIX = rand_rotation_matrices(nviews)
@@ -537,12 +544,7 @@ def combine_options():
 
     # add render specific options like width/height
     cust_options.update(default_render_options())
-
-    # Update with options passed in through command line
-    cust_options.update(add_additional_options(argv))
-
-    options = handle_args(argv, cust_options)
-    return options
+    return cust_options
 
 
 def main():
@@ -552,10 +554,12 @@ def main():
 
     voxel_grids = model_net_40()
     options = combine_options()
+    cust_opts = combine_options()
+    options = handle_args(sys.argv[1:], cust_opts)
     sfx = gen_sfx_key(('name', 'learning_rate'), options)
     options['sfx'] = sfx
-    inv_viz_allones(voxel_grids, options)
-    # test_renderer(options)
+    test_renderer(options)
+    # inv_viz_allones(voxel_grids, options)
     # pi_supervised(options)
     # generalization_bench()
 
