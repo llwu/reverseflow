@@ -330,7 +330,7 @@ def render_rand_voxels(voxels_data, gdotl_cube_data, options):
 from arrows.port_attributes import *
 def test_renderer(options):
     voxel_grids = model_net_40()
-    voxel_grids = np.exp(-voxel_grids)
+    # voxel_grids = np.exp(-voxel_grids)
     # import pdb; pdb.set_trace()
 
     if options['phong']:
@@ -558,6 +558,7 @@ def main():
     options = handle_args(sys.argv[1:], cust_opts)
     sfx = gen_sfx_key(('name', 'learning_rate'), options)
     options['sfx'] = sfx
+    import pdb; pdb.set_trace()
     test_renderer(options)
     # inv_viz_allones(voxel_grids, options)
     # pi_supervised(options)
