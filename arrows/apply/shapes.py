@@ -47,10 +47,7 @@ def source_predicate(a, port_attr: PortAttributes, state=None) -> bool:
     return True
 
 
-@overload
-def constant_to_shape(x):
-    print(x)
-    assert False
+
 
 
 @overload

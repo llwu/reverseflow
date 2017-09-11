@@ -25,7 +25,8 @@ def apply(arrow: Arrow, inputs: List[np.ndarray]) -> List[np.ndarray]:
         input_tensors = []
         for i in range(len(inputs)):
             dtype = get_port_dtype(arrow.in_port(i))
-            input_tensors.append(tf.placeholder(dtype=dtype))
+            input_tensors.append(tf.placeholder(dtype=dtype,
+                                 shape=inputs[i].shape))
         outputs = arrow_to_graph(arrow, input_tensors)
         feed_dict = dict(zip(input_tensors, inputs))
         init = tf.global_variables_initializer()

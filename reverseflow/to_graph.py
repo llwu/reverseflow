@@ -267,7 +267,12 @@ def conv(a: TfArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: TfLambdaArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    return a.func(args)
+    with tf.name_scope(a.name):
+        if 'seen_tf' in state and a.name in state['seen_tf']:
+          return a.func(args, reuse=True)
+        else:
+          state['seen_tf'] = set([a.name])
+          return a.func(args, reuse=False)
 
 @overload
 def conv(a: StackArrow, args: TensorVarList, state) -> Sequence[Tensor]:
@@ -275,8 +280,15 @@ def conv(a: StackArrow, args: TensorVarList, state) -> Sequence[Tensor]:
 
 @overload
 def conv(a: TransposeArrow, args: TensorVarList, state) -> Sequence[Tensor]:
-    return [tf.transpose(args[0], a.perm)]
+    inp = args[0]
+    inp = tf.transpose(inp, a.perm)
+    # inp = tf.Print(inp, [inp[0, 0, 0], inp[0, 0, 1]], message="transpose")
+    return [inp]
 
+@overload
+def conv(a: IgnoreInputArrow, args: TensorVarList, state) -> Sequence[Tensor]:
+    inp = args[1]
+    return [inp]
 
 @overload
 def conv(a: CompositeArrow, args: TensorVarList, state) -> Sequence[Tensor]:

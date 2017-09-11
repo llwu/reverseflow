@@ -1,9 +1,12 @@
 """ (Inverse) Rendering"""
-import os
 import signal
 import sys
 import pdb
+from copy import deepcopy
+from typing import Sequence
+from typing import Generator, Callable, Sequence
 
+from tensorflow import Session, Tensor
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
@@ -15,16 +18,31 @@ from arrows.port_attributes import is_param_port, is_error_port
 from arrows.transform.eliminate_gather import eliminate_gathernd
 from arrows.util.misc import getn
 from arrows.util.viz import show_tensorboard, show_tensorboard_graph
-from benchmarks.common import handle_options
+from arrows.tfarrow import TfLambdaArrow
+
+from benchmarks.common import (default_benchmark_options, pi_supervised)
 from metrics.generalization import test_generalization
 from reverseflow.invert import invert
 from reverseflow.to_arrow import graph_to_arrow
 from reverseflow.train.common import get_tf_num_params
-from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow
+from reverseflow.train.loss import inv_fwd_loss_arrow, supervised_loss_arrow, comp
 from reverseflow.train.supervised import supervised_train
 from reverseflow.train.unparam import unparam
+from reverseflow.train.common import extract_tensors
 
 from voxel_helpers import model_net_40, model_net_40_gdotl, rand_rotation_matrices
+
+from wacacore.util.generators import infinite_batches
+from wacacore.util.io import handle_args, gen_sfx_key
+from wacacore.train.common import updates, train_load_save
+
+from wacacore.train.common import (train_loop, updates, variable_summaries,
+                                   setup_file_writers, get_variables)
+
+from wacacore.train.callbacks import every_n, summary_writes
+from wacacore.train.search import rand_local_hyper_search
+from wacacore.util.io import handle_args
+
 
 # For repeatability
 # STD_ROTATION_MATRIX = rand_rotation_matrices(nviews)
@@ -33,7 +51,7 @@ STD_ROTATION_MATRIX = np.array([[[0.94071758, -0.33430171, -0.05738258],
                                  [0.02383425, 0.2339063, -0.97196698]]])
 
 # Genereate values in raster space, x[i,j] = [i,j]
-def gen_fragcoords(width, height):
+def gen_fragcoords(width: int, height: int):
     """Create a (width * height * 2) matrix, where element i,j is [i,j]
        This is used to generate ray directions based on an increment"""
     raster_space = np.zeros([width, height, 2], dtype=floatX())
@@ -44,7 +62,7 @@ def gen_fragcoords(width, height):
 
 
 # Append an image filled with scalars to the back of an image.
-def stack(intensor, width, height, scalar):
+def stack(intensor, width: int, height: int, scalar):
     scalars = np.ones([width, height, 1], dtype=floatX()) * scalar
     return np.concatenate([intensor, scalars], axis=2)
 
@@ -87,12 +105,6 @@ def make_ro(r, raster_space, width, height):
     unnorm_rd = ndc_t - np.reshape(ro_t, (nmatrices, 1, 1, 3))
     rd = unnorm_rd / np.reshape(norm(unnorm_rd), (nmatrices, width, height, 1))
     return rd, ro_t
-
-# 1. possibly some constraints on the options, i.e. a struct ratehr than anything
-# goes dictionary
-# 2. want to be able to call the function independently from creating a struct
-# 3. I want to be able to pass the struct along easily without its members being lost
-
 
 
 def gen_img(voxels, gdotl_cube, rotation_matrix, options):
@@ -160,13 +172,16 @@ def gen_img(voxels, gdotl_cube, rotation_matrix, options):
     orig = np.reshape(orig, (nmatrices * width * height, 3))
     rd = np.reshape(rd, (nmatrices * width * height, 3))
     step_sz = np.reshape(step_size, (nmatrices * width * height, 1))
+    # step_sz = np.exp(-step_sz)
     step_sz_flat = step_sz.reshape(nmatrices * width * height)
 
     # For batch rendering, we treat each voxel in each voxel independently,
     nrays = width * height
     x = np.arange(batch_size)
     x_tiled = np.repeat(x, nrays)
-
+    # voxels = tf.exp(-voxels)
+    # voxels = tf.Print(voxels, [tf.reduce_sum(voxels)], message="VOXEL SUM TF")
+    # 998627.56
     for i in range(nsteps):
         # Find the position (x,y,z) of ith step
         pos = orig + rd * step_sz * i
@@ -188,22 +203,25 @@ def gen_img(voxels, gdotl_cube, rotation_matrix, options):
         if phong:
             grad_samples = tf.gather_nd(gdotl_cube, batched_indices)
             attenuation = attenuation * grad_samples
+        # left_over = left_over * -attenuation * density * step_sz_flat
         left_over = left_over * tf.exp(-attenuation * density * step_sz_flat)
+        # left_over = left_over * attenuation
 
     img = left_over
     return img
 
 
-def default_options():
+def default_render_options():
     """Default options for rendering"""
-    return {'batch_size': 8,
-            'width': 128,
-            'height': 128,
-            'res': 32,
-            'nsteps': 100,
-            'nviews': 1,
-            'density': 10.0,
-            'phong': False}
+    return {'batch_size': (int, 8),
+            'width': (int, 128),
+            'height': (int, 128),
+            'res': (int, 32),
+            'nsteps': (int, 6),
+            'nviews': (int, 1),
+            'density': (int, 1.0),
+            'phong': (bool, False),
+            'name': (str, 'Voxel_Render')}
 
 
 def render_gen_graph(options):
@@ -212,7 +230,6 @@ def render_gen_graph(options):
     batch_size = options.get('batch_size')
     phong = options.get('phong')
     nviews = options.get('nviews')
-
     nvoxels = res * res * res
 
     with tf.name_scope("fwd_g"):
@@ -234,7 +251,7 @@ def render_gen_graph(options):
 
 def test_invert_render_graph(options):
     out_img = render_gen_graph(options)['out_img']
-    arrow_renderer = graph_to_arrow([out_img_tensor], name="renderer")
+    arrow_renderer = graph_to_arrow([out_img], name="renderer")
     inv_renderer = invert(arrow_renderer)
     return arrow_renderer, inv_renderer
 
@@ -251,7 +268,7 @@ def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None,
         rand_voxel_id = np.random.randint(0, voxel_grids.shape[0], size=batch_size)
         input_data = [voxel_grids[rand_voxel_id].reshape(shape).astype(np.float32) for shape in shapes]
         inputs.append(input_data)
-        params_bwd = apply_backwards(inv, input_data, port_attr=port_attr)
+        params_bwd = apply_backwards(inv, input_data, port_attr=None)
         params_list = [params_bwd[port] for port in inv.in_ports() if is_param_port(port)]
         params.append(params_list)
     if pickle_to is not None:
@@ -260,30 +277,30 @@ def get_param_pairs(inv, voxel_grids, batch_size, n, port_attr=None,
     return inputs, params
 
 
-def plot_batch(image_batch):
+def plot_batch(image_batch, width, height):
   """Plot a batch of images"""
   batch_size = len(image_batch)
   for i in range(batch_size):
-      img = image_batch[i].reshape(128, 128)
+      img = image_batch[i].reshape(width, height)
       plt.imshow(img, cmap='gray')
       plt.ioff()
       plt.show()
 
 
-def inv_viz_allones(voxel_grids, options, batch_size):
+def inv_viz_allones(voxel_grids, options):
     """Invert voxel renderer, run with all 1s as parameters, visualize"""
-    arrow, inv = test_render_graph(options, batch_size=batch_size)
+    arrow, inv = test_invert_render_graph(options)
     info = propagate(inv)
-    inputs, params = get_param_pairs(inv, voxel_grids, batch_size, 1,
+    inputs, params = get_param_pairs(inv, voxel_grids, options['batch_size'], 1,
                                      port_attr=info)
     outputs = apply(arrow, inputs[0])
     output_list = [outputs[0]] + params[0]
     recons = apply(inv, output_list)[0]
     recons_fwd = apply(arrow, [recons])
     for i in range(batch_size):
-        img_A = outputs[0][i].reshape(128, 128)
+        img_A = outputs[0][i].reshape(options['width'], options['height'])
         padding = np.zeros((128, 16))
-        img_B = recons_fwd[0][i].reshape(128, 128)
+        img_B = recons_fwd[0][i].reshape(options['width'], options['height'])
         plot_image = np.concatenate((img_A, padding, img_B), axis=1)
         plt.imshow(plot_image, cmap='gray')
         plt.ioff()
@@ -310,62 +327,202 @@ def render_rand_voxels(voxels_data, gdotl_cube_data, options):
     return {'input_voxels': input_voxels,
             'out_img_data': out_img_data}
 
-
-def main():
-    def debug_signal_handler(signal, frame):
-        pdb.set_trace()
-    signal.signal(signal.SIGINT, debug_signal_handler)
+from arrows.port_attributes import *
+def test_renderer(options):
     voxel_grids = model_net_40()
-    inv_viz_allones(voxel_grids, options, batch_size=8)
-    # generalization_bench()
+    # voxel_grids = np.exp(-voxel_grids)
+    # import pdb; pdb.set_trace()
 
-
-def test_renderer():
-    options = default_options()
-    voxel_grids = model_net_40()
     if options['phong']:
         gdotl_cube_data = model_net_40_gdotl()
     else:
         gdotl_cube_data = None
     inp_out = render_rand_voxels(voxel_grids, gdotl_cube_data, options)
-    plot_batch(inp_out['out_img_data'])
+    plot_batch(inp_out['out_img_data'], options['width'], options['height'])
 
 
-if __name__ == "__main__":
-    test_renderer()
-    # main()
+def tensor_to_sup_right_inv(output_tensors: Sequence[Tensor], options):
+    """Convert outputs from tensoflow graph into supervised loss arrow"""
+    fwd = graph_to_arrow(output_tensors, name="render")
+    inv = invert(fwd)
+    inv_arrow = inv_fwd_loss_arrow(fwd, inv)
+    info = propagate(inv_arrow)
+
+    def g_tf(args, reuse=False):
+        eps = 1e-3
+        """Tensorflow map from image to pi parameters"""
+        shapes = [info[port]['shape'] for port in inv_arrow.param_ports()]
+        inp = args[0]
+        width, height = getn(options, 'width', 'height')
+        inp = tf.reshape(inp, (-1, width, height))
+        inp = tf.expand_dims(inp, axis=3)
+        from tflearn.layers import conv_2d, fully_connected
+
+        tf.summary.image("g_tf_output", inp)
+        # Do convolutional layers
+        nlayers = 2
+        for i in range(nlayers):
+            inp = conv_2d(inp, nb_filter=4, filter_size=1, activation="elu")
+
+        inp = conv_2d(inp, nb_filter=options['nsteps'], filter_size=1, activation="sigmoid")
+        out = []
+        for i, shape in enumerate(shapes):
+            this_inp = inp[:, :, :, i:i+1]
+            if shape[1] == width * height:
+                this_inp = tf.reshape(this_inp, (options['batch_size'], -1)) + eps
+                out.append(this_inp)
+            else:
+                r_length = int(np.ceil(np.sqrt(shape[1])))
+                rs = tf.image.resize_images(this_inp, (r_length, r_length))
+                rs = tf.reshape(rs, (options['batch_size'], -1)) + eps
+                out.append(rs[:, 0:shape[1]])
+        return out
+
+    g_arrow = TfLambdaArrow(1, inv_arrow.num_param_ports(), func=g_tf,
+                            name="img_to_theta")
+    right_inv = unparam(inv_arrow, nnet=g_arrow)
+
+    # 1. Attach voxel input to right_inverse to feed in x data
+    fwd2 = deepcopy(fwd)
+    data_right_inv = comp(fwd2, right_inv)
+    # sup_right_inv = supervised_loss_arrow(right_inv)
+    return data_right_inv
+
+
+def right_inv_nnet(output_tensors: Sequence[Tensor], options):
+    """Convert outputs from tensoflow graph into supervised loss arrow"""
+    fwd = graph_to_arrow(output_tensors, name="render")
+    info = propagate(fwd)
+
+    def g_tf(args, reuse=False):
+        eps = 1e-3
+        """Tensorflow map from image to pi parameters"""
+        shapes = [info[port]['shape'] for port in fwd.in_ports()]
+        inp = args[0]
+        width, height = getn(options, 'width', 'height')
+        inp = tf.reshape(inp, (-1, width, height))
+        inp = tf.expand_dims(inp, axis=3)
+        from tflearn.layers import conv_2d, fully_connected
+        tf.summary.image("g_tf_output", inp)
+
+        # Do convolutional layers
+        nlayers = 2
+        for i in range(nlayers):
+            inp = conv_2d(inp, nb_filter=4, filter_size=1, activation="elu")
+
+        ratio = width / options['res']
+        inp = conv_2d(inp, nb_filter=options['res'], filter_size=1, strides=int(ratio), activation="sigmoid")
+        return [tf.reshape(inp, (options['batch_size'], -1))]
+
+    from arrows import CompositeArrow, Arrow
+    def wrap(a: Arrow):
+        """Wrap an arrow in a composite arrow"""
+        c = CompositeArrow(name=a.name)
+        for port in a.ports():
+            c_port = c.add_port()
+            if is_in_port(port):
+                make_in_port(c_port)
+                c.add_edge(c_port, port)
+            if is_param_port(port):
+                make_param_port(c_port)
+            if is_out_port(port):
+                make_out_port(c_port)
+                c.add_edge(port, c_port)
+            if is_error_port(port):
+                make_error_port(c_port)
+            transfer_labels(port, c_port)
+
+        assert c.is_wired_correctly()
+        return c
+
+    right_inv = TfLambdaArrow(fwd.num_out_ports(), fwd.num_in_ports(), func=g_tf,
+                            name="img_to_voxels")
+    right_inv = wrap(right_inv)
+    for i, in_port in enumerate(fwd.in_ports()):
+        set_port_shape(right_inv.out_port(i), get_port_shape(in_port, info))
+
+    for i, out_port in enumerate(fwd.out_ports()):
+        set_port_shape(right_inv.in_port(i), get_port_shape(out_port, info))
+
+    inv_arrow = inv_fwd_loss_arrow(fwd, right_inv)
+    # 1. Attach voxel input to right_inverse to feed in x data
+    fwd2 = deepcopy(fwd)
+    data_right_inv = comp(fwd2, inv_arrow)
+    return data_right_inv
+
+def train_test_model_net_40(test_hold_out=0.2, shuffle=True):
+    """Split data into train and test partition"""
+    voxel_data = model_net_40()
+    # voxel_data = np.exp(-voxel_data)
+    test_hold_out = int(test_hold_out * len(voxel_data))
+    if shuffle:
+        np.random.shuffle(voxel_data)
+    test_voxel_data = voxel_data[0:test_hold_out]
+    train_voxel_data = voxel_data[test_hold_out:]
+    return train_voxel_data, test_voxel_data
+
+
+def train_supervised(sess: Session,
+                     losses: Dict[str, Tensor],
+                     train_generators: Sequence[Generator],
+                     test_generators: Sequence[Generator],
+                     callbacks: Sequence[Callable],
+                     fetch,
+                     options):
+    """Train a set-generative adversarial network"""
+    # Loss terms
+    loss_updates = [updates(loss, None, options=options)[1] for loss in losses.values()]
+
+    # Summaries
+    for k, v in losses.items():
+        tf.summary.scalar(k, v)
+    fetch['summaries'] = tf.summary.merge_all()
+    return train_load_save(sess, loss_updates, fetch, train_generators,
+                           test_generators, callbacks, options)
+
+
+def accum(losses: Sequence[Tensor]):
+    return sum([tf.reduce_mean(loss) for loss in losses])
 
 # Benchmarking
 def pi_supervised(options):
     """Neural network enhanced Parametric inverse! to do supervised learning"""
-    tf.reset_default_graph()
-    g = tf.get_default_graph()
-    batch_size = options['batch_size']
-    results = render_gen_graph(g, batch_size)
-    out_img_tensor = results['outputs']['out_img']
-    arrow_renderer = graph_to_arrow([out_img_tensor])
-    inverted = invert(arrow_renderer)
-    inv_arrow = inv_fwd_loss_arrow(arrow_renderer, inverted)
-    right_inv = unparam(inv_arrow)
-    sup_right_inv = supervised_loss_arrow(right_inv)
-    # Get training and test_data
-    train_data = render_rand_voxels(batch_size)
-    test_data = render_rand_voxels(1024)
+    tens = render_gen_graph(options)
+    voxels, gdotl_cube, out_img = getn(tens, 'voxels', 'gdotl_cube', 'out_img')
 
-    # Have to switch input from output because data is from fwd model
-    train_input_data = train_data['outputs']
-    train_output_data = train_data['inputs']
-    test_input_data = test_data['outputs']
-    test_output_data = test_data['inputs']
-    num_params = get_tf_num_params(right_inv)
+    # Do the inversion
+    data_right_inv = tensor_to_sup_right_inv([out_img], options)
+    # data_right_inv = right_inv_nnet([out_img], options)
+
+    callbacks = []
+    tf.reset_default_graph()
+    grabs = ({'input': lambda p: is_in_port(p) and not is_param_port(p) and not has_port_label(p, 'train_output'),
+              'supervised_error':  lambda p: has_port_label(p, 'supervised_error'),
+              'sub_arrow_error':  lambda p: has_port_label(p, 'sub_arrow_error'),
+              'inv_fwd_error':  lambda p: has_port_label(p, 'inv_fwd_error')})
+    # Not all arrows will have these ports
+    optional = ['sub_arrow_error', 'inv_fwd_error']
+    tensors = extract_tensors(data_right_inv, grabs=grabs, optional=optional)
+    train_voxel_data, test_voxel_data = train_test_model_net_40()
+    batch_size = options['batch_size']
+    train_generators = infinite_batches(train_voxel_data, batch_size=batch_size)
+    test_generators = infinite_batches(test_voxel_data, batch_size=batch_size)
+
+    def gen_gen(gen):
+        while True:
+            data = next(gen)
+            data = np.reshape(data, (batch_size, -1))
+            yield {tensors['input'][0]: data}
+
+    sess = tf.Session()
+    num_params = get_tf_num_params(data_right_inv)
+    # to_min = ['sub_arrow_error', 'extra', 'supervised_error', 'input', 'inv_fwd_error
+    to_min = ['supervised_error']
+    losses = {a_min: accum(tensors[a_min]) for a_min in to_min}
+    fetch = {'losses': losses}
+    train_supervised(sess, losses, [gen_gen(train_generators)],
+                     [gen_gen(test_generators)], callbacks, fetch, options)
     print("Number of params", num_params)
-    supervised_train(sup_right_inv,
-                     train_input_data,
-                     train_output_data,
-                     test_input_data,
-                     test_output_data,
-                     callbacks=[],
-                     options=options)
 
 
 def generalization_bench():
@@ -375,3 +532,38 @@ def generalization_bench():
     options['sfx'] = sfx
     options['description'] = "Voxel Generalization Benchmark"
     test_generalization(pi_supervised, options)
+
+
+def combine_options():
+    """Get options by combining default and command line"""
+    cust_options = {}
+    argv = sys.argv[1:]
+
+    # add default options like num_iterations
+    cust_options.update(default_benchmark_options())
+
+    # add render specific options like width/height
+    cust_options.update(default_render_options())
+    return cust_options
+
+
+def main():
+    def debug_signal_handler(signal, frame):
+        pdb.set_trace()
+    signal.signal(signal.SIGINT, debug_signal_handler)
+
+    voxel_grids = model_net_40()
+    options = combine_options()
+    cust_opts = combine_options()
+    options = handle_args(sys.argv[1:], cust_opts)
+    sfx = gen_sfx_key(('name', 'learning_rate'), options)
+    options['sfx'] = sfx
+    import pdb; pdb.set_trace()
+    test_renderer(options)
+    # inv_viz_allones(voxel_grids, options)
+    # pi_supervised(options)
+    # generalization_bench()
+
+
+if __name__ == "__main__":
+    main()

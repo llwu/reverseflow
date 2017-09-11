@@ -4,6 +4,7 @@ import tensorflow as tf
 
 from arrows.compositearrow import CompositeArrow
 from arrows.port_attributes import *
+from arrows.primitive.control_flow import IgnoreInputArrow
 
 
 def gathernd_bwd_pred(arr: "InvGatherNdArrow", port_attr: PortAttributes):
@@ -16,6 +17,7 @@ def gathernd_bwd_disp(arr: "InvGatherNdArrow", port_attr: PortAttributes):
     gather_nd = tf.gather_nd(output, inds)
     with tf.Session() as sess:
         return {arr.in_ports()[0]: {'value': sess.run(gather_nd)}}
+
 
 
 class InvGatherNdArrow(CompositeArrow):
@@ -32,10 +34,18 @@ class InvGatherNdArrow(CompositeArrow):
         make_param_port(self.in_port(1))
         out_port = self.add_port()
         make_out_port(out_port)
-        # there should maybe be an error term here if doing it this way (though current elim is exact)
-        self.add_edge(self.in_port(1), out_port)
-        # FIXME: following complains about ignoring input
-        # self.is_wired_correctly()
+
+        ii1 = IgnoreInputArrow()
+        ii2 = IgnoreInputArrow()
+
+        # there should maybe be an error term here if doing it this way
+        # (though current elim is exact)
+        self.add_edge(self.in_port(0), ii1.in_port(0))
+        self.add_edge(self.in_port(1), ii1.in_port(1))
+        self.add_edge(self.in_port(2), ii2.in_port(0))
+        self.add_edge(ii1.out_port(0), ii2.in_port(1))
+        self.add_edge(ii2.out_port(0), out_port)
+        assert self.is_wired_correctly()
 
     def get_dispatches(self):
         disp = super().get_dispatches()

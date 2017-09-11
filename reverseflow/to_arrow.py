@@ -138,8 +138,8 @@ def is_input_tensor(tensor: Tensor) -> bool:
 
 
 def graph_to_arrow(output_tensors: Sequence[Tensor],
-                   input_tensors: Sequence[Tensor]=None,
-                   name:str=None) -> Arrow:
+                   name: str,
+                   input_tensors: Sequence[Tensor]=None) -> Arrow:
     """Convert a tensorflow graph into an arrow.
     Assume inputs are 'Placeholder' tensors
     Args:

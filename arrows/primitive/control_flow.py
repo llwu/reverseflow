@@ -134,6 +134,46 @@ class IdentityArrow(PrimitiveArrow):
         return disp
 
 
+def ig_in_value_pred(arr: "IgnoreInputArrow", port_attr: PortAttributes):
+    """Fire if second value present, dont care about first"""
+    return arr.in_port(1) in port_attr and 'value' in port_attr[arr.in_port(1)]
+
+
+def ig_in_shape_pred(arr: "IgnoreInputArrow", port_attr: PortAttributes):
+    """Fire if second value present, dont care about first"""
+    return arr.in_port(1) in port_attr and 'shape' in port_attr[arr.in_port(1)]
+
+
+def ig_in_value_disp(arr: "IgnoreInputArrow", port_attr: PortAttributes):
+    """Just propagate value"""
+    value = port_attr[arr.in_port(1)]['value']
+    return {arr.out_port(0): {'value': value}}
+
+
+def ig_in_shape_disp(arr: "IgnoreInputArrow", port_attr: PortAttributes):
+    """Just propagate shape"""
+    shape = port_attr[arr.in_port(1)]['shape']
+    return {arr.out_port(0): {'shape': shape}}
+
+
+class IgnoreInputArrow(PrimitiveArrow):
+    """
+    Just ignores first input and passess through second
+    f(x, y) = y
+    """
+
+    def __init__(self):
+      super().__init__(n_in_ports=2, n_out_ports=1, name="IgnoreInput")
+
+    def get_dispatches(self):
+        disp = super().get_dispatches()
+        disp.update({
+            ig_in_value_pred: ig_in_value_disp,
+            ig_in_shape_pred: ig_in_shape_disp,
+            })
+        return disp
+
+
 class IfArrow(PrimitiveArrow):
     """
     IfArrow with 3 inputs: input[0] is a boolean indicating which one
